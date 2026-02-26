@@ -1,0 +1,364 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum SystemRole {
+  SUPER_ADMIN // Platform owner — manages all tenants & subscriptions
+  ORG_ADMIN   // Business owner (one per organization)
+  ORG_STAFF   // Staff user created by the business owner
+}
+
+enum BillType {
+  PURCHASE
+  SALE
+}
+
+enum PricingMode {
+  WEIGHT // per 10 KG
+  UNIT   // per crate / unit
+}
+
+enum PaymentMode {
+  CASH
+  BANK_TRANSFER
+  OTHER
+}
+
+enum ChargeType {
+  PERCENTAGE
+  FIXED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+}
+
+enum PlanInterval {
+  MONTHLY
+  YEARLY
+}
+
+// ─── Organization (Tenant) ──────────────────────────────
+
+model Organization {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String
+  slug      String   @unique // URL-safe identifier, e.g. "ramesh-mandi"
+  phone     String?
+  email     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  farmers        Farmer[]
+  customers      Customer[]
+  items          Item[]
+  bills          Bill[]
+  payments       Payment[]
+  returns        Return[]
+  auditLogs      AuditLog[]
+  businessConfig BusinessConfig?
+  subscriptions  Subscription[]
+}
+
+// ─── Subscription Plans (Super Admin manages) ───────────
+
+model Plan {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  name             String   @unique // e.g. "Starter", "Pro", "Enterprise"
+  description      String?
+  priceMonthly     Decimal  @db.Decimal(10, 2)
+  priceYearly      Decimal  @db.Decimal(10, 2)
+  maxUsers         Int?     // null = unlimited
+  maxFarmers       Int?
+  maxCustomers     Int?
+  maxBillsPerMonth Int?
+  features         Json?    // flexible feature flags, e.g. {"exportReports": true, "auditLogs": true}
+  isActive         Boolean  @default(true)
+  displayOrder     Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+// ─── Subscription (links Organization → Plan) ──────────
+
+model Subscription {
+  id                 String             @id @default(uuid(7)) @db.Uuid
+  organizationId     String             @db.Uuid
+  organization       Organization       @relation(fields: [organizationId], references: [id])
+  planId             String             @db.Uuid
+  plan               Plan               @relation(fields: [planId], references: [id])
+  status             SubscriptionStatus @default(TRIAL)
+  interval           PlanInterval       @default(MONTHLY)
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  trialEndsAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@index([planId])
+  @@index([status])
+}
+
+// ─── Users ──────────────────────────────────────────────
+
+model User {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  username       String        @unique // globally unique for platform login
+  password       String        // bcrypt hashed
+  pin            String?       // optional 4-digit PIN for staff
+  name           String
+  role           SystemRole    @default(ORG_STAFF)
+  isActive       Boolean       @default(true)
+  organizationId String?       @db.Uuid // null for SUPER_ADMIN
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  bills     Bill[]
+  payments  Payment[]
+  returns   Return[]
+  auditLogs AuditLog[]
+
+  @@index([organizationId])
+}
+
+// ─── Farmers (Suppliers) ────────────────────────────────
+
+model Farmer {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  mobile         String
+  address        String?
+  balance        Decimal      @default(0) @db.Decimal(12, 2) // amount business owes farmer
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  bills    Bill[]
+  payments Payment[]
+
+  @@unique([organizationId, mobile])
+  @@index([organizationId])
+  @@index([name])
+  @@index([mobile])
+}
+
+// ─── Customers (Buyers) ─────────────────────────────────
+
+model Customer {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  mobile         String
+  address        String?
+  balance        Decimal      @default(0) @db.Decimal(12, 2) // amount customer owes business
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  bills    Bill[]
+  payments Payment[]
+
+  @@unique([organizationId, mobile])
+  @@index([organizationId])
+  @@index([name])
+  @@index([mobile])
+}
+
+// ─── Item Master (Vegetables) ───────────────────────────
+
+model Item {
+  id                 String       @id @default(uuid(7)) @db.Uuid
+  organizationId     String       @db.Uuid
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  name               String
+  defaultPricingMode PricingMode  @default(WEIGHT)
+  isActive           Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  billItems BillItem[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+// ─── Bills ──────────────────────────────────────────────
+
+model Bill {
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  organizationId      String       @db.Uuid
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  billNumber          String       // e.g. PUR-0001, SAL-0001
+  type                BillType
+  farmerId            String?      @db.Uuid
+  farmer              Farmer?      @relation(fields: [farmerId], references: [id])
+  customerId          String?      @db.Uuid
+  customer            Customer?    @relation(fields: [customerId], references: [id])
+  subtotal            Decimal      @db.Decimal(12, 2) // sum of line items
+  labourCharges       Decimal      @default(0) @db.Decimal(12, 2)
+  freightCharges      Decimal      @default(0) @db.Decimal(12, 2)
+  taxAmount           Decimal      @default(0) @db.Decimal(12, 2)
+  serviceChargeAmount Decimal      @default(0) @db.Decimal(12, 2)
+  grossTotal          Decimal      @db.Decimal(12, 2) // before advance
+  advanceDeduction    Decimal      @default(0) @db.Decimal(12, 2)
+  netTotal            Decimal      @db.Decimal(12, 2) // final payable
+  billDate            DateTime     @default(now())
+  createdById         String       @db.Uuid
+  createdBy           User         @relation(fields: [createdById], references: [id])
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  items    BillItem[]
+  payments Payment[]
+  returns  Return[]
+
+  @@unique([organizationId, billNumber])
+  @@index([organizationId])
+  @@index([farmerId])
+  @@index([customerId])
+  @@index([billDate])
+  @@index([type])
+}
+
+// ─── Bill Line Items ────────────────────────────────────
+
+model BillItem {
+  id           String      @id @default(uuid(7)) @db.Uuid
+  billId       String      @db.Uuid
+  bill         Bill        @relation(fields: [billId], references: [id], onDelete: Cascade)
+  itemId       String      @db.Uuid
+  item         Item        @relation(fields: [itemId], references: [id])
+  pricingMode  PricingMode
+  quantity     Decimal     @db.Decimal(10, 2) // KG or crate count
+  pricePerUnit Decimal     @db.Decimal(10, 2) // per 10 KG or per crate
+  total        Decimal     @db.Decimal(12, 2)
+  createdAt    DateTime    @default(now())
+
+  returnItems ReturnItem[]
+}
+
+// ─── Payments ───────────────────────────────────────────
+
+model Payment {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  farmerId       String?      @db.Uuid
+  farmer         Farmer?      @relation(fields: [farmerId], references: [id])
+  customerId     String?      @db.Uuid
+  customer       Customer?    @relation(fields: [customerId], references: [id])
+  billId         String?      @db.Uuid
+  bill           Bill?        @relation(fields: [billId], references: [id])
+  amount         Decimal      @db.Decimal(12, 2)
+  mode           PaymentMode
+  paymentDate    DateTime     @default(now())
+  notes          String?
+  recordedById   String       @db.Uuid
+  recordedBy     User         @relation(fields: [recordedById], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([farmerId])
+  @@index([customerId])
+  @@index([paymentDate])
+}
+
+// ─── Returns ────────────────────────────────────────────
+
+model Return {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  returnNumber   String       // e.g. RET-0001
+  originalBillId String       @db.Uuid
+  originalBill   Bill         @relation(fields: [originalBillId], references: [id])
+  totalAmount    Decimal      @db.Decimal(12, 2)
+  returnDate     DateTime     @default(now())
+  createdById    String       @db.Uuid
+  createdBy      User         @relation(fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now())
+
+  items ReturnItem[]
+
+  @@unique([organizationId, returnNumber])
+  @@index([organizationId])
+  @@index([originalBillId])
+}
+
+// ─── Return Line Items ──────────────────────────────────
+
+model ReturnItem {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  returnId   String   @db.Uuid
+  return     Return   @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  billItemId String   @db.Uuid
+  billItem   BillItem @relation(fields: [billItemId], references: [id])
+  quantity   Decimal  @db.Decimal(10, 2)
+  total      Decimal  @db.Decimal(12, 2)
+  createdAt  DateTime @default(now())
+}
+
+// ─── Audit Log (Immutable) ──────────────────────────────
+
+model AuditLog {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  organizationId String?       @db.Uuid // null for super admin actions
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  action         AuditAction
+  entity         String        // e.g. "Bill", "Payment", "Farmer"
+  entityId       String?
+  userId         String        @db.Uuid
+  user           User          @relation(fields: [userId], references: [id])
+  oldValue       Json?
+  newValue       Json?
+  ipAddress      String?
+  createdAt      DateTime      @default(now()) // immutable — no updatedAt
+
+  @@index([organizationId])
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── Business Configuration (per Organization) ─────────
+
+model BusinessConfig {
+  id                 String       @id @default(uuid(7)) @db.Uuid
+  organizationId     String       @unique @db.Uuid
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  taxType            ChargeType   @default(PERCENTAGE)
+  taxValue           Decimal      @default(0) @db.Decimal(8, 4)
+  serviceChargeType  ChargeType   @default(PERCENTAGE)
+  serviceChargeValue Decimal      @default(0) @db.Decimal(8, 4)
+  updatedAt          DateTime     @updatedAt
+}

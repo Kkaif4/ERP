@@ -1,0 +1,55 @@
+{
+    "farmers": {
+        "title": "Farmers",
+        "addFarmer": "Add New Farmer",
+        "searchPlaceholder": "Search by name or mobile...",
+        "name": "Full Name",
+        "mobile": "Mobile Number",
+        "address": "Address",
+        "balance": "Current Balance",
+        "noFarmers": "No farmers found.",
+        "successAdd": "Farmer added successfully",
+        "errorAdd": "Failed to add farmer",
+        "errorLoad": "Failed to load farmers",
+        "emptyFields": "Please fill all required fields",
+        "totalFarmers": "Total Farmers"
+    },
+    "customers": {
+        "title": "Customers",
+        "addCustomer": "Add New Customer",
+        "searchPlaceholder": "Search by name or mobile...",
+        "name": "Customer Name",
+        "mobile": "Mobile Number",
+        "address": "Address",
+        "balance": "Current Balance",
+        "noCustomers": "No customers found.",
+        "successAdd": "Customer added successfully",
+        "errorAdd": "Failed to add customer",
+        "errorLoad": "Failed to load customers"
+    },
+    "items": {
+        "title": "Items Master",
+        "addItem": "Add New Item",
+        "searchPlaceholder": "Search items...",
+        "itemName": "Item Name",
+        "itemUnit": "Unit",
+        "noItems": "No items found.",
+        "successAdd": "Item added successfully",
+        "errorAdd": "Failed to add item",
+        "errorLoad": "Failed to load items",
+        "units": {
+            "KG": "KG (Kilograms)",
+            "BAG": "BAG (Bora)",
+            "PCS": "PCS (Pieces)",
+            "CRATE": "CRATE (Box)",
+            "QUINTAL": "QUINTAL (100 Kg)"
+        }
+    },
+    "actions": {
+        "save": "Save Changes",
+        "cancel": "Cancel",
+        "edit": "Edit",
+        "delete": "Delete",
+        "viewLedger": "View Ledger"
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "dashboard": "Dashboard",
+    "bills": "Bills",
+    "newBill": "New Bill",
+    "farmers": "Farmers",
+    "customers": "Customers",
+    "items": "Items",
+    "reports": "Reports",
+    "settings": "Settings",
+    "payments": "Payments",
+    "ledger": "Ledger",
+    "admin": "Admin Panel",
+    "search": "Search",
+    "more": "More"
+}

@@ -1,0 +1,27 @@
+{
+    "overview": "आजचा आढावा",
+    "today": "आज",
+    "latestBills": "नवीनतम बाजार बिले",
+    "viewAll": "सर्व पहा",
+    "noBills": "आज अद्याप बिले नाहीत",
+    "createFirst": "सुरू करण्यासाठी तुमचे पहिले बिल तयार करा",
+    "quickNav": "द्रुत नेव्हिगेशन",
+    "purchaseBill": "खरेदी बिल",
+    "saleBill": "विक्री बिल",
+    "createBill": "नवीन बिल तयार करा",
+    "stats": {
+        "todayBills": "आजची बिले",
+        "todayPayments": "आजचे पेमेंट",
+        "farmerPayable": "शेतकरी देय",
+        "customerDue": "ग्राहक थकबाकी"
+    },
+    "billTable": {
+        "number": "बिल #",
+        "party": "पार्टी",
+        "type": "प्रकार",
+        "amount": "रक्कम",
+        "time": "वेळ",
+        "purchase": "खरेदी",
+        "sale": "विक्री"
+    }
+}

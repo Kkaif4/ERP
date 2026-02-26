@@ -1,0 +1,27 @@
+{
+    "overview": "आज का सारांश",
+    "today": "आज",
+    "latestBills": "नवीनतम बाजार बिल",
+    "viewAll": "सभी देखें",
+    "noBills": "आज कोई बिल नहीं है",
+    "createFirst": "शुरू करने के लिए अपना पहला बिल बनाएं",
+    "quickNav": "त्वरित नेविगेशन",
+    "purchaseBill": "खरीद बिल",
+    "saleBill": "बिक्री बिल",
+    "createBill": "नया बिल बनाएं",
+    "stats": {
+        "todayBills": "आज के बिल",
+        "todayPayments": "आज के भुगतान",
+        "farmerPayable": "किसान देय",
+        "customerDue": "ग्राहक बकाया"
+    },
+    "billTable": {
+        "number": "बिल #",
+        "party": "पक्ष",
+        "type": "प्रकार",
+        "amount": "राशि",
+        "time": "समय",
+        "purchase": "खरीद",
+        "sale": "बिक्री"
+    }
+}

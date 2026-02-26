@@ -1,0 +1,55 @@
+{
+    "farmers": {
+        "title": "किसान",
+        "addFarmer": "नया किसान जोड़ें",
+        "searchPlaceholder": "नाम या मोबाइल से खोजें...",
+        "name": "पूरा नाम",
+        "mobile": "मोबाइल नंबर",
+        "address": "पता",
+        "balance": "वर्तमान बकाया",
+        "noFarmers": "कोई किसान नहीं मिला।",
+        "successAdd": "किसान सफलतापूर्वक जोड़ा गया",
+        "errorAdd": "किसान जोड़ने में विफल",
+        "errorLoad": "किसान सूची लोड करने में विफल",
+        "emptyFields": "कृपया सभी आवश्यक फ़ील्ड भरें",
+        "totalFarmers": "कुल किसान"
+    },
+    "customers": {
+        "title": "ग्राहक",
+        "addCustomer": "नया ग्राहक जोड़ें",
+        "searchPlaceholder": "नाम या मोबाइल से खोजें...",
+        "name": "ग्राहक का नाम",
+        "mobile": "मोबाइल नंबर",
+        "address": "पता",
+        "balance": "वर्तमान बकाया",
+        "noCustomers": "कोई ग्राहक नहीं मिला।",
+        "successAdd": "ग्राहक सफलतापूर्वक जोड़ा गया",
+        "errorAdd": "ग्राहक जोड़ने में विफल",
+        "errorLoad": "ग्राहक सूची लोड करने में विफल"
+    },
+    "items": {
+        "title": "आइटम मास्टर",
+        "addItem": "नया आइटम जोड़ें",
+        "searchPlaceholder": "आइटम खोजें...",
+        "itemName": "आइटम का नाम",
+        "itemUnit": "इकाई",
+        "noItems": "कोई आइटम नहीं मिला।",
+        "successAdd": "आइटम सफलतापूर्वक जोड़ा गया",
+        "errorAdd": "आइटम जोड़ने में विफल",
+        "errorLoad": "आइटम सूची लोड करने में विफल",
+        "units": {
+            "KG": "किलो (KG)",
+            "BAG": "बोरा (BAG)",
+            "PCS": "नग (PCS)",
+            "CRATE": "क्रेट (CRATE)",
+            "QUINTAL": "क्विंटल (QUINTAL)"
+        }
+    },
+    "actions": {
+        "save": "बदलाव सहेजें",
+        "cancel": "रद्द करें",
+        "edit": "संपादित करें",
+        "delete": "हटाएं",
+        "viewLedger": "खाता देखें"
+    }
+}

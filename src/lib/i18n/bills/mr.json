@@ -1,0 +1,52 @@
+{
+    "purchase": {
+        "title": "नवीन खरेदी बिल",
+        "subtitle": "शेतकऱ्याकडून खरेदी नोंदवा",
+        "selectFarmer": "शेतकरी निवडा",
+        "farmerPlaceholder": "नाव किंवा मोबाईलने शोधा...",
+        "addItem": "वस्तू जोडा",
+        "billItems": "बिलातील वस्तू",
+        "item": "वस्तू",
+        "mode": "पद्धत",
+        "kg": "किलो (KG)",
+        "crate": "क्रेट (Crate)",
+        "quantity": "प्रमाण",
+        "price": "दर",
+        "total": "एकूण",
+        "summary": "बिलाचा सारांश",
+        "subtotal": "पोटएकूण",
+        "tax": "कर (Tax)",
+        "serviceCharge": "सेवा शुल्क",
+        "netTotal": "निव्वळ एकूण",
+        "confirm": "बिलाची पुष्टी करा",
+        "saving": "जतन करत आहे...",
+        "success": "बिल यशस्वीरित्या तयार झाले!",
+        "error": "बिल तयार करण्यात अपयश",
+        "emptyItems": "कृपया किमान एक वस्तू जोडा",
+        "priceHint": "प्रति १० किलो",
+        "unitHint": "प्रति क्रेट",
+        "balanceImpact": "हे {{party}} च्या देय शिल्लक रकमेमध्ये {{amount}} जोडेल.",
+        "farmerLabel": "शेतकरी"
+    },
+    "sale": {
+        "title": "नवीन विक्री बिल",
+        "subtitle": "ग्राहकाला विक्री नोंदवा",
+        "selectCustomer": "ग्राहक निवडा",
+        "customerPlaceholder": "नाव किंवा मोबाईलने शोधा...",
+        "labour": "हमाली (लेबर)",
+        "freight": "ढुलाई (भाडे)",
+        "advance": "ॲडव्हान्स कपात",
+        "grossTotal": "एकूण रक्कम",
+        "payable": "अंतिम देय",
+        "balanceImpact": "हे {{party}} च्या येणे शिल्लक रकमेमध्ये {{amount}} जोडेल.",
+        "customerLabel": "ग्राहक"
+    },
+    "common": {
+        "billNumber": "बिल #",
+        "date": "दिनांक",
+        "party": "पार्टी",
+        "type": "प्रकार",
+        "amount": "रक्कम",
+        "actions": "कृती"
+    }
+}
