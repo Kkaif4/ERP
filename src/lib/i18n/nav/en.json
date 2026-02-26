@@ -11,5 +11,11 @@
     "ledger": "Ledger",
     "admin": "Admin Panel",
     "search": "Search",
-    "more": "More"
+    "more": "More",
+    "sections": {
+        "main": "Main",
+        "master": "Master",
+        "finance": "Finance",
+        "system": "System"
+    }
 }

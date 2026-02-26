@@ -154,7 +154,7 @@ export default function NewSaleBillPage() {
                                 {isCustomerDropdownOpen && customersList.length > 0 && (
                                     <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: "8px", backgroundColor: "#fff", border: "1px solid var(--border-main)", borderRadius: "16px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", zIndex: 100, padding: "6px", overflow: "hidden" }}>
                                         {customersList.map(c => (
-                                            <button key={c.id} onClick={() => { setSelectedCustomer(c); setCustomerSearch(""); setIsCustomerDropdownOpen(false); }}
+                                            <button key={c.id} onMouseDown={() => { setSelectedCustomer(c); setCustomerSearch(""); setIsCustomerDropdownOpen(false); }}
                                                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", border: "none", backgroundColor: "transparent", cursor: "pointer", borderRadius: "12px", transition: "background 0.15s" }}
                                                 onMouseEnter={e => { e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.06)"; }}
                                                 onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}>
@@ -191,7 +191,7 @@ export default function NewSaleBillPage() {
                                 {isItemDropdownOpen && itemsList.length > 0 && (
                                     <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: "8px", backgroundColor: "#fff", border: "1px solid var(--border-main)", borderRadius: "14px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", zIndex: 100, padding: "4px" }}>
                                         {itemsList.map(item => (
-                                            <button key={item.id} onClick={() => addLine(item)}
+                                            <button key={item.id} onMouseDown={() => addLine(item)}
                                                 style={{ width: "100%", display: "block", textAlign: "left", padding: "10px 14px", border: "none", backgroundColor: "transparent", cursor: "pointer", borderRadius: "10px", fontSize: "13px", fontWeight: 700, color: "#1e293b", transition: "background 0.15s" }}
                                                 onMouseEnter={e => { e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.06)"; }}
                                                 onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}>
@@ -211,7 +211,7 @@ export default function NewSaleBillPage() {
                         ) : (
                             <div>
                                 {/* Desktop Table */}
-                                <table style={{ width: "100%", borderCollapse: "collapse", display: "none" }} className="bill-items-table">
+                                <table style={{ width: "100%", borderCollapse: "collapse" }} className="bill-items-table">
                                     <thead>
                                         <tr style={{ backgroundColor: "#f8fafc" }}>
                                             <th style={{ padding: "12px 20px", textAlign: "left", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("bills.purchase.item")}</th>

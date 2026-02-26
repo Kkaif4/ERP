@@ -3,55 +3,49 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/lib/i18n";
 import {
-    Package,
-    Plus,
-    Search,
-    Tag,
-    Loader2,
-    X,
+    Package, Plus, Search, Loader2, X, Scale, Boxes,
+    Clock, ToggleLeft, ToggleRight, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Item {
     id: string;
     name: string;
-    unit: string;
+    defaultPricingMode: "WEIGHT" | "UNIT";
+    isActive: boolean;
+    createdAt: string;
 }
 
 export default function ItemsPage() {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [showInactive, setShowInactive] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    // Form state
-    const [formData, setFormData] = useState({ name: "", unit: "KG" });
+    const [formData, setFormData] = useState({ name: "", defaultPricingMode: "WEIGHT" as "WEIGHT" | "UNIT" });
     const [submitting, setSubmitting] = useState(false);
+    const [togglingId, setTogglingId] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchItems();
-    }, [search]);
+    const today = new Date().toLocaleDateString(
+        language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN",
+        { weekday: "long", day: "numeric", month: "long" }
+    );
 
     const fetchItems = async () => {
         try {
             const res = await fetch(`/api/items?search=${encodeURIComponent(search)}`);
             const data = await res.json();
-            setItems(data);
-        } catch (err) {
-            toast.error(t("master.items.errorLoad"));
-        } finally {
-            setLoading(false);
-        }
+            setItems(data || []);
+        } catch { toast.error(t("master.items.errorLoad")); }
+        finally { setLoading(false); }
     };
+
+    useEffect(() => { fetchItems(); }, [search]);
 
     const handleAddItem = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.unit) {
-            toast.error(t("master.farmers.emptyFields"));
-            return;
-        }
-
+        if (!formData.name.trim()) { toast.error(t("master.farmers.emptyFields")); return; }
         setSubmitting(true);
         try {
             const res = await fetch("/api/items", {
@@ -59,160 +53,291 @@ export default function ItemsPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
             });
-
             if (res.ok) {
                 toast.success(t("master.items.successAdd"));
                 setIsModalOpen(false);
-                setFormData({ name: "", unit: "KG" });
+                setFormData({ name: "", defaultPricingMode: "WEIGHT" });
                 fetchItems();
             } else {
-                toast.error(t("master.items.errorAdd"));
+                const err = await res.json();
+                toast.error(err.error || t("master.items.errorAdd"));
             }
-        } catch (err) {
-            toast.error(t("master.items.errorAdd"));
-        } finally {
-            setSubmitting(false);
-        }
+        } catch { toast.error(t("master.items.errorAdd")); }
+        finally { setSubmitting(false); }
     };
 
+    const toggleActive = async (item: Item) => {
+        setTogglingId(item.id);
+        try {
+            const res = await fetch("/api/items", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: item.id, isActive: !item.isActive }),
+            });
+            if (res.ok) {
+                setItems(prev => prev.map(i => i.id === item.id ? { ...i, isActive: !i.isActive } : i));
+                toast.success(item.isActive ? t("master.items.deactivated") || "Item deactivated" : t("master.items.activated") || "Item activated");
+            } else toast.error("Failed to update item");
+        } catch { toast.error("Failed to update item"); }
+        finally { setTogglingId(null); }
+    };
+
+    const filtered = items.filter(i => showInactive ? true : i.isActive);
+    const activeCount = items.filter(i => i.isActive).length;
+    const inactiveCount = items.filter(i => !i.isActive).length;
+
     return (
-        <div className="space-y-6 pb-20 lg:pb-0">
-            {/* Header Area */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+
+            {/* ── Header ── */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
                 <div>
-                    <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+                    <h1 style={{ fontSize: "1.875rem", fontWeight: 900, color: "var(--text-main)", letterSpacing: "-0.02em", margin: 0, lineHeight: 1.2 }}>
                         {t("master.items.title")}
                     </h1>
-                    <p className="text-slate-500 font-bold text-xs uppercase tracking-[0.2em] mt-1">
-                        {items.length} {t("nav.items")}
-                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px" }}>
+                        <div style={{ height: "3px", width: "24px", backgroundColor: "#7c3aed", borderRadius: "2px" }} />
+                        <p style={{ margin: 0, fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <Clock size={12} /> {activeCount} {t("master.items.activeItems") || "Active Items"} · {today}
+                        </p>
+                    </div>
                 </div>
-
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center justify-center gap-2 bg-[#15803d] text-white px-6 py-4 rounded-2xl font-black text-sm shadow-xl shadow-emerald-100 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
-                >
-                    <Plus size={20} />
-                    {t("master.items.addItem")}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "#7c3aed", color: "#fff", borderRadius: "12px", fontWeight: 800, fontSize: "14px", border: "none", cursor: "pointer", boxShadow: "0 8px 16px rgba(124,58,237,0.2)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", letterSpacing: "0.02em" }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 24px rgba(124,58,237,0.3)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 16px rgba(124,58,237,0.2)"; }}>
+                    <Plus size={16} strokeWidth={3} /> {t("master.items.addItem")}
                 </button>
             </div>
 
-            {/* Search Bar */}
-            <div className="relative group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#15803d] transition-colors" size={20} />
-                <input
-                    type="text"
-                    placeholder={t("master.items.searchPlaceholder")}
-                    className="w-full pl-14 pr-6 py-5 bg-white border border-slate-200 rounded-[1.5rem] font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-[#15803d] transition-all shadow-sm"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
+            {/* ── Stats + Search + Filter ── */}
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                {/* Stat pills */}
+                <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", backgroundColor: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.15)", borderRadius: "12px" }}>
+                        <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#7c3aed" }} />
+                        <span style={{ fontSize: "12px", fontWeight: 800, color: "#7c3aed" }}>{activeCount} {t("master.items.active") || "Active"}</span>
+                    </div>
+                    {inactiveCount > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px" }}>
+                            <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#cbd5e1" }} />
+                            <span style={{ fontSize: "12px", fontWeight: 800, color: "#94a3b8" }}>{inactiveCount} {t("master.items.inactive") || "Inactive"}</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Show inactive toggle */}
+                {inactiveCount > 0 && (
+                    <button
+                        onClick={() => setShowInactive(!showInactive)}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", backgroundColor: showInactive ? "rgba(124,58,237,0.07)" : "transparent", border: `1.5px solid ${showInactive ? "rgba(124,58,237,0.2)" : "#e2e8f0"}`, borderRadius: "12px", fontSize: "12px", fontWeight: 800, color: showInactive ? "#7c3aed" : "#94a3b8", cursor: "pointer", transition: "all 0.2s" }}>
+                        {showInactive ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
+                        {t("master.items.showAll") || "Show Inactive"}
+                    </button>
+                )}
             </div>
 
-            {/* Items Grid */}
-            {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <Loader2 className="animate-spin text-[#15803d]" size={40} />
+            {/* ── Search ── */}
+            <div className="premium-card" style={{ padding: "1rem 1.25rem" }}>
+                <div style={{ position: "relative" }}>
+                    <Search style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} size={18} />
+                    <input
+                        type="text"
+                        placeholder={t("master.items.searchPlaceholder")}
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        style={{ width: "100%", boxSizing: "border-box", padding: "12px 12px 12px 52px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "14px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
+                        onFocusCapture={e => { e.currentTarget.style.borderColor = "#7c3aed"; e.currentTarget.style.backgroundColor = "#fff"; }}
+                        onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    />
                 </div>
-            ) : items.length === 0 ? (
-                <div className="bg-white rounded-[2rem] p-12 text-center border-2 border-dashed border-slate-100">
-                    <Package size={48} className="mx-auto text-slate-200 mb-4" />
-                    <p className="text-slate-400 font-bold">{t("master.items.noItems")}</p>
+            </div>
+
+            {/* ── Grid ── */}
+            {loading ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem" }}>
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="premium-card" style={{ height: "140px", animation: "pulse 1.5s ease-in-out infinite", opacity: 0.5 }} />
+                    ))}
+                </div>
+            ) : filtered.length === 0 ? (
+                <div className="premium-card" style={{ padding: "4rem", textAlign: "center" }}>
+                    <Package size={48} color="#e2e8f0" style={{ margin: "0 auto 1rem" }} />
+                    <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#94a3b8" }}>{t("master.items.noItems")}</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {items.map((item) => (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem" }}>
+                    {filtered.map(item => (
                         <div
                             key={item.id}
-                            className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-100 transition-all group flex flex-col items-center text-center"
+                            className="premium-card"
+                            style={{ padding: "1.5rem", opacity: item.isActive ? 1 : 0.55, transition: "opacity 0.2s" }}
                         >
-                            <div className="w-14 h-14 bg-emerald-50 rounded-[1.25rem] flex items-center justify-center text-[#15803d] mb-4 group-hover:bg-[#15803d] group-hover:text-white transition-all">
-                                <Package size={24} />
+                            {/* Icon + mode badge */}
+                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1rem" }}>
+                                <div style={{
+                                    width: "44px", height: "44px",
+                                    backgroundColor: item.isActive ? "rgba(124,58,237,0.08)" : "#f1f5f9",
+                                    borderRadius: "12px",
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    color: item.isActive ? "#7c3aed" : "#94a3b8",
+                                }}>
+                                    {item.defaultPricingMode === "WEIGHT" ? <Scale size={20} /> : <Boxes size={20} />}
+                                </div>
+                                <span style={{
+                                    fontSize: "9px", fontWeight: 900,
+                                    textTransform: "uppercase", letterSpacing: "0.1em",
+                                    padding: "3px 8px", borderRadius: "6px",
+                                    backgroundColor: item.defaultPricingMode === "WEIGHT" ? "rgba(14,165,233,0.08)" : "rgba(21,128,61,0.08)",
+                                    color: item.defaultPricingMode === "WEIGHT" ? "#0ea5e9" : "#15803d",
+                                    border: `1px solid ${item.defaultPricingMode === "WEIGHT" ? "rgba(14,165,233,0.2)" : "rgba(21,128,61,0.2)"}`,
+                                }}>
+                                    {item.defaultPricingMode === "WEIGHT" ? "per 10 KG" : "per Unit"}
+                                </span>
                             </div>
 
-                            <h3 className="text-base font-black text-slate-800 tracking-tight group-hover:text-[#15803d] transition-colors line-clamp-2 min-h-[3rem] flex items-center">
+                            {/* Name */}
+                            <h3 style={{ margin: "0 0 1rem", fontSize: "15px", fontWeight: 900, color: "var(--text-main)", letterSpacing: "-0.01em", lineHeight: 1.3 }}>
                                 {item.name}
                             </h3>
 
-                            <div className="mt-2 text-[10px] font-black bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1.5">
-                                <Tag size={10} />
-                                {t(`master.items.units.${item.unit}`)}
+                            {/* Footer: status toggle */}
+                            <div style={{ paddingTop: "0.875rem", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <span style={{
+                                    fontSize: "10px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em",
+                                    color: item.isActive ? "#15803d" : "#94a3b8",
+                                }}>
+                                    {item.isActive ? (t("master.items.active") || "Active") : (t("master.items.inactive") || "Inactive")}
+                                </span>
+                                <button
+                                    onClick={() => toggleActive(item)}
+                                    disabled={togglingId === item.id}
+                                    style={{
+                                        display: "flex", alignItems: "center", gap: "4px",
+                                        padding: "4px 10px", borderRadius: "8px", border: "none",
+                                        cursor: togglingId === item.id ? "not-allowed" : "pointer",
+                                        fontSize: "10px", fontWeight: 800,
+                                        backgroundColor: item.isActive ? "#fef2f2" : "rgba(21,128,61,0.08)",
+                                        color: item.isActive ? "#ef4444" : "#15803d",
+                                        transition: "all 0.2s",
+                                        opacity: togglingId === item.id ? 0.5 : 1,
+                                    }}
+                                >
+                                    {togglingId === item.id
+                                        ? <Loader2 size={12} style={{ animation: "spin 0.6s linear infinite" }} />
+                                        : item.isActive
+                                            ? <><ToggleRight size={12} /> {t("master.items.deactivate") || "Disable"}</>
+                                            : <><ToggleLeft size={12} /> {t("master.items.activate") || "Enable"}</>
+                                    }
+                                </button>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Add Item Modal */}
+            {/* ── Add Item Modal ── */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => !submitting && setIsModalOpen(false)} />
+                <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+                    <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(15,23,42,0.6)", backdropFilter: "blur(8px)" }} onClick={() => !submitting && setIsModalOpen(false)} />
+                    <div style={{ position: "relative", backgroundColor: "#fff", width: "100%", maxWidth: "460px", borderRadius: "24px", boxShadow: "0 25px 50px rgba(0,0,0,0.2)", overflow: "hidden" }}>
 
-                    <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-8 pt-8 pb-4 flex items-center justify-between">
-                            <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-                                {t("master.items.addItem")}
-                            </h2>
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all"
-                            >
-                                <X size={20} />
+                        {/* Modal header accent */}
+                        <div style={{ height: "4px", background: "linear-gradient(90deg, #7c3aed, #a78bfa)" }} />
+
+                        <div style={{ padding: "1.75rem 2rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: "1.375rem", fontWeight: 900, color: "var(--text-main)", letterSpacing: "-0.02em" }}>
+                                    {t("master.items.addItem")}
+                                </h2>
+                                <p style={{ margin: "2px 0 0", fontSize: "11px", fontWeight: 700, color: "#94a3b8" }}>
+                                    {t("master.items.addItemSubtitle") || "Item will be available in all bills"}
+                                </p>
+                            </div>
+                            <button onClick={() => setIsModalOpen(false)} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", backgroundColor: "#f1f5f9", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#e2e8f0"}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#f1f5f9"}>
+                                <X size={18} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleAddItem} className="p-8 space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] pl-1">
+                        <form onSubmit={handleAddItem} style={{ padding: "1rem 2rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                            {/* Item Name */}
+                            <div>
+                                <p style={{ margin: "0 0 8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>
                                     {t("master.items.itemName")} *
-                                </label>
+                                </p>
                                 <input
                                     required
                                     type="text"
-                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-[#15803d] focus:bg-white rounded-2xl font-bold transition-all outline-none"
+                                    placeholder={t("master.items.itemNamePlaceholder") || "e.g. Tomato, Onion, Potato..."}
                                     value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    style={{ width: "100%", boxSizing: "border-box", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "15px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
+                                    onFocusCapture={e => { e.currentTarget.style.borderColor = "#7c3aed"; e.currentTarget.style.backgroundColor = "#fff"; }}
+                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }}
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] pl-1">
-                                    {t("master.items.itemUnit")} *
-                                </label>
-                                <select
-                                    required
-                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-[#15803d] focus:bg-white rounded-2xl font-bold transition-all outline-none appearance-none"
-                                    value={formData.unit}
-                                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                                >
-                                    <option value="KG">{t("master.items.units.KG")}</option>
-                                    <option value="BAG">{t("master.items.units.BAG")}</option>
-                                    <option value="PCS">{t("master.items.units.PCS")}</option>
-                                    <option value="CRATE">{t("master.items.units.CRATE")}</option>
-                                    <option value="QUINTAL">{t("master.items.units.QUINTAL")}</option>
-                                </select>
+                            {/* Pricing Mode */}
+                            <div>
+                                <p style={{ margin: "0 0 10px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                                    {t("master.items.pricingMode") || "Default Pricing Mode"} *
+                                </p>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                                    {[
+                                        { value: "WEIGHT", label: t("master.items.weight") || "Weight Based", sublabel: "Price per 10 KG", icon: Scale, color: "#0ea5e9", bg: "rgba(14,165,233,0.08)", border: "rgba(14,165,233,0.3)" },
+                                        { value: "UNIT", label: t("master.items.unit") || "Unit Based", sublabel: "Price per Crate / Piece", icon: Boxes, color: "#15803d", bg: "rgba(21,128,61,0.08)", border: "rgba(21,128,61,0.3)" },
+                                    ].map(opt => {
+                                        const Icon = opt.icon;
+                                        const selected = formData.defaultPricingMode === opt.value;
+                                        return (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, defaultPricingMode: opt.value as any })}
+                                                style={{
+                                                    padding: "14px 12px", borderRadius: "14px", cursor: "pointer", textAlign: "left",
+                                                    border: `2px solid ${selected ? opt.border : "var(--border-main)"}`,
+                                                    backgroundColor: selected ? opt.bg : "#f8fafc",
+                                                    transition: "all 0.2s",
+                                                }}
+                                            >
+                                                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                                                    <Icon size={16} color={selected ? opt.color : "#94a3b8"} />
+                                                    <span style={{ fontSize: "12px", fontWeight: 900, color: selected ? opt.color : "#64748b" }}>{opt.label}</span>
+                                                </div>
+                                                <p style={{ margin: 0, fontSize: "10px", fontWeight: 700, color: selected ? opt.color : "#94a3b8", opacity: 0.8 }}>{opt.sublabel}</p>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <p style={{ margin: "8px 0 0", fontSize: "11px", fontWeight: 600, color: "#94a3b8" }}>
+                                    💡 {t("master.items.pricingModeNote") || "This can be overridden when creating a bill"}
+                                </p>
                             </div>
 
-                            <div className="flex gap-4 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 px-8 py-4 rounded-2xl font-black text-sm text-slate-500 bg-slate-100 hover:bg-slate-200 transition-all"
-                                >
+                            {/* Buttons */}
+                            <div style={{ display: "flex", gap: "0.75rem", paddingTop: "0.5rem" }}>
+                                <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: "12px", border: "none", backgroundColor: "#f1f5f9", borderRadius: "12px", fontWeight: 800, fontSize: "13px", color: "#64748b", cursor: "pointer", transition: "all 0.2s" }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#e2e8f0"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#f1f5f9"}>
                                     {t("master.actions.cancel")}
                                 </button>
-                                <button
-                                    disabled={submitting}
-                                    type="submit"
-                                    className="flex-[2] px-8 py-4 rounded-2xl font-black text-sm text-white bg-[#15803d] shadow-xl shadow-emerald-100 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    {submitting ? <Loader2 className="animate-spin" size={20} /> : t("master.actions.save")}
+                                <button disabled={submitting} type="submit" style={{ flex: 2, padding: "12px", border: "none", backgroundColor: "#7c3aed", borderRadius: "12px", fontWeight: 900, fontSize: "13px", color: "#fff", cursor: submitting ? "not-allowed" : "pointer", boxShadow: "0 8px 16px rgba(124,58,237,0.25)", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s", opacity: submitting ? 0.7 : 1 }}>
+                                    {submitting ? <Loader2 size={18} style={{ animation: "spin 0.6s linear infinite" }} /> : t("master.actions.save")}
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
+
+            <style>{`
+                @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.8; } }
+                @keyframes spin { to { transform: rotate(360deg); } }
+            `}</style>
         </div>
     );
 }

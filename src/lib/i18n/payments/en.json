@@ -1,0 +1,22 @@
+{
+    "title": "Payments",
+    "record": "Record Payment",
+    "recordSubtitle": "Select party & enter amount",
+    "amount": "Amount",
+    "mode": "Payment Mode",
+    "date": "Date",
+    "notes": "Notes (optional)",
+    "confirm": "Confirm Payment",
+    "partyType": "Payment For",
+    "totalPayments": "payments",
+    "totalPaidOut": "Paid to Farmers",
+    "totalReceived": "Received from Customers",
+    "grandTotal": "Grand Total",
+    "all": "All",
+    "farmers": "Farmers",
+    "customers": "Customers",
+    "noPayments": "No payments found",
+    "successAdd": "Payment recorded successfully",
+    "errorAdd": "Failed to record payment",
+    "errorLoad": "Failed to load payments"
+}

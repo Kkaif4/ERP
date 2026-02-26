@@ -11,5 +11,11 @@
     "ledger": "लेजर",
     "admin": "एडमिन पैनल",
     "search": "खोजें",
-    "more": "अधिक"
+    "more": "अधिक",
+    "sections": {
+        "main": "मुख्य",
+        "master": "मास्टर",
+        "finance": "वित्त",
+        "system": "सिस्टम"
+    }
 }

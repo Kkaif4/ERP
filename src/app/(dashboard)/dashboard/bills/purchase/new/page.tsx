@@ -149,7 +149,7 @@ export default function NewPurchaseBillPage() {
                                 {isFarmerDropdownOpen && farmersList.length > 0 && (
                                     <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: "8px", backgroundColor: "#fff", border: "1px solid var(--border-main)", borderRadius: "16px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", zIndex: 100, padding: "6px" }}>
                                         {farmersList.map(f => (
-                                            <button key={f.id} onClick={() => { setSelectedFarmer(f); setFarmerSearch(""); setIsFarmerDropdownOpen(false); }}
+                                            <button key={f.id} onMouseDown={() => { setSelectedFarmer(f); setFarmerSearch(""); setIsFarmerDropdownOpen(false); }}
                                                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", border: "none", backgroundColor: "transparent", cursor: "pointer", borderRadius: "12px", transition: "background 0.15s" }}
                                                 onMouseEnter={e => { e.currentTarget.style.backgroundColor = "rgba(21,128,61,0.06)"; }}
                                                 onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}>
@@ -186,7 +186,7 @@ export default function NewPurchaseBillPage() {
                                 {isItemDropdownOpen && itemsList.length > 0 && (
                                     <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: "8px", backgroundColor: "#fff", border: "1px solid var(--border-main)", borderRadius: "14px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", zIndex: 100, padding: "4px" }}>
                                         {itemsList.map(item => (
-                                            <button key={item.id} onClick={() => addLine(item)}
+                                            <button key={item.id} onMouseDown={() => addLine(item)}
                                                 style={{ width: "100%", display: "block", textAlign: "left", padding: "10px 14px", border: "none", backgroundColor: "transparent", cursor: "pointer", borderRadius: "10px", fontSize: "13px", fontWeight: 700, color: "#1e293b", transition: "background 0.15s" }}
                                                 onMouseEnter={e => { e.currentTarget.style.backgroundColor = "rgba(21,128,61,0.06)"; }}
                                                 onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}>

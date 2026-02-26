@@ -1,0 +1,14 @@
+{
+    "title": "Ledger",
+    "currentBalance": "Current Balance",
+    "totalBilled": "Total Billed",
+    "totalPaid": "Total Paid Out",
+    "totalReceived": "Total Received",
+    "youOwe": "You owe this farmer",
+    "customerOwes": "Customer owes you",
+    "settled": "Fully settled",
+    "bills": "bills",
+    "payments": "payments",
+    "entries": "entries · chronological",
+    "noEntries": "No transactions yet"
+}

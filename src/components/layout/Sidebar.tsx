@@ -15,19 +15,117 @@ import {
     Settings,
     ShieldCheck,
     LogOut,
-    Store
+    Store,
+    ChevronRight,
 } from "lucide-react";
 
-const navItems = [
+const mainNav = [
     { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
     { key: "bills", href: "/dashboard/bills", icon: ReceiptText },
-    { key: "farmers", href: "/dashboard/farmers", icon: Users },
-    { key: "customers", href: "/dashboard/customers", icon: UserSearch },
-    { key: "items", href: "/dashboard/items", icon: Package },
+];
+
+const masterNav = [
+    { key: "farmers", href: "/farmers", icon: Users },
+    { key: "customers", href: "/customers", icon: UserSearch },
+    { key: "items", href: "/items", icon: Package },
+];
+
+const financeNav = [
     { key: "payments", href: "/dashboard/payments", icon: WalletCards },
     { key: "reports", href: "/dashboard/reports", icon: BarChart3 },
+];
+
+const systemNav = [
     { key: "settings", href: "/dashboard/settings", icon: Settings },
 ];
+
+function SectionLabel({ label }: { label: string }) {
+    return (
+        <p style={{
+            fontSize: "9px", fontWeight: 900, letterSpacing: "0.22em",
+            textTransform: "uppercase", color: "#94a3b8",
+            paddingLeft: "10px", marginBottom: "3px", marginTop: "0",
+        }}>
+            {label}
+        </p>
+    );
+}
+
+function NavGroup({ label, items, pathname, t }: {
+    label: string;
+    items: { key: string; href: string; icon: React.ElementType }[];
+    pathname: string;
+    t: (key: string) => string;
+}) {
+    return (
+        <div style={{ marginBottom: "0.6rem" }}>
+            <SectionLabel label={label} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                {items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive =
+                        item.href === "/dashboard"
+                            ? pathname === item.href
+                            : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    return (
+                        <Link
+                            key={item.key}
+                            href={item.href}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                padding: "7px 10px",
+                                borderRadius: "12px",
+                                textDecoration: "none",
+                                fontSize: "12.5px",
+                                fontWeight: 800,
+                                letterSpacing: "0.01em",
+                                transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
+                                ...(isActive ? {
+                                    backgroundColor: "rgba(21,128,61,0.09)",
+                                    color: "#15803d",
+                                    boxShadow: "inset 0 0 0 1.5px rgba(21,128,61,0.15)",
+                                } : {
+                                    color: "#64748b",
+                                    backgroundColor: "transparent",
+                                }),
+                            }}
+                            onMouseEnter={e => {
+                                if (!isActive) {
+                                    e.currentTarget.style.backgroundColor = "#f8fafc";
+                                    e.currentTarget.style.color = "#15803d";
+                                }
+                            }}
+                            onMouseLeave={e => {
+                                if (!isActive) {
+                                    e.currentTarget.style.backgroundColor = "transparent";
+                                    e.currentTarget.style.color = "#64748b";
+                                }
+                            }}
+                        >
+                            <div style={{
+                                width: "30px", height: "30px",
+                                borderRadius: "9px",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                flexShrink: 0,
+                                backgroundColor: isActive ? "rgba(21,128,61,0.12)" : "#f1f5f9",
+                                color: isActive ? "#15803d" : "#94a3b8",
+                                transition: "all 0.2s",
+                            }}>
+                                <Icon size={15} strokeWidth={isActive ? 2.5 : 2} />
+                            </div>
+                            <span style={{ flex: 1 }}>{t(`nav.${item.key}`)}</span>
+                            {isActive && (
+                                <ChevronRight size={13} style={{ color: "#15803d", opacity: 0.6 }} />
+                            )}
+                        </Link>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
 
 export function Sidebar({ role }: { role: string }) {
     const { t } = useTranslation();
@@ -39,71 +137,116 @@ export function Sidebar({ role }: { role: string }) {
     };
 
     return (
-        <aside className="hidden lg:flex flex-col w-[280px] bg-white border-r border-slate-200/60 h-screen sticky top-0">
-            <div className="p-8 flex flex-col h-full">
-                {/* Logo Section */}
-                <div className="flex items-center gap-4 bg-[#15803d] p-5 rounded-[2.5rem] mb-10 shadow-lg shadow-emerald-100 transition-transform hover:scale-[1.02] duration-500">
-                    <div className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-md">
-                        <Store size={24} color="white" strokeWidth={2.5} />
+        <aside className="hidden lg:flex flex-col" style={{
+            width: "272px",
+            flexShrink: 0,
+            backgroundColor: "#ffffff",
+            borderRight: "1px solid #e2e8f0",
+            height: "100vh",
+            position: "sticky",
+            top: 0,
+            flexDirection: "column",
+            overflow: "hidden",
+        }}>
+            {/* Thin top emerald accent stripe */}
+            <div style={{
+                height: "3px",
+                background: "linear-gradient(90deg, #15803d 0%, #34d399 60%, transparent 100%)",
+                flexShrink: 0,
+            }} />
+
+            <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: "0.875rem 0.875rem", overflowY: "auto" }}>
+
+                {/* ── Logo ── */}
+                <div style={{
+                    display: "flex", alignItems: "center", gap: "10px",
+                    padding: "10px 12px",
+                    background: "linear-gradient(135deg, #15803d, #16a34a)",
+                    borderRadius: "16px",
+                    marginBottom: "1rem",
+                    boxShadow: "0 6px 16px rgba(21,128,61,0.2)",
+                }}>
+                    <div style={{
+                        width: "34px", height: "34px",
+                        backgroundColor: "rgba(255,255,255,0.2)",
+                        borderRadius: "10px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        flexShrink: 0,
+                    }}>
+                        <Store size={19} color="white" strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h1 className="font-black text-white text-lg leading-tight tracking-tight">Mandi ERP</h1>
-                        <p className="text-[10px] uppercase font-black text-emerald-100 tracking-[0.2em] opacity-80">v1.0 Premium</p>
+                        <h1 style={{ fontSize: "15px", fontWeight: 900, color: "#fff", letterSpacing: "-0.02em", lineHeight: 1.2, margin: 0 }}>
+                            Mandi ERP
+                        </h1>
+                        <p style={{ margin: 0, fontSize: "8px", fontWeight: 800, color: "rgba(255,255,255,0.7)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
+                            v1.0 Premium
+                        </p>
                     </div>
                 </div>
 
-                {/* Navigation Links */}
-                <nav className="flex-1 space-y-1.5 overflow-y-auto pr-2 scrollbar-thin">
-                    {navItems.map((item) => {
-                        const Icon = item.icon;
-                        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                        return (
-                            <Link
-                                key={item.key}
-                                href={item.href}
-                                className={`
-                                    flex items-center gap-4 px-5 py-4 rounded-2xl text-[14px] font-black tracking-wide transition-all duration-300 group
-                                    ${isActive
-                                        ? "bg-[#15803d] text-white shadow-xl shadow-emerald-100 scale-105"
-                                        : "text-slate-400 hover:bg-emerald-50 hover:text-[#15803d]"}
-                                `}
-                            >
-                                <div className={`${isActive ? "text-white" : "text-slate-300 group-hover:text-emerald-600"} transition-colors`}>
-                                    <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                                </div>
-                                <span className="uppercase tracking-widest">{t(`nav.${item.key}`)}</span>
-                            </Link>
-                        );
-                    })}
+                {/* ── Navigation ── */}
+                <nav style={{ flex: 1 }}>
+                    <NavGroup label={t("nav.sections.main") || "Main"} items={mainNav} pathname={pathname} t={t} />
+                    <NavGroup label={t("nav.sections.master") || "Master"} items={masterNav} pathname={pathname} t={t} />
+                    <NavGroup label={t("nav.sections.finance") || "Finance"} items={financeNav} pathname={pathname} t={t} />
+                    <NavGroup label={t("nav.sections.system") || "System"} items={systemNav} pathname={pathname} t={t} />
 
                     {role === "SUPER_ADMIN" && (
                         <Link
                             href="/admin"
-                            className="flex items-center gap-4 px-5 py-4 rounded-2xl text-[14px] font-black text-emerald-600 hover:bg-emerald-50 transition-all mt-6 border-2 border-dashed border-emerald-100 shadow-sm uppercase tracking-widest"
+                            style={{
+                                display: "flex", alignItems: "center", gap: "12px",
+                                padding: "10px 14px", borderRadius: "14px",
+                                textDecoration: "none", fontSize: "13px", fontWeight: 800,
+                                color: "#15803d",
+                                border: "1.5px dashed rgba(21,128,61,0.3)",
+                                marginTop: "0.5rem",
+                                transition: "all 0.2s",
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = "rgba(21,128,61,0.06)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}
                         >
-                            <ShieldCheck size={20} />
+                            <div style={{ width: "34px", height: "34px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(21,128,61,0.08)", color: "#15803d" }}>
+                                <ShieldCheck size={17} />
+                            </div>
                             <span>{t("nav.admin")}</span>
                         </Link>
                     )}
                 </nav>
 
-                {/* Footer / Logout */}
-                <div className="pt-8 mt-8 border-t border-slate-100">
+                {/* ── Footer / Logout ── */}
+                <div style={{ paddingTop: "0.625rem", borderTop: "1px solid #f1f5f9", marginTop: "0.25rem" }}>
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-4 w-full px-5 py-4 rounded-2xl text-[14px] font-black text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all uppercase tracking-widest group"
+                        style={{
+                            display: "flex", alignItems: "center", gap: "10px",
+                            width: "100%", padding: "7px 10px", borderRadius: "12px",
+                            border: "none", backgroundColor: "transparent", cursor: "pointer",
+                            fontSize: "12.5px", fontWeight: 800,
+                            color: "#94a3b8",
+                            transition: "all 0.2s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#fef2f2"; e.currentTarget.style.color = "#ef4444"; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}
                     >
-                        <div className="text-slate-300 group-hover:text-red-500 transition-colors">
-                            <LogOut size={20} />
+                        <div style={{
+                            width: "30px", height: "30px", borderRadius: "9px",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            backgroundColor: "#f1f5f9",
+                        }}>
+                            <LogOut size={15} />
                         </div>
                         <span>{t("common.logout")}</span>
                     </button>
 
-                    <div className="mt-8 px-5">
-                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">
-                            Secure Portal &copy; 2026
-                        </p>
-                    </div>
+                    <p style={{
+                        marginTop: "0.5rem", paddingLeft: "10px",
+                        fontSize: "8px", fontWeight: 800,
+                        color: "#cbd5e1", textTransform: "uppercase", letterSpacing: "0.3em",
+                    }}>
+                        Secure Portal © 2026
+                    </p>
                 </div>
             </div>
         </aside>

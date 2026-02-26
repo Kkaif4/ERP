@@ -30,20 +30,26 @@
     "items": {
         "title": "आइटम मास्टर",
         "addItem": "नया आइटम जोड़ें",
+        "addItemSubtitle": "आइटम सभी बिलों में उपलब्ध होगा",
         "searchPlaceholder": "आइटम खोजें...",
         "itemName": "आइटम का नाम",
-        "itemUnit": "इकाई",
+        "itemNamePlaceholder": "जैसे टमाटर, प्याज, आलू...",
+        "pricingMode": "डिफ़ॉल्ट मूल्य निर्धारण",
+        "pricingModeNote": "बिल बनाते समय इसे बदला जा सकता है",
+        "weight": "वजन आधारित",
+        "unit": "इकाई आधारित",
+        "activeItems": "सक्रिय आइटम",
+        "active": "सक्रिय",
+        "inactive": "निष्क्रिय",
+        "activate": "सक्रिय करें",
+        "deactivate": "निष्क्रिय करें",
+        "activated": "आइटम सक्रिय किया गया",
+        "deactivated": "आइटम निष्क्रिय किया गया",
+        "showAll": "निष्क्रिय दिखाएं",
         "noItems": "कोई आइटम नहीं मिला।",
         "successAdd": "आइटम सफलतापूर्वक जोड़ा गया",
         "errorAdd": "आइटम जोड़ने में विफल",
-        "errorLoad": "आइटम सूची लोड करने में विफल",
-        "units": {
-            "KG": "किलो (KG)",
-            "BAG": "बोरा (BAG)",
-            "PCS": "नग (PCS)",
-            "CRATE": "क्रेट (CRATE)",
-            "QUINTAL": "क्विंटल (QUINTAL)"
-        }
+        "errorLoad": "आइटम सूची लोड करने में विफल"
     },
     "actions": {
         "save": "बदलाव सहेजें",

@@ -7,9 +7,9 @@ import { useTranslation } from "@/lib/i18n";
 import {
     LayoutDashboard,
     ReceiptText,
+    Users,
     WalletCards,
-    MoreHorizontal,
-    Search
+    UserSearch,
 } from "lucide-react";
 
 export function BottomNav() {
@@ -19,28 +19,54 @@ export function BottomNav() {
     const tabs = [
         { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
         { key: "bills", href: "/dashboard/bills", icon: ReceiptText },
-        { key: "search", href: "/dashboard/search", icon: Search },
+        { key: "farmers", href: "/farmers", icon: Users },
         { key: "payments", href: "/dashboard/payments", icon: WalletCards },
-        { key: "more", href: "/dashboard/more", icon: MoreHorizontal },
+        { key: "customers", href: "/customers", icon: UserSearch },
     ];
 
     return (
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t pb-safe glass z-50">
-            <div className="flex justify-around items-center h-20 px-2">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50" style={{
+            backgroundColor: "rgba(255,255,255,0.95)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderTop: "1px solid #e2e8f0",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}>
+            <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", height: "64px", paddingLeft: "0.5rem", paddingRight: "0.5rem" }}>
                 {tabs.map((tab) => {
                     const Icon = tab.icon;
-                    const isActive = pathname === tab.href;
+                    const isActive =
+                        tab.href === "/dashboard"
+                            ? pathname === tab.href
+                            : pathname === tab.href || pathname.startsWith(tab.href);
                     return (
                         <Link
                             key={tab.key}
                             href={tab.href}
-                            className={`flex flex-col items-center justify-center gap-1.5 min-w-[64px] transition-all ${isActive ? "text-primary scale-110" : "text-slate-400"
-                                }`}
+                            style={{
+                                display: "flex", flexDirection: "column",
+                                alignItems: "center", justifyContent: "center",
+                                gap: "3px", minWidth: "56px",
+                                textDecoration: "none",
+                                transition: "all 0.2s",
+                                transform: isActive ? "translateY(-2px)" : "none",
+                                color: isActive ? "#15803d" : "#94a3b8",
+                            }}
                         >
-                            <div className={`p-2 rounded-xl ${isActive ? "bg-primary/10 shadow-sm" : ""}`}>
-                                <Icon size={26} strokeWidth={isActive ? 2.5 : 2} />
+                            <div style={{
+                                width: "40px", height: "40px",
+                                borderRadius: "12px",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                backgroundColor: isActive ? "rgba(21,128,61,0.1)" : "transparent",
+                                transition: "all 0.2s",
+                            }}>
+                                <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                             </div>
-                            <span className={`text-[10px] font-black uppercase tracking-wider ${isActive ? "text-primary" : "text-slate-500"}`}>
+                            <span style={{
+                                fontSize: "9px", fontWeight: 900,
+                                textTransform: "uppercase", letterSpacing: "0.08em",
+                                color: isActive ? "#15803d" : "#94a3b8",
+                            }}>
                                 {t(`nav.${tab.key}`)}
                             </span>
                         </Link>

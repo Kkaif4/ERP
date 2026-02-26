@@ -30,20 +30,26 @@
     "items": {
         "title": "माल मास्टर",
         "addItem": "नवीन माल जोडा",
+        "addItemSubtitle": "माल सर्व बिलांमध्ये उपलब्ध होईल",
         "searchPlaceholder": "माल शोधा...",
         "itemName": "मालाचे नाव",
-        "itemUnit": "एकक",
+        "itemNamePlaceholder": "उदा. टमाटो, कांदा, बटाटा...",
+        "pricingMode": "डिफॉल्ट किंमत पद्धत",
+        "pricingModeNote": "बिल तयार करताना हे बदलता येईल",
+        "weight": "वजन आधारित",
+        "unit": "नग आधारित",
+        "activeItems": "सक्रिय माल",
+        "active": "सक्रिय",
+        "inactive": "निष्क्रिय",
+        "activate": "सक्रिय करा",
+        "deactivate": "निष्क्रिय करा",
+        "activated": "माल सक्रिय केला",
+        "deactivated": "माल निष्क्रिय केला",
+        "showAll": "निष्क्रिय दाखवा",
         "noItems": "माल सापडला नाही.",
         "successAdd": "माल यशस्वीरित्या जोडला गेला",
         "errorAdd": "माल जोडण्यात अडथळा आला",
-        "errorLoad": "माल यादी लोड करण्यात अडथळा आला",
-        "units": {
-            "KG": "किलो (KG)",
-            "BAG": "बोरा (BAG)",
-            "PCS": "नग (PCS)",
-            "CRATE": "क्रेट (CRATE)",
-            "QUINTAL": "क्विंटल (QUINTAL)"
-        }
+        "errorLoad": "माल यादी लोड करण्यात अडथळा आला"
     },
     "actions": {
         "save": "बदल जतन करा",

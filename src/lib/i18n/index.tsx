@@ -19,13 +19,19 @@ import hiDashboard from "./dashboard/hi.json";
 import enBills from "./bills/en.json";
 import mrBills from "./bills/mr.json";
 import hiBills from "./bills/hi.json";
+import enPayments from "./payments/en.json";
+import mrPayments from "./payments/mr.json";
+import hiPayments from "./payments/hi.json";
+import enLedger from "./ledger/en.json";
+import mrLedger from "./ledger/mr.json";
+import hiLedger from "./ledger/hi.json";
 
 type Language = "en" | "mr" | "hi";
 
 const dictionaries: any = {
-    en: { common: enCommon, auth: enAuth, nav: enNav, master: enMaster, dashboard: enDashboard, bills: enBills },
-    mr: { common: mrCommon, auth: mrAuth, nav: mrNav, master: mrMaster, dashboard: mrDashboard, bills: mrBills },
-    hi: { common: hiCommon, auth: hiAuth, nav: hiNav, master: hiMaster, dashboard: hiDashboard, bills: hiBills },
+    en: { common: enCommon, auth: enAuth, nav: enNav, master: enMaster, dashboard: enDashboard, bills: enBills, payments: enPayments, ledger: enLedger },
+    mr: { common: mrCommon, auth: mrAuth, nav: mrNav, master: mrMaster, dashboard: mrDashboard, bills: mrBills, payments: mrPayments, ledger: mrLedger },
+    hi: { common: hiCommon, auth: hiAuth, nav: hiNav, master: hiMaster, dashboard: hiDashboard, bills: hiBills, payments: hiPayments, ledger: hiLedger },
 };
 
 interface TranslationContextType {

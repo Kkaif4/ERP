@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/lib/i18n";
+import { useRouter } from "next/navigation";
 import { UserSearch, Plus, Search, Phone, MapPin, Loader2, X, ArrowRight, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +10,7 @@ interface Customer { id: string; name: string; mobile: string; address: string |
 
 export default function CustomersPage() {
     const { t, language } = useTranslation();
+    const router = useRouter();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -90,7 +92,7 @@ export default function CustomersPage() {
             ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
                     {customers.map(customer => (
-                        <div key={customer.id} className="premium-card" style={{ padding: "1.75rem", cursor: "pointer" }}>
+                        <div key={customer.id} className="premium-card" style={{ padding: "1.75rem", cursor: "pointer" }} onClick={() => router.push(`/customers/${customer.id}`)}>
                             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.25rem" }}>
                                 <div style={{ width: "48px", height: "48px", backgroundColor: BLUE_BG, borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", color: BLUE, fontWeight: 900, fontSize: "20px", border: "1px solid rgba(3,105,161,0.15)", flexShrink: 0 }}>
                                     {customer.name.charAt(0).toUpperCase()}

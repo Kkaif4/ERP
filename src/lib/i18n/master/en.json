@@ -30,20 +30,26 @@
     "items": {
         "title": "Items Master",
         "addItem": "Add New Item",
+        "addItemSubtitle": "Item will be available in all bills",
         "searchPlaceholder": "Search items...",
         "itemName": "Item Name",
-        "itemUnit": "Unit",
+        "itemNamePlaceholder": "e.g. Tomato, Onion, Potato...",
+        "pricingMode": "Default Pricing Mode",
+        "pricingModeNote": "This can be overridden when creating a bill",
+        "weight": "Weight Based",
+        "unit": "Unit Based",
+        "activeItems": "Active Items",
+        "active": "Active",
+        "inactive": "Inactive",
+        "activate": "Enable",
+        "deactivate": "Disable",
+        "activated": "Item enabled",
+        "deactivated": "Item disabled",
+        "showAll": "Show Inactive",
         "noItems": "No items found.",
         "successAdd": "Item added successfully",
         "errorAdd": "Failed to add item",
-        "errorLoad": "Failed to load items",
-        "units": {
-            "KG": "KG (Kilograms)",
-            "BAG": "BAG (Bora)",
-            "PCS": "PCS (Pieces)",
-            "CRATE": "CRATE (Box)",
-            "QUINTAL": "QUINTAL (100 Kg)"
-        }
+        "errorLoad": "Failed to load items"
     },
     "actions": {
         "save": "Save Changes",

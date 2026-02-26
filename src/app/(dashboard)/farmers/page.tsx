@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/lib/i18n";
+import { useRouter } from "next/navigation";
 import { Users, Plus, Search, Phone, MapPin, ChevronRight, Loader2, X, ArrowRight, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +10,7 @@ interface Farmer { id: string; name: string; mobile: string; address: string | n
 
 export default function FarmersPage() {
     const { t, language } = useTranslation();
+    const router = useRouter();
     const [farmers, setFarmers] = useState<Farmer[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -88,7 +90,7 @@ export default function FarmersPage() {
             ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
                     {farmers.map(farmer => (
-                        <div key={farmer.id} className="premium-card" style={{ padding: "1.75rem", cursor: "pointer" }}>
+                        <div key={farmer.id} className="premium-card" style={{ padding: "1.75rem", cursor: "pointer" }} onClick={() => router.push(`/farmers/${farmer.id}`)}>
                             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.25rem" }}>
                                 <div style={{ width: "48px", height: "48px", backgroundColor: "var(--primary-glow)", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary-main)", fontWeight: 900, fontSize: "20px", border: "1px solid rgba(21,128,61,0.15)", flexShrink: 0 }}>
                                     {farmer.name.charAt(0).toUpperCase()}

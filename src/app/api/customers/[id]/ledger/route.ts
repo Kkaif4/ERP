@@ -1,0 +1,55 @@
+import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const customer = await prisma.customer.findFirst({
+        where: { id: params.id, organizationId: session.organizationId! },
+        select: { id: true, name: true, mobile: true, balance: true },
+    });
+    if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+
+    const [bills, payments] = await Promise.all([
+        prisma.bill.findMany({
+            where: { customerId: params.id, organizationId: session.organizationId!, type: "SALE" },
+            select: { id: true, billNumber: true, billDate: true, netTotal: true, items: { select: { item: { select: { name: true } } } } },
+            orderBy: { billDate: "asc" },
+        }),
+        prisma.payment.findMany({
+            where: { customerId: params.id, organizationId: session.organizationId! },
+            select: { id: true, amount: true, mode: true, notes: true, paymentDate: true, recordedBy: { select: { name: true } } },
+            orderBy: { paymentDate: "asc" },
+        }),
+    ]);
+
+    type Entry = {
+        id: string; date: Date; type: "BILL" | "PAYMENT";
+        description: string; debit: number; credit: number; meta?: string;
+    };
+
+    const entries: Entry[] = [
+        ...bills.map(b => ({
+            id: b.id, date: b.billDate, type: "BILL" as const,
+            description: b.billNumber,
+            debit: Number(b.netTotal), credit: 0, // debit = customer owes us
+            meta: b.items.map(i => i.item.name).join(", "),
+        })),
+        ...payments.map(p => ({
+            id: p.id, date: p.paymentDate, type: "PAYMENT" as const,
+            description: `Payment · ${p.mode.replace("_", " ")}`,
+            debit: 0, credit: Number(p.amount), // credit = customer paying us
+            meta: p.notes || (p.recordedBy?.name ? `Recorded by ${p.recordedBy.name}` : ""),
+        })),
+    ].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    let running = 0;
+    const ledger = entries.map(e => {
+        running += e.debit - e.credit;
+        return { ...e, runningBalance: running };
+    });
+
+    return NextResponse.json({ customer, ledger });
+}
