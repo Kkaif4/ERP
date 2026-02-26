@@ -7,6 +7,7 @@ import {
     Clock, ToggleLeft, ToggleRight, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { itemSchema } from "@/lib/schemas";
 
 interface Item {
     id: string;
@@ -83,7 +84,12 @@ export default function ItemsPage() {
 
     const handleAddItem = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name.trim()) { toast.error(t("master.farmers.emptyFields")); return; }
+        const result = itemSchema.safeParse(formData);
+        if (!result.success) {
+            toast.error(result.error.issues[0].message);
+            return;
+        }
+
         setSubmitting(true);
         try {
             const res = await fetch("/api/items", {

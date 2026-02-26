@@ -10,10 +10,11 @@ import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { purchaseBillSchema } from "@/lib/schemas";
 
 interface Farmer { id: string; name: string; mobile: string; }
 interface Item { id: string; name: string; defaultPricingMode: "WEIGHT" | "UNIT"; }
-interface BillLine { itemId: string; itemName: string; pricingMode: "WEIGHT" | "UNIT"; quantity: number; price: number; total: number; }
+interface BillLine { itemId: string; itemName: string; pricingMode: "WEIGHT" | "UNIT"; quantity: string; price: string; total: number; }
 interface BusinessConfig { taxType: "PERCENTAGE" | "FIXED"; taxValue: number; serviceChargeType: "PERCENTAGE" | "FIXED"; serviceChargeValue: number; }
 
 export default function NewPurchaseBillPage() {
@@ -108,14 +109,19 @@ export default function NewPurchaseBillPage() {
     }, [debouncedItemSearch, itemPage, isItemDropdownOpen]);
 
     const addLine = (item: Item) => {
-        setLines([...lines, { itemId: item.id, itemName: item.name, pricingMode: item.defaultPricingMode, quantity: 0, price: 0, total: 0 }]);
+        setLines([...lines, { itemId: item.id, itemName: item.name, pricingMode: item.defaultPricingMode, quantity: "", price: "", total: 0 }]);
         setItemSearch(""); setIsItemDropdownOpen(false);
     };
     const updateLine = (index: number, field: keyof BillLine, value: any) => {
         const newLines = [...lines];
+        if (field === "quantity" || field === "price") {
+            if (value !== "" && !/^\d*\.?\d{0,2}$/.test(value)) return;
+        }
         (newLines[index] as any)[field] = value;
         const l = newLines[index];
-        l.total = l.pricingMode === "WEIGHT" ? (l.quantity / 10) * l.price : l.quantity * l.price;
+        const q = parseFloat(l.quantity) || 0;
+        const p = parseFloat(l.price) || 0;
+        l.total = l.pricingMode === "WEIGHT" ? (q / 10) * p : q * p;
         setLines(newLines);
     };
     const removeLine = (index: number) => setLines(lines.filter((_, i) => i !== index));
@@ -126,11 +132,29 @@ export default function NewPurchaseBillPage() {
     const netTotal = subtotal + taxAmount + serviceChargeAmount;
 
     const handleSubmit = async () => {
-        if (!selectedFarmer) return toast.error(t("bills.purchase.selectFarmer"));
-        if (lines.length === 0) return toast.error(t("bills.purchase.emptyItems"));
+        const data = {
+            farmerId: selectedFarmer?.id || "",
+            items: lines.map(l => ({
+                itemId: l.itemId,
+                pricingMode: l.pricingMode,
+                quantity: parseFloat(l.quantity) || 0,
+                pricePerUnit: parseFloat(l.price) || 0
+            }))
+        };
+
+        const result = purchaseBillSchema.safeParse(data);
+        if (!result.success) {
+            toast.error(result.error.issues[0].message);
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            const res = await fetch("/api/bills/purchase", { method: "POST", body: JSON.stringify({ farmerId: selectedFarmer.id, items: lines.map(l => ({ itemId: l.itemId, pricingMode: l.pricingMode, quantity: l.quantity, pricePerUnit: l.price })) }) });
+            const res = await fetch("/api/bills/purchase", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
             if (res.ok) { toast.success(t("bills.purchase.success")); router.push("/bills"); }
             else { const err = await res.json(); toast.error(err.error || t("bills.purchase.error")); }
         } catch { toast.error(t("bills.purchase.error")); }
@@ -316,10 +340,8 @@ export default function NewPurchaseBillPage() {
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: "16px" }}>
-                                                    <input type="number" value={line.quantity || ""}
-                                                        onChange={e => updateLine(idx, "quantity", parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={e => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
-                                                        onWheel={e => (e.target as HTMLInputElement).blur()}
+                                                    <input type="text" inputMode="decimal" value={line.quantity}
+                                                        onChange={e => updateLine(idx, "quantity", e.target.value)}
                                                         style={{ width: "80px", display: "block", margin: "0 auto", padding: "8px", textAlign: "center", backgroundColor: "#f8fafc", border: "1.5px solid transparent", borderRadius: "10px", fontWeight: 800, fontSize: "14px", outline: "none", transition: "all 0.2s" }}
                                                         onFocusCapture={e => { e.currentTarget.style.borderColor = "#15803d"; e.currentTarget.style.backgroundColor = "#fff"; }}
                                                         onBlurCapture={e => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
@@ -327,10 +349,8 @@ export default function NewPurchaseBillPage() {
                                                 <td style={{ padding: "16px" }}>
                                                     <div style={{ position: "relative", width: "100px", margin: "0 auto" }}>
                                                         <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", fontSize: "11px", fontWeight: 800, color: "#94a3b8" }}>₹</span>
-                                                        <input type="number" value={line.price || ""}
-                                                            onChange={e => updateLine(idx, "price", parseFloat(e.target.value) || 0)}
-                                                            onKeyDown={e => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
-                                                            onWheel={e => (e.target as HTMLInputElement).blur()}
+                                                        <input type="text" inputMode="decimal" value={line.price}
+                                                            onChange={e => updateLine(idx, "price", e.target.value)}
                                                             style={{ width: "100%", boxSizing: "border-box", padding: "8px 8px 8px 24px", textAlign: "center", backgroundColor: "#f8fafc", border: "1.5px solid transparent", borderRadius: "10px", fontWeight: 800, fontSize: "14px", outline: "none", transition: "all 0.2s" }}
                                                             onFocusCapture={e => { e.currentTarget.style.borderColor = "#15803d"; e.currentTarget.style.backgroundColor = "#fff"; }}
                                                             onBlurCapture={e => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
@@ -367,7 +387,7 @@ export default function NewPurchaseBillPage() {
                                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                                                 <div>
                                                     <p style={{ margin: "0 0 6px", fontSize: "10px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("bills.purchase.quantity")}</p>
-                                                    <input type="number" value={line.quantity || ""} onChange={e => updateLine(idx, "quantity", parseFloat(e.target.value) || 0)}
+                                                    <input type="text" inputMode="decimal" value={line.quantity} onChange={e => updateLine(idx, "quantity", e.target.value)}
                                                         style={{ width: "100%", boxSizing: "border-box", padding: "10px", textAlign: "center", backgroundColor: "#f8fafc", border: "1.5px solid transparent", borderRadius: "10px", fontWeight: 800, fontSize: "15px", outline: "none" }}
                                                         onFocusCapture={e => { e.currentTarget.style.borderColor = "#15803d"; e.currentTarget.style.backgroundColor = "#fff"; }}
                                                         onBlurCapture={e => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
@@ -376,7 +396,7 @@ export default function NewPurchaseBillPage() {
                                                     <p style={{ margin: "0 0 6px", fontSize: "10px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("bills.purchase.price")}</p>
                                                     <div style={{ position: "relative" }}>
                                                         <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "12px", fontWeight: 800, color: "#94a3b8" }}>₹</span>
-                                                        <input type="number" value={line.price || ""} onChange={e => updateLine(idx, "price", parseFloat(e.target.value) || 0)}
+                                                        <input type="text" inputMode="decimal" value={line.price} onChange={e => updateLine(idx, "price", e.target.value)}
                                                             style={{ width: "100%", boxSizing: "border-box", padding: "10px 10px 10px 28px", textAlign: "center", backgroundColor: "#f8fafc", border: "1.5px solid transparent", borderRadius: "10px", fontWeight: 800, fontSize: "15px", outline: "none" }}
                                                             onFocusCapture={e => { e.currentTarget.style.borderColor = "#15803d"; e.currentTarget.style.backgroundColor = "#fff"; }}
                                                             onBlurCapture={e => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />

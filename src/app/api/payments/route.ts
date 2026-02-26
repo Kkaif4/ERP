@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { paymentSchema } from "@/lib/schemas";
 
 export async function GET(req: Request) {
     const session = await getSession();
@@ -9,15 +10,28 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const farmerId = searchParams.get("farmerId");
     const customerId = searchParams.get("customerId");
+    const type = searchParams.get("type"); // FARMER or CUSTOMER
+    const search = searchParams.get("search") || "";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
 
-    const where = {
+    const where: any = {
         organizationId: session.organizationId!,
-        ...(farmerId ? { farmerId } : {}),
-        ...(customerId ? { customerId } : {}),
     };
+
+    if (farmerId) where.farmerId = farmerId;
+    if (customerId) where.customerId = customerId;
+    if (type === "FARMER") where.farmerId = { not: null };
+    if (type === "CUSTOMER") where.customerId = { not: null };
+
+    if (search) {
+        where.OR = [
+            { farmer: { name: { contains: search, mode: "insensitive" } } },
+            { customer: { name: { contains: search, mode: "insensitive" } } },
+            { notes: { contains: search, mode: "insensitive" } },
+        ];
+    }
 
     const [total, payments] = await Promise.all([
         prisma.payment.count({ where }),
@@ -52,13 +66,13 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { farmerId, customerId, billId, amount, mode, notes, paymentDate } = body;
+        const result = paymentSchema.safeParse(body);
+        if (!result.success) {
+            return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
+        }
+        const { farmerId, customerId, billId, amount, mode, notes, paymentDate } = result.data;
 
-        if (!amount || amount <= 0) return NextResponse.json({ error: "Amount must be greater than 0" }, { status: 400 });
-        if (!mode) return NextResponse.json({ error: "Payment mode is required" }, { status: 400 });
-        if (!farmerId && !customerId) return NextResponse.json({ error: "Either farmerId or customerId is required" }, { status: 400 });
-
-        const result = await prisma.$transaction(async (tx) => {
+        const paymentRecord = await prisma.$transaction(async (tx) => {
             // Create the payment record
             const payment = await tx.payment.create({
                 data: {
@@ -69,7 +83,7 @@ export async function POST(req: Request) {
                     amount,
                     mode,
                     notes: notes || null,
-                    paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+                    paymentDate: new Date(paymentDate),
                     recordedById: session.userId,
                 },
             });
@@ -92,12 +106,12 @@ export async function POST(req: Request) {
 
         await prisma.auditLog.create({
             data: {
-                action: "CREATE", entity: "PAYMENT", entityId: result.id,
-                newValue: result as any, userId: session.userId, organizationId: session.organizationId!,
+                action: "CREATE", entity: "PAYMENT", entityId: paymentRecord.id,
+                newValue: paymentRecord as any, userId: session.userId, organizationId: session.organizationId!,
             },
         });
 
-        return NextResponse.json(result);
+        return NextResponse.json(paymentRecord);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

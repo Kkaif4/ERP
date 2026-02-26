@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { itemSchema } from "@/lib/schemas";
 
 export async function GET(req: Request) {
     const session = await getSession();
@@ -46,11 +47,11 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { name, defaultPricingMode } = body;
-
-        if (!name || !defaultPricingMode) {
-            return NextResponse.json({ error: "Name and Pricing Mode are required" }, { status: 400 });
+        const result = itemSchema.safeParse(body);
+        if (!result.success) {
+            return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
         }
+        const { name, defaultPricingMode } = result.data;
 
         // Check for duplicate name within org
         const existing = await prisma.item.findFirst({

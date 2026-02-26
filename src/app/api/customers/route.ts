@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { customerSchema } from "@/lib/schemas";
 
 export async function GET(req: Request) {
     const session = await getSession();
@@ -47,11 +48,11 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { name, mobile, address } = body;
-
-        if (!name || !mobile) {
-            return NextResponse.json({ error: "Name and Mobile are required" }, { status: 400 });
+        const result = customerSchema.safeParse(body);
+        if (!result.success) {
+            return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
         }
+        const { name, mobile, address } = result.data;
 
         const customer = await prisma.customer.create({
             data: {

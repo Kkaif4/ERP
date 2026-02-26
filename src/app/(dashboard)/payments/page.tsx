@@ -8,6 +8,7 @@ import {
     Users, UserSearch, Clock, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { paymentSchema } from "@/lib/schemas";
 
 interface Payment {
     id: string;
@@ -141,20 +142,26 @@ export default function PaymentsPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedParty) { toast.error("Please select a farmer or customer"); return; }
-        if (!form.amount || parseFloat(form.amount) <= 0) { toast.error("Enter a valid amount"); return; }
+        const data = {
+            ...(partyType === "FARMER" ? { farmerId: selectedParty?.id } : { customerId: selectedParty?.id }),
+            amount: parseFloat(form.amount) || 0,
+            mode: form.mode as any,
+            notes: form.notes || undefined,
+            paymentDate: form.paymentDate,
+        };
+
+        const result = paymentSchema.safeParse(data);
+        if (!result.success) {
+            toast.error(result.error.issues[0].message);
+            return;
+        }
+
         setSubmitting(true);
         try {
             const res = await fetch("/api/payments", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...(partyType === "FARMER" ? { farmerId: selectedParty.id } : { customerId: selectedParty.id }),
-                    amount: parseFloat(form.amount),
-                    mode: form.mode,
-                    notes: form.notes || undefined,
-                    paymentDate: form.paymentDate,
-                }),
+                body: JSON.stringify(data),
             });
             if (res.ok) {
                 toast.success(t("payments.successAdd") || "Payment recorded");
@@ -501,10 +508,11 @@ export default function PaymentsPage() {
                                 <p style={{ margin: "0 0 8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>{t("payments.amount") || "Amount"} *</p>
                                 <div style={{ position: "relative" }}>
                                     <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", fontWeight: 900, color: "#94a3b8" }}>₹</span>
-                                    <input required type="number" min="1" step="0.01" value={form.amount}
-                                        onChange={e => setForm({ ...form, amount: e.target.value })}
-                                        onKeyDown={e => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
-                                        onWheel={e => (e.target as HTMLInputElement).blur()}
+                                    <input required type="text" inputMode="decimal" value={form.amount}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) setForm({ ...form, amount: val });
+                                        }}
                                         style={{ width: "100%", boxSizing: "border-box", padding: "13px 16px 13px 32px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "16px", fontWeight: 800, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
                                         onFocusCapture={e => { e.currentTarget.style.borderColor = VIOLET; e.currentTarget.style.backgroundColor = "#fff"; }}
                                         onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />

@@ -5,6 +5,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { UserSearch, Plus, Search, Phone, MapPin, Loader2, X, ArrowRight, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { customerSchema } from "@/lib/schemas";
 
 interface Customer { id: string; name: string; mobile: string; address: string | null; balance: number; }
 
@@ -68,7 +69,12 @@ export default function CustomersPage() {
 
     const handleAddCustomer = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.mobile) { toast.error(t("master.farmers.emptyFields")); return; }
+        const result = customerSchema.safeParse(formData);
+        if (!result.success) {
+            toast.error(result.error.issues[0].message);
+            return;
+        }
+
         setSubmitting(true);
         try {
             const res = await fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
