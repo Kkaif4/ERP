@@ -470,8 +470,8 @@ export default function NewSaleBillPage() {
 
                         {[
                             { label: t("bills.purchase.subtotal"), value: fmt(subtotal), muted: true },
-                            { label: t("bills.sale.labour"), value: fmt(labourCharges), muted: true },
-                            { label: t("bills.sale.freight"), value: fmt(freightCharges), muted: true },
+                            { label: t("bills.sale.labour"), value: fmt(lc), muted: true },
+                            { label: t("bills.sale.freight"), value: fmt(fc), muted: true },
                         ].map(({ label, value, muted }) => (
                             <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.875rem" }}>
                                 <span style={{ fontSize: "11px", fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</span>
@@ -499,7 +499,7 @@ export default function NewSaleBillPage() {
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <span style={{ fontSize: "11px", fontWeight: 900, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("bills.sale.advance")}</span>
-                            <span style={{ fontSize: "13px", fontWeight: 800, color: "#f87171" }}>– {fmt(advanceDeduction)}</span>
+                            <span style={{ fontSize: "13px", fontWeight: 800, color: "#f87171" }}>– {fmt(ad)}</span>
                         </div>
 
                         <div style={{ marginTop: "1.5rem", padding: "1.25rem", backgroundColor: "rgba(255,255,255,0.04)", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.06)" }}>
