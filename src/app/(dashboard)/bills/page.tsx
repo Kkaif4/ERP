@@ -33,18 +33,38 @@ export default function BillsPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<"ALL" | "PURCHASE" | "SALE">("ALL");
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+    const [pagination, setPagination] = useState({ totalPages: 1, page: 1, total: 0 });
+
+    // Debounce search input
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPagination(p => ({ ...p, page: 1 }));
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [search]);
 
     useEffect(() => {
+        const controller = new AbortController();
         const fetchBills = async () => {
             setLoading(true);
             try {
-                const r = await fetch(`/api/bills?type=${filter}&search=${encodeURIComponent(search)}`);
+                const r = await fetch(
+                    `/api/bills?type=${filter}&search=${encodeURIComponent(debouncedSearch)}&page=${pagination.page}`,
+                    { signal: controller.signal }
+                );
                 if (!r.ok) throw new Error("Fetch failed");
-                const text = await r.text();
-                if (!text) throw new Error("Empty response");
-                const data = JSON.parse(text);
-                setBills(data);
-            } catch (err) {
+                const res = await r.json();
+                setBills(res.data);
+                setPagination(prev => ({
+                    ...prev,
+                    totalPages: res.pagination.totalPages,
+                    total: res.pagination.total
+                }));
+            } catch (err: any) {
+                if (err.name === 'AbortError') return;
                 console.error("Bills fetch error:", err);
                 toast.error("Failed to load bills history");
             } finally {
@@ -52,13 +72,18 @@ export default function BillsPage() {
             }
         };
         fetchBills();
-    }, [filter, search]);
+        return () => controller.abort();
+    }, [filter, debouncedSearch, pagination.page]);
 
     const activeDate = new Date().toLocaleDateString(language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN", {
         day: "numeric",
         month: "long",
         year: "numeric",
     });
+
+    const handlePageChange = (newPage: number) => {
+        setPagination(prev => ({ ...prev, page: newPage }));
+    };
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
@@ -80,7 +105,7 @@ export default function BillsPage() {
 
                 <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                     <Link
-                        href="/dashboard/bills/purchase/new"
+                        href="/bills/purchase/new"
                         className="quick-action-btn purchase"
                         style={{
                             display: "inline-flex",
@@ -101,7 +126,7 @@ export default function BillsPage() {
                         {t("dashboard.purchaseBill")}
                     </Link>
                     <Link
-                        href="/dashboard/bills/sale/new"
+                        href="/bills/sale/new"
                         className="quick-action-btn sale"
                         style={{
                             display: "inline-flex",
@@ -133,7 +158,7 @@ export default function BillsPage() {
                         {(["ALL", "PURCHASE", "SALE"] as const).map((opt) => (
                             <button
                                 key={opt}
-                                onClick={() => setFilter(opt)}
+                                onClick={() => { setFilter(opt); setPagination(p => ({ ...p, page: 1 })); }}
                                 style={{
                                     border: "none",
                                     padding: "10px 20px",
@@ -149,7 +174,7 @@ export default function BillsPage() {
                                     boxShadow: filter === opt ? "0 4px 6px -1px rgba(0,0,0,0.05)" : "none"
                                 }}
                             >
-                                {opt === "ALL" ? "All Bills" : opt === "PURCHASE" ? "Purchase" : "Sales"}
+                                {opt === "ALL" ? t("common.all") || "All Bills" : opt === "PURCHASE" ? t("bills.purchase.title") : t("bills.sale.title")}
                             </button>
                         ))}
                     </div>
@@ -310,6 +335,39 @@ export default function BillsPage() {
                         ))
                     )}
                 </div>
+
+                {/* Pagination Controls */}
+                {!loading && bills.length > 0 && pagination.totalPages > 1 && (
+                    <div style={{ padding: "1.25rem 1.75rem", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#fff" }}>
+                        <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "var(--text-muted)" }}>
+                            Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+                        </p>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                            <button
+                                onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
+                                disabled={pagination.page === 1}
+                                style={{
+                                    padding: "8px 16px", borderRadius: "10px", border: "1px solid var(--border-main)", backgroundColor: pagination.page === 1 ? "#f8fafc" : "#fff",
+                                    fontSize: "12px", fontWeight: 800, color: pagination.page === 1 ? "#cbd5e1" : "var(--text-main)", cursor: pagination.page === 1 ? "not-allowed" : "pointer",
+                                    transition: "all 0.2s"
+                                }}
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => handlePageChange(Math.min(pagination.totalPages, pagination.page + 1))}
+                                disabled={pagination.page === pagination.totalPages}
+                                style={{
+                                    padding: "8px 16px", borderRadius: "10px", border: "1px solid var(--border-main)", backgroundColor: pagination.page === pagination.totalPages ? "#f8fafc" : "#fff",
+                                    fontSize: "12px", fontWeight: 800, color: pagination.page === pagination.totalPages ? "#cbd5e1" : "var(--text-main)", cursor: pagination.page === pagination.totalPages ? "not-allowed" : "pointer",
+                                    transition: "all 0.2s"
+                                }}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <style jsx>{`

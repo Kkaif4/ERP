@@ -1,0 +1,13 @@
+{
+  "title": "Business Settings",
+  "subtitle": "Tax & service configuration for this mandi",
+  "taxSection": "Tax",
+  "taxType": "Tax Type",
+  "taxValue": "Tax Value",
+  "serviceSection": "Service Charge",
+  "serviceType": "Service Charge Type",
+  "serviceValue": "Service Charge Value",
+  "percentage": "Percentage (%)",
+  "fixed": "Fixed Amount (₹)"
+}
+

@@ -13,8 +13,16 @@
     "hindi": "Hindi",
     "marathi": "Marathi",
     "english": "English",
+    "saving": "Saving...",
     "roles": {
         "admin": "Administrator",
         "staff": "Staff Member"
-    }
+    },
+    "billNumber": "Bill #",
+    "date": "Date",
+    "party": "Party",
+    "type": "Type",
+    "amount": "Amount",
+    "actions": "Actions",
+    "all": "All"
 }

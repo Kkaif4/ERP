@@ -26,22 +26,60 @@ export default function ItemsPage() {
     const [formData, setFormData] = useState({ name: "", defaultPricingMode: "WEIGHT" as "WEIGHT" | "UNIT" });
     const [submitting, setSubmitting] = useState(false);
     const [togglingId, setTogglingId] = useState<string | null>(null);
+    const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 50, totalPages: 1 });
 
     const today = new Date().toLocaleDateString(
         language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN",
         { weekday: "long", day: "numeric", month: "long" }
     );
 
-    const fetchItems = async () => {
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
+    // Debounce search input
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPagination(p => ({ ...p, page: 1 }));
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const fetchItemsList = async (signal?: AbortSignal) => {
+        setLoading(true);
         try {
-            const res = await fetch(`/api/items?search=${encodeURIComponent(search)}`);
-            const data = await res.json();
-            setItems(data || []);
-        } catch { toast.error(t("master.items.errorLoad")); }
-        finally { setLoading(false); }
+            const res = await fetch(
+                `/api/items?search=${encodeURIComponent(debouncedSearch)}&page=${pagination.page}`,
+                { signal }
+            );
+            const result = await res.json();
+            if (result.data) {
+                setItems(result.data);
+                setPagination(prev => ({
+                    ...prev,
+                    totalPages: result.pagination.totalPages,
+                    total: result.pagination.total
+                }));
+            } else {
+                setItems(Array.isArray(result) ? result : []);
+            }
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
+            toast.error(t("master.items.errorLoad"));
+        } finally {
+            setLoading(false);
+        }
     };
 
-    useEffect(() => { fetchItems(); }, [search]);
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchItemsList(controller.signal);
+        return () => controller.abort();
+    }, [debouncedSearch, pagination.page]);
+
+    const handlePageChange = (newPage: number) => {
+        setPagination(p => ({ ...p, page: newPage }));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
 
     const handleAddItem = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,7 +95,7 @@ export default function ItemsPage() {
                 toast.success(t("master.items.successAdd"));
                 setIsModalOpen(false);
                 setFormData({ name: "", defaultPricingMode: "WEIGHT" });
-                fetchItems();
+                fetchItemsList();
             } else {
                 const err = await res.json();
                 toast.error(err.error || t("master.items.errorAdd"));
@@ -234,6 +272,27 @@ export default function ItemsPage() {
                             </div>
                         </div>
                     ))}
+                    {filtered.length > 0 && pagination.totalPages > 1 && (
+                        <div className="premium-card" style={{ gridColumn: "1 / -1", marginTop: "1rem", padding: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "var(--text-muted)" }}>
+                                Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+                            </p>
+                            <div style={{ display: "flex", gap: "0.5rem" }}>
+                                <button
+                                    onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
+                                    disabled={pagination.page === 1}
+                                    style={{ padding: "8px 16px", borderRadius: "10px", border: "1px solid var(--border-main)", backgroundColor: pagination.page === 1 ? "#f8fafc" : "#fff", fontSize: "12px", fontWeight: 800, color: pagination.page === 1 ? "#cbd5e1" : "var(--text-main)", cursor: pagination.page === 1 ? "not-allowed" : "pointer" }}>
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => handlePageChange(Math.min(pagination.totalPages, pagination.page + 1))}
+                                    disabled={pagination.page === pagination.totalPages}
+                                    style={{ padding: "8px 16px", borderRadius: "10px", border: "1px solid var(--border-main)", backgroundColor: pagination.page === pagination.totalPages ? "#f8fafc" : "#fff", fontSize: "12px", fontWeight: 800, color: pagination.page === pagination.totalPages ? "#cbd5e1" : "var(--text-main)", cursor: pagination.page === pagination.totalPages ? "not-allowed" : "pointer" }}>
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

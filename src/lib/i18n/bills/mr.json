@@ -40,13 +40,5 @@
         "payable": "अंतिम देय",
         "balanceImpact": "हे {{party}} च्या येणे शिल्लक रकमेमध्ये {{amount}} जोडेल.",
         "customerLabel": "ग्राहक"
-    },
-    "common": {
-        "billNumber": "बिल #",
-        "date": "दिनांक",
-        "party": "पार्टी",
-        "type": "प्रकार",
-        "amount": "रक्कम",
-        "actions": "कृती"
     }
 }

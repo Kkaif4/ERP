@@ -11,6 +11,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type") || "ALL";
     const search = searchParams.get("search") || "";
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = (page - 1) * limit;
 
     const where: any = {
         organizationId: session.organizationId,
@@ -35,15 +38,19 @@ export async function GET(req: Request) {
         ];
     }
 
-    const bills = await prisma.bill.findMany({
-        where,
-        include: {
-            farmer: { select: { name: true } },
-            customer: { select: { name: true } },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-    });
+    const [total, bills] = await Promise.all([
+        prisma.bill.count({ where }),
+        prisma.bill.findMany({
+            where,
+            include: {
+                farmer: { select: { name: true } },
+                customer: { select: { name: true } },
+            },
+            orderBy: { createdAt: "desc" },
+            skip,
+            take: limit,
+        }),
+    ]);
 
     const formattedBills = bills.map((b) => ({
         id: b.id,
@@ -54,5 +61,13 @@ export async function GET(req: Request) {
         billDate: b.billDate,
     }));
 
-    return NextResponse.json(formattedBills);
+    return NextResponse.json({
+        data: formattedBills,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        },
+    });
 }

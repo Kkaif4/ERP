@@ -75,7 +75,7 @@ export function AppShell({ children, user }: AppShellProps) {
             </div>
 
             {/* Mobile Bottom Navigation */}
-            <BottomNav />
+            <BottomNav role={user.role} />
         </div>
     );
 }

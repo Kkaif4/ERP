@@ -40,13 +40,5 @@
         "payable": "अंतिम देय",
         "balanceImpact": "यह {{party}} के प्राप्य शेष में {{amount}} जोड़ देगा।",
         "customerLabel": "ग्राहक"
-    },
-    "common": {
-        "billNumber": "बिल #",
-        "date": "दिनांक",
-        "party": "पक्ष",
-        "type": "प्रकार",
-        "amount": "राशि",
-        "actions": "कार्रवाई"
     }
 }

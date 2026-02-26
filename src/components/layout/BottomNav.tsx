@@ -12,17 +12,26 @@ import {
     UserSearch,
 } from "lucide-react";
 
-export function BottomNav() {
+interface BottomNavProps {
+    role: string;
+}
+
+export function BottomNav({ role }: BottomNavProps) {
     const { t } = useTranslation();
     const pathname = usePathname();
 
-    const tabs = [
+    const baseTabs = [
         { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { key: "bills", href: "/dashboard/bills", icon: ReceiptText },
+        { key: "bills", href: "/bills", icon: ReceiptText },
         { key: "farmers", href: "/farmers", icon: Users },
-        { key: "payments", href: "/dashboard/payments", icon: WalletCards },
+        { key: "payments", href: "/payments", icon: WalletCards },
         { key: "customers", href: "/customers", icon: UserSearch },
-    ];
+    ] as const;
+
+    const tabs =
+        role === "ORG_STAFF"
+            ? baseTabs.filter((t) => t.key !== "bills")
+            : baseTabs;
 
     return (
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50" style={{

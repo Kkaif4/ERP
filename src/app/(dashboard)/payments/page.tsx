@@ -38,6 +38,8 @@ export default function PaymentsPage() {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<"ALL" | "FARMER" | "CUSTOMER">("ALL");
+    const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -47,6 +49,12 @@ export default function PaymentsPage() {
     const [partyResults, setPartyResults] = useState<Party[]>([]);
     const [selectedParty, setSelectedParty] = useState<Party | null>(null);
     const [showPartyDrop, setShowPartyDrop] = useState(false);
+
+    const [partyPage, setPartyPage] = useState(1);
+    const [hasMoreParties, setHasMoreParties] = useState(true);
+    const [isPartyLoading, setIsPartyLoading] = useState(false);
+    const [debouncedPartySearch, setDebouncedPartySearch] = useState("");
+
     const [form, setForm] = useState({
         amount: "",
         mode: "CASH",
@@ -54,28 +62,82 @@ export default function PaymentsPage() {
         paymentDate: new Date().toISOString().split("T")[0],
     });
 
+    const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 50, totalPages: 1 });
+
+    // Debounce main search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPagination(p => ({ ...p, page: 1 }));
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    // Debounce modal party search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedPartySearch(partySearch);
+            setPartyPage(1);
+            setHasMoreParties(true);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [partySearch]);
+
+    const fetchPayments = async (signal?: AbortSignal) => {
+        setLoading(true);
+        try {
+            const url = `/api/payments?page=${pagination.page}&limit=${pagination.limit}${tab !== "ALL" ? `&type=${tab}` : ""}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+            const res = await fetch(url, { signal });
+            const result = await res.json();
+            if (result.data) {
+                setPayments(result.data);
+                setPagination(result.pagination);
+            }
+        } catch (err: any) {
+            if (err.name !== "AbortError") toast.error("Failed to load payments");
+        }
+        finally { setLoading(false); }
+    };
+
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchPayments(controller.signal);
+        return () => controller.abort();
+    }, [tab, pagination.page, debouncedSearch]);
+
+    // Search parties for modal dropdown with infinite scroll
+    useEffect(() => {
+        if (!showPartyDrop) return;
+        const controller = new AbortController();
+        const fetchPartiesList = async () => {
+            if (!hasMoreParties && partyPage !== 1) return;
+            setIsPartyLoading(true);
+            try {
+                const endpoint = partyType === "FARMER" ? `/api/farmers` : `/api/customers`;
+                const url = `${endpoint}?search=${encodeURIComponent(debouncedPartySearch)}&page=${partyPage}&limit=20`;
+                const res = await fetch(url, { signal: controller.signal });
+                const result = await res.json();
+                if (result.data) {
+                    setPartyResults(prev => partyPage === 1 ? result.data : [...prev, ...result.data]);
+                    setHasMoreParties(result.pagination.page < result.pagination.totalPages);
+                }
+            } finally {
+                setIsPartyLoading(false);
+            }
+        };
+        fetchPartiesList();
+        return () => controller.abort();
+    }, [debouncedPartySearch, partyPage, partyType, showPartyDrop]);
+
+    const handlePageChange = (newPage: number) => {
+        setPagination(p => ({ ...p, page: newPage }));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
     const today = new Date().toLocaleDateString(
         language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN",
         { weekday: "long", day: "numeric", month: "long" }
     );
-
-    const fetchPayments = async () => {
-        try {
-            const res = await fetch("/api/payments?limit=100");
-            const data = await res.json();
-            setPayments(data || []);
-        } catch { toast.error("Failed to load payments"); }
-        finally { setLoading(false); }
-    };
-
-    useEffect(() => { fetchPayments(); }, []);
-
-    // Search parties for modal dropdown
-    useEffect(() => {
-        if (partySearch.length < 1) { setPartyResults([]); return; }
-        const endpoint = partyType === "FARMER" ? `/api/farmers?search=${encodeURIComponent(partySearch)}` : `/api/customers?search=${encodeURIComponent(partySearch)}`;
-        fetch(endpoint).then(r => r.json()).then(d => setPartyResults(d || []));
-    }, [partySearch, partyType]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -138,7 +200,7 @@ export default function PaymentsPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px" }}>
                         <div style={{ height: "3px", width: "24px", backgroundColor: VIOLET, borderRadius: "2px" }} />
                         <p style={{ margin: 0, fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em", display: "flex", alignItems: "center", gap: "6px" }}>
-                            <Clock size={12} /> {payments.length} {t("payments.totalPayments") || "payments"} · {today}
+                            <Clock size={12} /> {pagination.total} {t("payments.totalPayments") || "payments"} · {today}
                         </p>
                     </div>
                 </div>
@@ -175,18 +237,31 @@ export default function PaymentsPage() {
 
             {/* ── Tabs + List ── */}
             <div className="premium-card" style={{ overflow: "hidden" }}>
-                {/* Tab bar */}
-                <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid #f1f5f9", display: "flex", gap: "0.5rem" }}>
-                    {(["ALL", "FARMER", "CUSTOMER"] as const).map(t2 => (
-                        <button key={t2} onClick={() => setTab(t2)} style={{
-                            padding: "7px 16px", borderRadius: "10px", border: "none", cursor: "pointer", fontSize: "11px", fontWeight: 900,
-                            textTransform: "uppercase", letterSpacing: "0.1em", transition: "all 0.15s",
-                            backgroundColor: tab === t2 ? VIOLET : "transparent",
-                            color: tab === t2 ? "#fff" : "#94a3b8",
-                        }}>
-                            {t2 === "ALL" ? (t("payments.all") || "All") : t2 === "FARMER" ? (t("payments.farmers") || "Farmers") : (t("payments.customers") || "Customers")}
-                        </button>
-                    ))}
+                <div style={{ padding: "0.75rem 1.5rem", borderBottom: "1px solid #f1f5f9", display: "flex", gap: "1rem", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                        {(["ALL", "FARMER", "CUSTOMER"] as const).map(t2 => (
+                            <button key={t2} onClick={() => setTab(t2)} style={{
+                                padding: "7px 16px", borderRadius: "10px", border: "none", cursor: "pointer", fontSize: "11px", fontWeight: 900,
+                                textTransform: "uppercase", letterSpacing: "0.1em", transition: "all 0.15s",
+                                backgroundColor: tab === t2 ? VIOLET : "transparent",
+                                color: tab === t2 ? "#fff" : "#94a3b8",
+                            }}>
+                                {t2 === "ALL" ? (t("payments.all") || "All") : t2 === "FARMER" ? (t("payments.farmers") || "Farmers") : (t("payments.customers") || "Customers")}
+                            </button>
+                        ))}
+                    </div>
+                    <div style={{ position: "relative", minWidth: "240px" }}>
+                        <Search style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} size={16} />
+                        <input
+                            type="text"
+                            placeholder={t("payments.searchPlaceholder") || "Search by party or notes..."}
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            style={{ width: "100%", padding: "10px 14px 10px 42px", borderRadius: "12px", border: "1.5px solid #f1f5f9", outline: "none", fontSize: "13px", fontWeight: 700, backgroundColor: "#f8fafc", transition: "all 0.2s" }}
+                            onFocusCapture={e => { e.currentTarget.style.borderColor = VIOLET; e.currentTarget.style.backgroundColor = "#fff"; }}
+                            onBlurCapture={e => { e.currentTarget.style.borderColor = "#f1f5f9"; e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                        />
+                    </div>
                 </div>
 
                 {loading ? (
@@ -289,6 +364,29 @@ export default function PaymentsPage() {
                 )}
             </div>
 
+            {/* Pagination */}
+            {!loading && pagination.totalPages > 1 && (
+                <div className="premium-card" style={{ marginTop: "2rem", padding: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "var(--text-muted)" }}>
+                        Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+                    </p>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button
+                            onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
+                            disabled={pagination.page === 1}
+                            style={{ padding: "8px 16px", borderRadius: "10px", border: "1px solid var(--border-main)", backgroundColor: pagination.page === 1 ? "#f8fafc" : "#fff", fontSize: "12px", fontWeight: 800, color: pagination.page === 1 ? "#cbd5e1" : "var(--text-main)", cursor: pagination.page === 1 ? "not-allowed" : "pointer" }}>
+                            Previous
+                        </button>
+                        <button
+                            onClick={() => handlePageChange(Math.min(pagination.totalPages, pagination.page + 1))}
+                            disabled={pagination.page === pagination.totalPages}
+                            style={{ padding: "8px 16px", borderRadius: "10px", border: "1px solid var(--border-main)", backgroundColor: pagination.page === pagination.totalPages ? "#f8fafc" : "#fff", fontSize: "12px", fontWeight: 800, color: pagination.page === pagination.totalPages ? "#cbd5e1" : "var(--text-main)", cursor: pagination.page === pagination.totalPages ? "not-allowed" : "pointer" }}>
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* ── Record Payment Modal ── */}
             {showModal && (
                 <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
@@ -358,23 +456,40 @@ export default function PaymentsPage() {
                                             onFocusCapture={e => { e.currentTarget.style.borderColor = VIOLET; e.currentTarget.style.backgroundColor = "#fff"; }}
                                             onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; setTimeout(() => setShowPartyDrop(false), 150); }}
                                         />
-                                        {showPartyDrop && partyResults.length > 0 && (
-                                            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: "6px", backgroundColor: "#fff", border: "1px solid var(--border-main)", borderRadius: "14px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", zIndex: 10, padding: "6px", maxHeight: "180px", overflowY: "auto" }}>
+                                        {showPartyDrop && (debouncedPartySearch.length > 0 || partyResults.length > 0) && (
+                                            <div
+                                                onScroll={e => {
+                                                    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                                                    if (scrollHeight - scrollTop <= clientHeight + 50 && hasMoreParties && !isPartyLoading) {
+                                                        setPartyPage(p => p + 1);
+                                                    }
+                                                }}
+                                                style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: "6px", backgroundColor: "#fff", border: "1px solid var(--border-main)", borderRadius: "14px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", zIndex: 10, padding: "6px", maxHeight: "200px", overflowY: "auto" }}
+                                            >
                                                 {partyResults.map(p => (
                                                     <button key={p.id} type="button"
                                                         onMouseDown={() => { setSelectedParty(p); setPartySearch(""); setShowPartyDrop(false); }}
-                                                        style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: "10px", border: "none", background: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                                                        style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: "10px", border: "none", background: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "all 0.15s" }}
                                                         onMouseEnter={e => e.currentTarget.style.backgroundColor = VIOLET_BG}
                                                         onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}>
                                                         <div>
                                                             <p style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "var(--text-main)" }}>{p.name}</p>
                                                             <p style={{ margin: 0, fontSize: "11px", fontWeight: 600, color: "#94a3b8" }}>{p.mobile}</p>
                                                         </div>
-                                                        <span style={{ fontSize: "12px", fontWeight: 800, color: Number(p.balance) > 0 ? "#d97706" : "#15803d" }}>
-                                                            ₹{Number(p.balance).toLocaleString("en-IN")}
+                                                        <span style={{ fontSize: "12px", fontWeight: 800, color: Number(p.balance) > 0 ? "#15803d" : "#d97706" }}>
+                                                            ₹{Math.abs(Number(p.balance)).toLocaleString("en-IN")}
+                                                            <span style={{ fontSize: "9px", marginLeft: "2px" }}>{Number(p.balance) > 0 ? "CR" : "DR"}</span>
                                                         </span>
                                                     </button>
                                                 ))}
+                                                {isPartyLoading && (
+                                                    <div style={{ padding: "12px", textAlign: "center" }}>
+                                                        <Loader2 size={16} className="spin" style={{ animation: "spin 0.6s linear infinite" }} color={VIOLET} />
+                                                    </div>
+                                                )}
+                                                {!isPartyLoading && partyResults.length === 0 && debouncedPartySearch.length > 0 && (
+                                                    <p style={{ padding: "12px", margin: 0, textAlign: "center", fontSize: "12px", color: "#94a3b8" }}>No results found</p>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -386,7 +501,10 @@ export default function PaymentsPage() {
                                 <p style={{ margin: "0 0 8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>{t("payments.amount") || "Amount"} *</p>
                                 <div style={{ position: "relative" }}>
                                     <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", fontWeight: 900, color: "#94a3b8" }}>₹</span>
-                                    <input required type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })}
+                                    <input required type="number" min="1" step="0.01" value={form.amount}
+                                        onChange={e => setForm({ ...form, amount: e.target.value })}
+                                        onKeyDown={e => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
+                                        onWheel={e => (e.target as HTMLInputElement).blur()}
                                         style={{ width: "100%", boxSizing: "border-box", padding: "13px 16px 13px 32px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "16px", fontWeight: 800, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
                                         onFocusCapture={e => { e.currentTarget.style.borderColor = VIOLET; e.currentTarget.style.backgroundColor = "#fff"; }}
                                         onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />

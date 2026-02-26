@@ -21,7 +21,7 @@ import {
 
 const mainNav = [
     { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { key: "bills", href: "/dashboard/bills", icon: ReceiptText },
+    { key: "bills", href: "/bills", icon: ReceiptText },
 ];
 
 const masterNav = [
@@ -31,12 +31,12 @@ const masterNav = [
 ];
 
 const financeNav = [
-    { key: "payments", href: "/dashboard/payments", icon: WalletCards },
-    { key: "reports", href: "/dashboard/reports", icon: BarChart3 },
+    { key: "payments", href: "/payments", icon: WalletCards },
+    { key: "reports", href: "/reports", icon: BarChart3 },
 ];
 
 const systemNav = [
-    { key: "settings", href: "/dashboard/settings", icon: Settings },
+    { key: "settings", href: "/settings", icon: Settings },
 ];
 
 function SectionLabel({ label }: { label: string }) {
@@ -189,8 +189,10 @@ export function Sidebar({ role }: { role: string }) {
                 <nav style={{ flex: 1 }}>
                     <NavGroup label={t("nav.sections.main") || "Main"} items={mainNav} pathname={pathname} t={t} />
                     <NavGroup label={t("nav.sections.master") || "Master"} items={masterNav} pathname={pathname} t={t} />
-                    <NavGroup label={t("nav.sections.finance") || "Finance"} items={financeNav} pathname={pathname} t={t} />
-                    <NavGroup label={t("nav.sections.system") || "System"} items={systemNav} pathname={pathname} t={t} />
+                    <NavGroup label={t("nav.sections.finance") || "Finance"} items={financeNav.filter(item => item.key !== "reports" || role === "ORG_ADMIN")} pathname={pathname} t={t} />
+                    {role === "ORG_ADMIN" && (
+                        <NavGroup label={t("nav.sections.system") || "System"} items={systemNav} pathname={pathname} t={t} />
+                    )}
 
                     {role === "SUPER_ADMIN" && (
                         <Link

@@ -185,7 +185,7 @@ export default function DashboardPage() {
                 {/* Quick Action Buttons */}
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                     <Link
-                        href="/dashboard/bills/purchase/new"
+                        href="/bills/purchase/new"
                         className="quick-action-btn purchase"
                         style={{
                             display: "inline-flex",
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                         {t("dashboard.purchaseBill")}
                     </Link>
                     <Link
-                        href="/dashboard/bills/sale/new"
+                        href="/bills/sale/new"
                         className="quick-action-btn sale"
                         style={{
                             display: "inline-flex",
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                             {t("dashboard.latestBills")}
                         </h3>
                         <Link
-                            href="/dashboard/bills"
+                            href="/bills"
                             style={{
                                 display: "inline-flex",
                                 alignItems: "center",
@@ -410,10 +410,10 @@ export default function DashboardPage() {
                     </p>
 
                     {[
-                        { href: "/dashboard/farmers", label: "Farmers", labelHi: "किसान", icon: Users, color: "#15803d" },
-                        { href: "/dashboard/customers", label: "Customers", labelHi: "ग्राहक", icon: UserSearch, color: "#0369a1" },
-                        { href: "/dashboard/payments", label: "Payments", labelHi: "भुगतान", icon: WalletCards, color: "#7c3aed" },
-                        { href: "/dashboard/bills", label: "All Bills", labelHi: "सभी बिल", icon: ReceiptText, color: "#b45309" },
+                        { href: "/farmers", label: "Farmers", labelHi: "किसान", icon: Users, color: "#15803d" },
+                        { href: "/customers", label: "Customers", labelHi: "ग्राहक", icon: UserSearch, color: "#0369a1" },
+                        { href: "/payments", label: "Payments", labelHi: "भुगतान", icon: WalletCards, color: "#7c3aed" },
+                        { href: "/bills", label: "All Bills", labelHi: "सभी बिल", icon: ReceiptText, color: "#b45309" },
                     ].map((item) => {
                         const Icon = item.icon;
                         return (
@@ -458,7 +458,7 @@ export default function DashboardPage() {
                     {/* New Bill CTA */}
                     <div style={{ marginTop: "1rem", paddingTop: "1.25rem", borderTop: "1px dashed var(--border-main)" }}>
                         <Link
-                            href="/dashboard/bills/purchase/new"
+                            href="/bills/purchase/new"
                             className="quick-action-btn purchase"
                             style={{
                                 display: "flex",

@@ -1,25 +1,26 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+    const { id } = await context.params;
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const customer = await prisma.customer.findFirst({
-        where: { id: params.id, organizationId: session.organizationId! },
+        where: { id, organizationId: session.organizationId! },
         select: { id: true, name: true, mobile: true, balance: true },
     });
     if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
     const [bills, payments] = await Promise.all([
         prisma.bill.findMany({
-            where: { customerId: params.id, organizationId: session.organizationId!, type: "SALE" },
+            where: { customerId: id, organizationId: session.organizationId!, type: "SALE" },
             select: { id: true, billNumber: true, billDate: true, netTotal: true, items: { select: { item: { select: { name: true } } } } },
             orderBy: { billDate: "asc" },
         }),
         prisma.payment.findMany({
-            where: { customerId: params.id, organizationId: session.organizationId! },
+            where: { customerId: id, organizationId: session.organizationId! },
             select: { id: true, amount: true, mode: true, notes: true, paymentDate: true, recordedBy: { select: { name: true } } },
             orderBy: { paymentDate: "asc" },
         }),

@@ -8,19 +8,37 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = (page - 1) * limit;
 
-    const farmers = await prisma.farmer.findMany({
-        where: {
-            organizationId: session.organizationId!,
-            OR: [
-                { name: { contains: search, mode: "insensitive" } },
-                { mobile: { contains: search } },
-            ],
+    const where = {
+        organizationId: session.organizationId!,
+        OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { mobile: { contains: search } },
+        ],
+    };
+
+    const [total, farmers] = await Promise.all([
+        prisma.farmer.count({ where }),
+        prisma.farmer.findMany({
+            where,
+            orderBy: { name: "asc" },
+            skip,
+            take: limit,
+        }),
+    ]);
+
+    return NextResponse.json({
+        data: farmers,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
         },
-        orderBy: { name: "asc" },
     });
-
-    return NextResponse.json(farmers);
 }
 
 export async function POST(req: Request) {

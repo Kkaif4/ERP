@@ -9,25 +9,41 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const farmerId = searchParams.get("farmerId");
     const customerId = searchParams.get("customerId");
+    const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = (page - 1) * limit;
 
-    const payments = await prisma.payment.findMany({
-        where: {
-            organizationId: session.organizationId!,
-            ...(farmerId ? { farmerId } : {}),
-            ...(customerId ? { customerId } : {}),
+    const where = {
+        organizationId: session.organizationId!,
+        ...(farmerId ? { farmerId } : {}),
+        ...(customerId ? { customerId } : {}),
+    };
+
+    const [total, payments] = await Promise.all([
+        prisma.payment.count({ where }),
+        prisma.payment.findMany({
+            where,
+            include: {
+                farmer: { select: { id: true, name: true } },
+                customer: { select: { id: true, name: true } },
+                bill: { select: { id: true, billNumber: true } },
+                recordedBy: { select: { name: true } },
+            },
+            orderBy: { paymentDate: "desc" },
+            skip,
+            take: limit,
+        }),
+    ]);
+
+    return NextResponse.json({
+        data: payments,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
         },
-        include: {
-            farmer: { select: { id: true, name: true } },
-            customer: { select: { id: true, name: true } },
-            bill: { select: { id: true, billNumber: true } },
-            recordedBy: { select: { name: true } },
-        },
-        orderBy: { paymentDate: "desc" },
-        take: limit,
     });
-
-    return NextResponse.json(payments);
 }
 
 export async function POST(req: Request) {

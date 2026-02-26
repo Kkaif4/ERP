@@ -40,13 +40,5 @@
         "payable": "Final Payable",
         "balanceImpact": "This will add {{amount}} to {{party}}'s receivable balance.",
         "customerLabel": "Customer"
-    },
-    "common": {
-        "billNumber": "Bill #",
-        "date": "Date",
-        "party": "Party",
-        "type": "Type",
-        "amount": "Amount",
-        "actions": "Actions"
     }
 }

@@ -8,19 +8,36 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
-    // When fetching for bill dropdowns, only return active items (activeOnly=true)
     const activeOnly = searchParams.get("activeOnly") === "true";
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = (page - 1) * limit;
 
-    const items = await prisma.item.findMany({
-        where: {
-            organizationId: session.organizationId!,
-            name: { contains: search, mode: "insensitive" },
-            ...(activeOnly ? { isActive: true } : {}),
+    const where = {
+        organizationId: session.organizationId!,
+        name: { contains: search, mode: "insensitive" as const },
+        ...(activeOnly ? { isActive: true } : {}),
+    };
+
+    const [total, items] = await Promise.all([
+        prisma.item.count({ where }),
+        prisma.item.findMany({
+            where,
+            orderBy: { name: "asc" },
+            skip,
+            take: limit,
+        }),
+    ]);
+
+    return NextResponse.json({
+        data: items,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
         },
-        orderBy: { name: "asc" },
     });
-
-    return NextResponse.json(items);
 }
 
 export async function POST(req: Request) {
