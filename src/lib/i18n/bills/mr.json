@@ -27,7 +27,12 @@
     "perKgHint": "प्रति किलो",
     "unitHint": "प्रति क्रेट",
     "balanceImpact": "हे {{party}} च्या देय शिल्लक रकमेमध्ये {{amount}} जोडेल.",
-    "farmerLabel": "शेतकरी"
+    "farmerLabel": "शेतकरी",
+    "totalTooltip": "एकूण = वजन मोडसाठी (वजन / १०) * दर, अन्यथा प्रमाण * दर.",
+    "labourTooltip": "लोडिंग/अनलोडिंगसाठी हमाली/लेबर शुल्क.",
+    "freightTooltip": "वाहतूक/भाडे शुल्क.",
+    "advanceTooltip": "शेतकऱ्याला आधी दिलेल्या कोणत्याही ॲडव्हान्सची कपात.",
+    "netTotalTooltip": "निव्वळ एकूण = पोटएकूण - हमाली - भाडे - ॲडव्हान्स"
   },
   "sale": {
     "title": "नवीन विक्री बिल",
@@ -40,6 +45,13 @@
     "grossTotal": "एकूण रक्कम",
     "payable": "अंतिम देय",
     "balanceImpact": "हे {{party}} च्या येणे शिल्लक रकमेमध्ये {{amount}} जोडेल.",
-    "customerLabel": "ग्राहक"
+    "customerLabel": "ग्राहक",
+    "taxTooltip": "कराची गणना {{value}}{{type}} वर केली गेली आहे.",
+    "serviceChargeTooltip": "सेवा शुल्काची गणना {{value}}{{type}} वर केली गेली आहे.",
+    "payableTooltip": "देय = पोटएकूण + कर + सेवा शुल्क",
+    "taxPercentage": "% (पोटएकूणच्या)",
+    "taxFixed": " निश्चित रक्कम",
+    "scPercentage": "% (पोटएकूणच्या)",
+    "scFixed": " निश्चित रक्कम"
   }
 }

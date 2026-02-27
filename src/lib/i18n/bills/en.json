@@ -5,7 +5,7 @@
     "selectFarmer": "Select Farmer",
     "farmerPlaceholder": "Search by name or mobile...",
     "addItem": "Add Item",
-    "billItems": "Bill Iteomphoms",
+    "billItems": "Bill Items",
     "item": "Item",
     "mode": "Mode",
     "kg": "KG",
@@ -27,7 +27,12 @@
     "perKgHint": "Per KG",
     "unitHint": "Per Crate",
     "balanceImpact": "This will add {{amount}} to {{party}}'s payable balance.",
-    "farmerLabel": "Farmer"
+    "farmerLabel": "Farmer",
+    "totalTooltip": "Total = (Weight / 10) * Price for WEIGHT mode, or Quantity * Price otherwise.",
+    "labourTooltip": "Labour charges for loading/unloading.",
+    "freightTooltip": "Transportation charges.",
+    "advanceTooltip": "Deduction for any advance previously paid to the farmer.",
+    "netTotalTooltip": "Net Total = Subtotal - Labour - Freight - Advance"
   },
   "sale": {
     "title": "New Sale Bill",
@@ -40,6 +45,13 @@
     "grossTotal": "Gross Total",
     "payable": "Final Payable",
     "balanceImpact": "This will add {{amount}} to {{party}}'s receivable balance.",
-    "customerLabel": "Customer"
+    "customerLabel": "Customer",
+    "taxTooltip": "Tax calculated at {{value}}{{type}}.",
+    "serviceChargeTooltip": "Service Charge calculated at {{value}}{{type}}.",
+    "payableTooltip": "Payable = Subtotal + Tax + Service Charge",
+    "taxPercentage": "% of subtotal",
+    "taxFixed": " fixed amount",
+    "scPercentage": "% of subtotal",
+    "scFixed": " fixed amount"
   }
 }

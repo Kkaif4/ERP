@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Clock,
   Loader2,
+  Info,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { saleBillSchema } from "@/lib/schemas";
+import Tooltip from "@/components/ui/Tooltip";
 
 interface Customer {
   id: string;
@@ -81,7 +83,7 @@ export default function NewSaleBillPage() {
     fetch("/api/config")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setConfig(d))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Debounce customer search
@@ -915,7 +917,12 @@ export default function NewSaleBillPage() {
                           letterSpacing: "0.1em",
                         }}
                       >
-                        {t("bills.purchase.total")}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px" }}>
+                          {t("bills.purchase.total")}
+                          <Tooltip content={t("bills.purchase.totalTooltip")}>
+                            <Info size={14} style={{ cursor: "help", opacity: 0.7 }} />
+                          </Tooltip>
+                        </div>
                       </th>
                       <th style={{ padding: "12px 16px" }}></th>
                     </tr>
@@ -959,6 +966,8 @@ export default function NewSaleBillPage() {
                           <input
                             type="text"
                             inputMode="decimal"
+                            min="0"
+                            step="1"
                             value={line.quantityUnits}
                             onChange={(e) =>
                               updateLine(idx, "quantityUnits", e.target.value)
@@ -991,6 +1000,8 @@ export default function NewSaleBillPage() {
                           <input
                             type="text"
                             inputMode="decimal"
+                            min="0"
+                            step="0.01"
                             value={line.quantityKg}
                             onChange={(e) =>
                               updateLine(idx, "quantityKg", e.target.value)
@@ -1043,6 +1054,8 @@ export default function NewSaleBillPage() {
                             <input
                               type="text"
                               inputMode="decimal"
+                              min="0"
+                              step="0.01"
                               value={line.price}
                               onChange={(e) =>
                                 updateLine(idx, "price", e.target.value)
@@ -1204,6 +1217,8 @@ export default function NewSaleBillPage() {
                           <input
                             type="text"
                             inputMode="decimal"
+                            min="0"
+                            step="1"
                             value={line.quantityUnits}
                             onChange={(e) =>
                               updateLine(idx, "quantityUnits", e.target.value)
@@ -1246,6 +1261,8 @@ export default function NewSaleBillPage() {
                           <input
                             type="text"
                             inputMode="decimal"
+                            min="0"
+                            step="0.01"
                             value={line.quantityKg}
                             onChange={(e) =>
                               updateLine(idx, "quantityKg", e.target.value)
@@ -1302,6 +1319,8 @@ export default function NewSaleBillPage() {
                             <input
                               type="text"
                               inputMode="decimal"
+                              min="0"
+                              step="0.01"
                               value={line.price}
                               onChange={(e) =>
                                 updateLine(idx, "price", e.target.value)
@@ -1456,12 +1475,20 @@ export default function NewSaleBillPage() {
               {
                 label: `${t("bills.purchase.tax")} ${config ? `(${config.taxValue}${config.taxType === "PERCENTAGE" ? "%" : "₹"})` : ""}`,
                 value: fmt(taxAmount),
+                tooltip: t("bills.sale.taxTooltip", {
+                  value: config?.taxValue,
+                  type: config?.taxType === "PERCENTAGE" ? t("bills.sale.taxPercentage") : t("bills.sale.taxFixed")
+                })
               },
               {
                 label: `${t("bills.purchase.serviceCharge")} ${config ? `(${config.serviceChargeValue}${config.serviceChargeType === "PERCENTAGE" ? "%" : "₹"})` : ""}`,
                 value: fmt(serviceChargeAmount),
+                tooltip: t("bills.sale.serviceChargeTooltip", {
+                  value: config?.serviceChargeValue,
+                  type: config?.serviceChargeType === "PERCENTAGE" ? t("bills.sale.scPercentage") : t("bills.sale.scFixed")
+                })
               },
-            ].map(({ label, value }) => (
+            ].map(({ label, value, tooltip }) => (
               <div
                 key={label}
                 style={{
@@ -1471,17 +1498,23 @@ export default function NewSaleBillPage() {
                   marginBottom: "0.875rem",
                 }}
               >
-                <span
+                <div
                   style={{
                     fontSize: "11px",
                     fontWeight: 800,
                     color: "#64748b",
                     textTransform: "uppercase",
                     letterSpacing: "0.1em",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
                   }}
                 >
                   {label}
-                </span>
+                  <Tooltip content={tooltip}>
+                    <Info size={11} style={{ cursor: "help", opacity: 0.7 }} />
+                  </Tooltip>
+                </div>
                 <span
                   style={{
                     fontSize: "13px",
@@ -1520,17 +1553,23 @@ export default function NewSaleBillPage() {
                 }}
               >
                 <TrendingUp size={13} color="#60a5fa" />
-                <span
+                <div
                   style={{
                     fontSize: "14px",
                     fontWeight: 900,
                     color: "#60a5fa",
                     textTransform: "uppercase",
                     letterSpacing: "0.15em",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
                   }}
                 >
                   {t("bills.sale.payable")}
-                </span>
+                  <Tooltip content={t("bills.sale.payableTooltip")}>
+                    <Info size={13} style={{ cursor: "help", opacity: 0.7 }} />
+                  </Tooltip>
+                </div>
               </div>
               <p
                 style={{

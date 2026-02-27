@@ -27,13 +27,13 @@ export const paymentSchema = z
   .object({
     farmerId: z.string().optional(),
     customerId: z.string().optional(),
-    amount: z.number().positive("Amount must be greater than 0"),
+    amount: z.number().positive("Amount must be greater than 0").max(1000000000, "Amount too large").transform(v => Number(v.toFixed(2))),
     mode: z.enum(["CASH", "BANK_TRANSFER", "OTHER"]),
     notes: z.string().optional(),
     paymentDate: z.string(),
     billId: z.string().optional(),
     roundOff: z.boolean().optional().default(false),
-    roundOffAmount: z.number().nonnegative().optional().default(0),
+    roundOffAmount: z.number().nonnegative().max(1000000, "Amount too large").optional().default(0).transform(v => Number(v.toFixed(2))),
   })
   .refine((data) => data.farmerId || data.customerId, {
     message: "Select either a farmer or a customer",
@@ -54,18 +54,18 @@ export const paymentSchema = z
 export const billItemSchema = z.object({
   itemId: z.string(),
   pricingMode: z.enum(["WEIGHT", "WEIGHT_KG", "UNIT"]),
-  quantity: z.number().positive("Quantity must be positive"),
-  pricePerUnit: z.number().nonnegative("Price cannot be negative"),
-  quantityKg: z.number().nonnegative("KG quantity is required"),
-  quantityUnits: z.number().nonnegative("Units quantity is required"),
+  quantity: z.number().positive("Quantity must be positive").max(1000000, "Quantity too large").transform(v => Number(v.toFixed(2))),
+  pricePerUnit: z.number().nonnegative("Price cannot be negative").max(1000000000, "Price too large").transform(v => Number(v.toFixed(2))),
+  quantityKg: z.number().nonnegative("KG quantity is required").max(1000000, "Quantity too large").transform(v => Number(v.toFixed(2))),
+  quantityUnits: z.number().nonnegative("Units quantity is required").max(1000000, "Quantity too large").transform(v => Number(v.toFixed(2))),
 });
 
 export const purchaseBillSchema = z.object({
   farmerId: z.string().min(1, "Select a farmer"),
   items: z.array(billItemSchema).min(1, "Add at least one item"),
-  labourCharges: z.number().nonnegative().optional(),
-  freightCharges: z.number().nonnegative().optional(),
-  advanceDeduction: z.number().nonnegative().optional(),
+  labourCharges: z.number().nonnegative().max(1000000, "Charge too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
+  freightCharges: z.number().nonnegative().max(1000000, "Charge too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
+  advanceDeduction: z.number().nonnegative().max(1000000, "Deduction too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
 });
 
 export const saleBillSchema = z.object({
@@ -76,9 +76,9 @@ export const saleBillSchema = z.object({
 export const businessConfigSchema = z
   .object({
     taxType: z.enum(["PERCENTAGE", "FIXED"]),
-    taxValue: z.number().nonnegative(),
+    taxValue: z.number().nonnegative().max(1000000, "Value too large").transform(v => Number(v.toFixed(2))),
     serviceChargeType: z.enum(["PERCENTAGE", "FIXED"]),
-    serviceChargeValue: z.number().nonnegative(),
+    serviceChargeValue: z.number().nonnegative().max(1000000, "Value too large").transform(v => Number(v.toFixed(2))),
   })
   .refine(
     (data) => {

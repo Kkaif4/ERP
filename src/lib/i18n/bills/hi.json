@@ -27,7 +27,12 @@
     "perKgHint": "प्रति किलो",
     "unitHint": "प्रति क्रेट",
     "balanceImpact": "यह {{party}} के देय शेष में {{amount}} जोड़ देगा।",
-    "farmerLabel": "किसान"
+    "farmerLabel": "किसान",
+    "totalTooltip": "कुल = वजन मोड के लिए (वजन / 10) * दर, अन्यथा मात्रा * दर।",
+    "labourTooltip": "लोडिंग/अनलोडिंग के लिए हमाली (लेबर) शुल्क।",
+    "freightTooltip": "परिवहन/भाड़ा शुल्क।",
+    "advanceTooltip": "किसान को पहले दिए गए किसी भी अग्रिम (एडवांस) की कटौती।",
+    "netTotalTooltip": "शुद्ध कुल = उपकुल - हमाली - भाड़ा - एडवांस"
   },
   "sale": {
     "title": "नया बिक्री बिल",
@@ -40,6 +45,13 @@
     "grossTotal": "कुल राशि",
     "payable": "अंतिम देय",
     "balanceImpact": "यह {{party}} के प्राप्य शेष में {{amount}} जोड़ देगा।",
-    "customerLabel": "ग्राहक"
+    "customerLabel": "ग्राहक",
+    "taxTooltip": "टैक्स की गणना {{value}}{{type}} पर की गई है।",
+    "serviceChargeTooltip": "सेवा शुल्क की गणना {{value}}{{type}} पर की गई है।",
+    "payableTooltip": "देय = उपकुल + टैक्स + सेवा शुल्क",
+    "taxPercentage": "% (उपकुल का)",
+    "taxFixed": " निश्चित राशि",
+    "scPercentage": "% (उपकुल का)",
+    "scFixed": " निश्चित राशि"
   }
 }
