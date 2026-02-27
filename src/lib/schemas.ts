@@ -49,3 +49,32 @@ export const saleBillSchema = z.object({
     freightCharges: z.number().nonnegative().optional(),
     advanceDeduction: z.number().nonnegative().optional(),
 });
+
+export const businessConfigSchema = z.object({
+    taxType: z.enum(["PERCENTAGE", "FIXED"]),
+    taxValue: z.number().nonnegative(),
+    serviceChargeType: z.enum(["PERCENTAGE", "FIXED"]),
+    serviceChargeValue: z.number().nonnegative(),
+}).refine(data => {
+    if (data.taxType === "PERCENTAGE" && data.taxValue > 100) return false;
+    if (data.serviceChargeType === "PERCENTAGE" && data.serviceChargeValue > 100) return false;
+    return true;
+}, {
+    message: "Percentage values cannot exceed 100%",
+    path: ["taxValue"]
+});
+
+export const loginSchema = z.object({
+    username: z.string().min(1, "Username is required"),
+    password: z.string().optional(),
+    pin: z.string().optional(),
+}).refine(data => data.password || data.pin, {
+    message: "Password or PIN is required",
+    path: ["password"]
+});
+
+export const itemPatchSchema = z.object({
+    id: z.string().uuid(),
+    isActive: z.boolean(),
+});
+

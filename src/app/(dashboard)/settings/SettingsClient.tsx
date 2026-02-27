@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
+import { businessConfigSchema } from "@/lib/schemas";
 
 type ChargeType = "PERCENTAGE" | "FIXED";
 
@@ -51,11 +52,16 @@ export default function SettingsClient() {
         e.preventDefault();
         if (saving) return;
 
-        const taxNumeric = Number(taxValue);
-        const serviceNumeric = Number(serviceChargeValue);
+        const data = {
+            taxType,
+            taxValue: Number(taxValue),
+            serviceChargeType,
+            serviceChargeValue: Number(serviceChargeValue),
+        };
 
-        if (Number.isNaN(taxNumeric) || Number.isNaN(serviceNumeric)) {
-            toast.error("Values must be valid numbers");
+        const validationResult = businessConfigSchema.safeParse(data);
+        if (!validationResult.success) {
+            toast.error(validationResult.error.issues[0].message);
             return;
         }
 
@@ -64,12 +70,7 @@ export default function SettingsClient() {
             const res = await fetch("/api/config", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    taxType,
-                    taxValue: taxNumeric,
-                    serviceChargeType,
-                    serviceChargeValue: serviceNumeric,
-                }),
+                body: JSON.stringify(validationResult.data),
             });
 
             const text = await res.text();

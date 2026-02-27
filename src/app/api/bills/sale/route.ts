@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { saleBillSchema } from "@/lib/schemas";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -10,17 +11,18 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
+        const validationResult = saleBillSchema.safeParse(body);
+        if (!validationResult.success) {
+            return NextResponse.json({ error: validationResult.error.issues[0].message }, { status: 400 });
+        }
         const {
             customerId,
             items,
             labourCharges = 0,
             freightCharges = 0,
             advanceDeduction = 0
-        } = body;
+        } = validationResult.data;
 
-        if (!customerId || !items || items.length === 0) {
-            return NextResponse.json({ error: "Customer and items are required" }, { status: 400 });
-        }
 
         // Fetch Customer
         const customer = await prisma.customer.findFirst({

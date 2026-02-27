@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { businessConfigSchema } from "@/lib/schemas";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
@@ -39,45 +40,19 @@ export async function PUT(req: NextRequest) {
 
     try {
         const body = await req.json();
+        const validationResult = businessConfigSchema.safeParse(body);
+        if (!validationResult.success) {
+            return NextResponse.json({ error: validationResult.error.issues[0].message }, { status: 400 });
+        }
         const {
             taxType,
             taxValue,
             serviceChargeType,
             serviceChargeValue,
-        } = body as {
-            taxType: "PERCENTAGE" | "FIXED";
-            taxValue: number;
-            serviceChargeType: "PERCENTAGE" | "FIXED";
-            serviceChargeValue: number;
-        };
-
-        const validTypes = ["PERCENTAGE", "FIXED"];
-
-        if (!validTypes.includes(taxType) || !validTypes.includes(serviceChargeType)) {
-            return NextResponse.json({ error: "Invalid charge type" }, { status: 400 });
-        }
-
-        if (typeof taxValue !== "number" || typeof serviceChargeValue !== "number") {
-            return NextResponse.json({ error: "Values must be numbers" }, { status: 400 });
-        }
-
-        if (taxType === "PERCENTAGE" && (taxValue < 0 || taxValue > 100)) {
-            return NextResponse.json({ error: "Tax percentage must be between 0 and 100" }, { status: 400 });
-        }
-
-        if (serviceChargeType === "PERCENTAGE" && (serviceChargeValue < 0 || serviceChargeValue > 100)) {
-            return NextResponse.json({ error: "Service charge percentage must be between 0 and 100" }, { status: 400 });
-        }
-
-        if (taxType === "FIXED" && taxValue < 0) {
-            return NextResponse.json({ error: "Tax amount cannot be negative" }, { status: 400 });
-        }
-
-        if (serviceChargeType === "FIXED" && serviceChargeValue < 0) {
-            return NextResponse.json({ error: "Service charge amount cannot be negative" }, { status: 400 });
-        }
+        } = validationResult.data;
 
         const config = await prisma.$transaction(async (tx) => {
+
             const updated = await tx.businessConfig.upsert({
                 where: { organizationId: session.organizationId },
                 update: {

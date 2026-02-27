@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { itemSchema, itemPatchSchema } from "@/lib/schemas";
 import { NextResponse } from "next/server";
-import { itemSchema } from "@/lib/schemas";
 
 export async function GET(req: Request) {
     const session = await getSession();
@@ -84,11 +84,12 @@ export async function PATCH(req: Request) {
 
     try {
         const body = await req.json();
-        const { id, isActive } = body;
-
-        if (!id || typeof isActive !== "boolean") {
-            return NextResponse.json({ error: "id and isActive are required" }, { status: 400 });
+        const validationResult = itemPatchSchema.safeParse(body);
+        if (!validationResult.success) {
+            return NextResponse.json({ error: validationResult.error.issues[0].message }, { status: 400 });
         }
+        const { id, isActive } = validationResult.data;
+
 
         const item = await prisma.item.update({
             where: { id },

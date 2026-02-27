@@ -5,6 +5,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Eye, EyeOff, ShieldCheck, User, Lock } from "lucide-react";
+import { loginSchema } from "@/lib/schemas";
 
 export default function LoginPage() {
     const { t, language, setLanguage } = useTranslation();
@@ -19,13 +20,20 @@ export default function LoginPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const result = loginSchema.safeParse(formData);
+        if (!result.success) {
+            toast.error(result.error.issues[0].message);
+            return;
+        }
+
         setLoading(true);
 
         try {
             const res = await fetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(result.data),
             });
 
             const data = await res.json();

@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
+import { loginSchema } from "@/lib/schemas";
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { username, password, pin } = body;
+        const validationResult = loginSchema.safeParse(body);
+        if (!validationResult.success) {
+            return NextResponse.json({ error: validationResult.error.issues[0].message }, { status: 400 });
+        }
+        const { username, password, pin } = validationResult.data;
+
 
         // Find user by username
         const user = await prisma.user.findUnique({
