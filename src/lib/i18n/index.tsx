@@ -28,13 +28,16 @@ import hiPayments from "./payments/hi.json";
 import enLedger from "./ledger/en.json";
 import mrLedger from "./ledger/mr.json";
 import hiLedger from "./ledger/hi.json";
+import enStaff from "./staff/en.json";
+import mrStaff from "./staff/mr.json";
+import hiStaff from "./staff/hi.json";
 
 type Language = "en" | "mr" | "hi";
 
 const dictionaries: any = {
-    en: { common: enCommon, auth: enAuth, nav: enNav, master: enMaster, dashboard: enDashboard, bills: enBills, payments: enPayments, ledger: enLedger, settings: enSettings },
-    mr: { common: mrCommon, auth: mrAuth, nav: mrNav, master: mrMaster, dashboard: mrDashboard, bills: mrBills, payments: mrPayments, ledger: mrLedger, settings: mrSettings },
-    hi: { common: hiCommon, auth: hiAuth, nav: hiNav, master: hiMaster, dashboard: hiDashboard, bills: hiBills, payments: hiPayments, ledger: hiLedger, settings: hiSettings },
+    en: { common: enCommon, auth: enAuth, nav: enNav, master: enMaster, dashboard: enDashboard, bills: enBills, payments: enPayments, ledger: enLedger, settings: enSettings, staff: enStaff },
+    mr: { common: mrCommon, auth: mrAuth, nav: mrNav, master: mrMaster, dashboard: mrDashboard, bills: mrBills, payments: mrPayments, ledger: mrLedger, settings: mrSettings, staff: mrStaff },
+    hi: { common: hiCommon, auth: hiAuth, nav: hiNav, master: hiMaster, dashboard: hiDashboard, bills: hiBills, payments: hiPayments, ledger: hiLedger, settings: hiSettings, staff: hiStaff },
 };
 
 interface TranslationContextType {

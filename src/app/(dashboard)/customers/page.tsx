@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { UserSearch, Plus, Search, Phone, MapPin, Loader2, X, ArrowRight, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { customerSchema } from "@/lib/schemas";
+import { useUser } from "@/components/providers/UserContext";
 
 interface Customer { id: string; name: string; mobile: string; address: string | null; balance: number; }
 
 export default function CustomersPage() {
     const { t, language } = useTranslation();
+    const { user } = useUser();
     const router = useRouter();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
@@ -20,6 +22,8 @@ export default function CustomersPage() {
     const [formData, setFormData] = useState({ name: "", mobile: "", address: "" });
     const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 50, totalPages: 1 });
     const [submitting, setSubmitting] = useState(false);
+
+    const isAdmin = user?.role === "ORG_ADMIN" || user?.role === "SUPER_ADMIN";
 
     // Debounce search input
     useEffect(() => {
@@ -109,11 +113,13 @@ export default function CustomersPage() {
                         </p>
                     </div>
                 </div>
-                <button onClick={() => setIsModalOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: BLUE, color: "#fff", borderRadius: "12px", fontWeight: 800, fontSize: "14px", border: "none", cursor: "pointer", boxShadow: "0 8px 16px rgba(3,105,161,0.2)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", letterSpacing: "0.02em" }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.15)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 16px rgba(3,105,161,0.2)"; }}>
-                    <Plus size={16} strokeWidth={3} /> {t("master.customers.addCustomer")}
-                </button>
+                {isAdmin && (
+                    <button onClick={() => setIsModalOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: BLUE, color: "#fff", borderRadius: "12px", fontWeight: 800, fontSize: "14px", border: "none", cursor: "pointer", boxShadow: "0 8px 16px rgba(3,105,161,0.2)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", letterSpacing: "0.02em" }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.15)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 16px rgba(3,105,161,0.2)"; }}>
+                        <Plus size={16} strokeWidth={3} /> {t("master.customers.addCustomer")}
+                    </button>
+                )}
             </div>
 
             {/* ── Search ── */}

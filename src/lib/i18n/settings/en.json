@@ -8,6 +8,6 @@
   "serviceType": "Service Charge Type",
   "serviceValue": "Service Charge Value",
   "percentage": "Percentage (%)",
-  "fixed": "Fixed Amount (₹)"
+  "fixed": "Fixed Amount (₹)",
+  "preview": "Bill Preview"
 }
-

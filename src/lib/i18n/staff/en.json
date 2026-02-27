@@ -1,0 +1,34 @@
+{
+    "title": "Manage Staff",
+    "activeStaff": "Active Staff Members",
+    "addStaff": "Add Staff Member",
+    "searchPlaceholder": "Search by name or username...",
+    "noStaffFound": "No staff members found.",
+    "joined": "Joined",
+    "modal": {
+        "title": "Add Staff Member",
+        "subtitle": "Create a new staff account for your organization",
+        "fullName": "Full Name",
+        "username": "Username",
+        "usernamePlaceholder": "e.g. rahul_staff",
+        "password": "Login Password",
+        "passwordPlaceholder": "Min 6 chars",
+        "pin": "Login PIN",
+        "pinPlaceholder": "4 digits",
+        "cancel": "Cancel",
+        "save": "Save Staff Member"
+    },
+    "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+    },
+    "alerts": {
+        "successAdd": "Staff member added successfully",
+        "errorAdd": "Failed to add staff member",
+        "errorLoad": "Failed to load staff members"
+    },
+    "accessDenied": {
+        "title": "Access Denied",
+        "subtitle": "Only administrators can manage organization staff."
+    }
+}

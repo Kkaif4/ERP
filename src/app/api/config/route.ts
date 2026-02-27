@@ -34,8 +34,8 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.role !== "ORG_ADMIN") {
-        return NextResponse.json({ error: "Only organization admins can update settings" }, { status: 403 });
+    if (session.role === "ORG_STAFF") {
+        return NextResponse.json({ error: "Only admins can update settings" }, { status: 403 });
     }
 
     try {

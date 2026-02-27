@@ -30,6 +30,7 @@ export function LanguageToggle() {
     return (
         <div
             ref={containerRef}
+            className="hidden lg:flex"
             style={{
                 position: "fixed",
                 bottom: "24px",

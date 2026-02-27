@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { itemSchema } from "@/lib/schemas";
+import { useUser } from "@/components/providers/UserContext";
 
 interface Item {
     id: string;
@@ -19,6 +20,7 @@ interface Item {
 
 export default function ItemsPage() {
     const { t, language } = useTranslation();
+    const { user } = useUser();
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -28,6 +30,8 @@ export default function ItemsPage() {
     const [submitting, setSubmitting] = useState(false);
     const [togglingId, setTogglingId] = useState<string | null>(null);
     const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 50, totalPages: 1 });
+
+    const isAdmin = user?.role === "ORG_ADMIN" || user?.role === "SUPER_ADMIN";
 
     const today = new Date().toLocaleDateString(
         language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN",
@@ -146,13 +150,15 @@ export default function ItemsPage() {
                         </p>
                     </div>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "#7c3aed", color: "#fff", borderRadius: "12px", fontWeight: 800, fontSize: "14px", border: "none", cursor: "pointer", boxShadow: "0 8px 16px rgba(124,58,237,0.2)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", letterSpacing: "0.02em" }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 24px rgba(124,58,237,0.3)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 16px rgba(124,58,237,0.2)"; }}>
-                    <Plus size={16} strokeWidth={3} /> {t("master.items.addItem")}
-                </button>
+                {isAdmin && (
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "#7c3aed", color: "#fff", borderRadius: "12px", fontWeight: 800, fontSize: "14px", border: "none", cursor: "pointer", boxShadow: "0 8px 16px rgba(124,58,237,0.2)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", letterSpacing: "0.02em" }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 24px rgba(124,58,237,0.3)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 16px rgba(124,58,237,0.2)"; }}>
+                        <Plus size={16} strokeWidth={3} /> {t("master.items.addItem")}
+                    </button>
+                )}
             </div>
 
             {/* ── Stats + Search + Filter ── */}
@@ -254,27 +260,29 @@ export default function ItemsPage() {
                                 }}>
                                     {item.isActive ? (t("master.items.active") || "Active") : (t("master.items.inactive") || "Inactive")}
                                 </span>
-                                <button
-                                    onClick={() => toggleActive(item)}
-                                    disabled={togglingId === item.id}
-                                    style={{
-                                        display: "flex", alignItems: "center", gap: "4px",
-                                        padding: "4px 10px", borderRadius: "8px", border: "none",
-                                        cursor: togglingId === item.id ? "not-allowed" : "pointer",
-                                        fontSize: "10px", fontWeight: 800,
-                                        backgroundColor: item.isActive ? "#fef2f2" : "rgba(21,128,61,0.08)",
-                                        color: item.isActive ? "#ef4444" : "#15803d",
-                                        transition: "all 0.2s",
-                                        opacity: togglingId === item.id ? 0.5 : 1,
-                                    }}
-                                >
-                                    {togglingId === item.id
-                                        ? <Loader2 size={12} style={{ animation: "spin 0.6s linear infinite" }} />
-                                        : item.isActive
-                                            ? <><ToggleRight size={12} /> {t("master.items.deactivate") || "Disable"}</>
-                                            : <><ToggleLeft size={12} /> {t("master.items.activate") || "Enable"}</>
-                                    }
-                                </button>
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => toggleActive(item)}
+                                        disabled={togglingId === item.id}
+                                        style={{
+                                            display: "flex", alignItems: "center", gap: "4px",
+                                            padding: "4px 10px", borderRadius: "8px", border: "none",
+                                            cursor: togglingId === item.id ? "not-allowed" : "pointer",
+                                            fontSize: "10px", fontWeight: 800,
+                                            backgroundColor: item.isActive ? "#fef2f2" : "rgba(21,128,61,0.08)",
+                                            color: item.isActive ? "#ef4444" : "#15803d",
+                                            transition: "all 0.2s",
+                                            opacity: togglingId === item.id ? 0.5 : 1,
+                                        }}
+                                    >
+                                        {togglingId === item.id
+                                            ? <Loader2 size={12} style={{ animation: "spin 0.6s linear infinite" }} />
+                                            : item.isActive
+                                                ? <><ToggleRight size={12} /> {t("master.items.deactivate") || "Disable"}</>
+                                                : <><ToggleLeft size={12} /> {t("master.items.activate") || "Enable"}</>
+                                        }
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

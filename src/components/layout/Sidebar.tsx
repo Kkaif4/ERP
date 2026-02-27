@@ -5,39 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import {
-    LayoutDashboard,
-    ReceiptText,
-    Users,
-    UserSearch,
-    Package,
-    WalletCards,
-    BarChart3,
-    Settings,
-    ShieldCheck,
+    ChevronRight,
     LogOut,
     Store,
-    ChevronRight,
+    ShieldCheck,
 } from "lucide-react";
-
-const mainNav = [
-    { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { key: "bills", href: "/bills", icon: ReceiptText },
-];
-
-const masterNav = [
-    { key: "farmers", href: "/farmers", icon: Users },
-    { key: "customers", href: "/customers", icon: UserSearch },
-    { key: "items", href: "/items", icon: Package },
-];
-
-const financeNav = [
-    { key: "payments", href: "/payments", icon: WalletCards },
-    { key: "reports", href: "/reports", icon: BarChart3 },
-];
-
-const systemNav = [
-    { key: "settings", href: "/settings", icon: Settings },
-];
+import { mainNav, masterNav, financeNav, systemNav } from "@/lib/navigation";
 
 function SectionLabel({ label }: { label: string }) {
     return (
@@ -189,7 +162,7 @@ export function Sidebar({ role }: { role: string }) {
                 <nav style={{ flex: 1 }}>
                     <NavGroup label={t("nav.sections.main") || "Main"} items={mainNav} pathname={pathname} t={t} />
                     <NavGroup label={t("nav.sections.master") || "Master"} items={masterNav} pathname={pathname} t={t} />
-                    <NavGroup label={t("nav.sections.finance") || "Finance"} items={financeNav.filter(item => item.key !== "reports" || role === "ORG_ADMIN")} pathname={pathname} t={t} />
+                    <NavGroup label={t("nav.sections.finance") || "Finance"} items={financeNav.filter(item => !item.adminOnly || role === "ORG_ADMIN")} pathname={pathname} t={t} />
                     {role === "ORG_ADMIN" && (
                         <NavGroup label={t("nav.sections.system") || "System"} items={systemNav} pathname={pathname} t={t} />
                     )}

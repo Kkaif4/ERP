@@ -78,3 +78,14 @@ export const itemPatchSchema = z.object({
     isActive: z.boolean(),
 });
 
+export const staffSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
+    pin: z.string().length(4, "PIN must be 4 digits").regex(/^\d+$/, "PIN must contain only digits").optional().or(z.literal("")),
+    isActive: z.boolean().default(true),
+}).refine(data => data.password || data.pin, {
+    message: "Either Password or PIN must be provided",
+    path: ["password"],
+});
+
