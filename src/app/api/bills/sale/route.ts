@@ -17,10 +17,7 @@ export async function POST(req: Request) {
         }
         const {
             customerId,
-            items,
-            labourCharges = 0,
-            freightCharges = 0,
-            advanceDeduction = 0
+            items
         } = validationResult.data;
 
 
@@ -56,26 +53,23 @@ export async function POST(req: Request) {
             };
         });
 
-        // 2. Base for Tax (Subtotal + Labour + Freight)
-        const subtotalWithCharges = subtotal + Number(labourCharges) + Number(freightCharges);
-
-        // 3. Tax and Service Charge
+        // 2. Tax and Service Charge
         let taxAmount = 0;
         let serviceChargeAmount = 0;
 
         if (config) {
             taxAmount = config.taxType === "PERCENTAGE"
-                ? subtotalWithCharges * (Number(config.taxValue) / 100)
+                ? subtotal * (Number(config.taxValue) / 100)
                 : Number(config.taxValue);
 
             serviceChargeAmount = config.serviceChargeType === "PERCENTAGE"
-                ? subtotalWithCharges * (Number(config.serviceChargeValue) / 100)
+                ? subtotal * (Number(config.serviceChargeValue) / 100)
                 : Number(config.serviceChargeValue);
         }
 
-        // 4. Totals
-        const grossTotal = subtotalWithCharges + taxAmount + serviceChargeAmount;
-        const netTotal = grossTotal - Number(advanceDeduction);
+        // 3. Totals
+        const grossTotal = subtotal + taxAmount + serviceChargeAmount;
+        const netTotal = grossTotal;
 
         // 5. Generate Bill Number
         const lastBill = await prisma.bill.findFirst({
@@ -101,12 +95,12 @@ export async function POST(req: Request) {
                     type: "SALE",
                     customerId,
                     subtotal,
-                    labourCharges: Number(labourCharges),
-                    freightCharges: Number(freightCharges),
+                    labourCharges: 0,
+                    freightCharges: 0,
                     taxAmount,
                     serviceChargeAmount,
                     grossTotal,
-                    advanceDeduction: Number(advanceDeduction),
+                    advanceDeduction: 0,
                     netTotal,
                     createdById: session.userId,
                     items: {

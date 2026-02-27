@@ -15,7 +15,13 @@ export async function POST(req: Request) {
         if (!validationResult.success) {
             return NextResponse.json({ error: validationResult.error.issues[0].message }, { status: 400 });
         }
-        const { farmerId, items } = validationResult.data;
+        const {
+            farmerId,
+            items,
+            labourCharges = 0,
+            freightCharges = 0,
+            advanceDeduction = 0
+        } = validationResult.data;
 
 
 
@@ -51,21 +57,14 @@ export async function POST(req: Request) {
             };
         });
 
-        // 2. Calculate Additional Charges
-        let taxAmount = 0;
-        let serviceChargeAmount = 0;
+        // 2. Base for Net Total (Subtotal - Labour - Freight - Advance)
+        // Note: Target requested NOT to apply Tax and Service charges to Purchase Bills
+        const lc = Number(labourCharges);
+        const fc = Number(freightCharges);
+        const ad = Number(advanceDeduction);
 
-        if (config) {
-            taxAmount = config.taxType === "PERCENTAGE"
-                ? subtotal * (Number(config.taxValue) / 100)
-                : Number(config.taxValue);
-
-            serviceChargeAmount = config.serviceChargeType === "PERCENTAGE"
-                ? subtotal * (Number(config.serviceChargeValue) / 100)
-                : Number(config.serviceChargeValue);
-        }
-
-        const netTotal = subtotal + taxAmount + serviceChargeAmount;
+        const grossTotal = subtotal; // No tax/service on purchase
+        const netTotal = subtotal - lc - fc - ad;
 
         // 3. Generate Bill Number
         const lastBill = await prisma.bill.findFirst({
@@ -91,9 +90,12 @@ export async function POST(req: Request) {
                     type: "PURCHASE",
                     farmerId,
                     subtotal,
-                    taxAmount,
-                    serviceChargeAmount,
-                    grossTotal: netTotal,
+                    labourCharges: Number(labourCharges),
+                    freightCharges: Number(freightCharges),
+                    taxAmount: 0,
+                    serviceChargeAmount: 0,
+                    grossTotal,
+                    advanceDeduction: Number(advanceDeduction),
                     netTotal,
                     createdById: session.userId,
                     items: {

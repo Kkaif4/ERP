@@ -264,9 +264,9 @@ export default function PaymentsPage() {
                             placeholder={t("payments.searchPlaceholder") || "Search by party or notes..."}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            style={{ width: "100%", padding: "10px 14px 10px 42px", borderRadius: "12px", border: "1.5px solid #f1f5f9", outline: "none", fontSize: "13px", fontWeight: 700, backgroundColor: "#f8fafc", transition: "all 0.2s" }}
+                            style={{ width: "100%", padding: "10px 14px 10px 42px", borderRadius: "12px", border: "1.5px solid #e2e8f0", outline: "none", fontSize: "13px", fontWeight: 700, backgroundColor: "#f1f5f9", transition: "all 0.2s" }}
                             onFocusCapture={e => { e.currentTarget.style.borderColor = VIOLET; e.currentTarget.style.backgroundColor = "#fff"; }}
-                            onBlurCapture={e => { e.currentTarget.style.borderColor = "#f1f5f9"; e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                            onBlurCapture={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.backgroundColor = "#f1f5f9"; }}
                         />
                     </div>
                 </div>
@@ -427,7 +427,7 @@ export default function PaymentsPage() {
                                         return (
                                             <button key={opt.v} type="button"
                                                 onClick={() => { setPartyType(opt.v); setSelectedParty(null); setPartySearch(""); setPartyResults([]); }}
-                                                style={{ padding: "12px", borderRadius: "12px", border: `2px solid ${sel ? opt.color : "var(--border-main)"}`, backgroundColor: sel ? opt.bg : "#f8fafc", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.15s" }}>
+                                                style={{ padding: "12px", borderRadius: "12px", border: `2px solid ${sel ? opt.color : "#e2e8f0"}`, backgroundColor: sel ? opt.bg : "#f1f5f9", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.15s" }}>
                                                 <Icon size={16} color={sel ? opt.color : "#94a3b8"} />
                                                 <span style={{ fontSize: "13px", fontWeight: 800, color: sel ? opt.color : "#64748b" }}>{opt.l}</span>
                                             </button>
@@ -459,9 +459,9 @@ export default function PaymentsPage() {
                                             value={partySearch}
                                             onChange={e => { setPartySearch(e.target.value); setShowPartyDrop(true); }}
                                             onFocus={() => setShowPartyDrop(true)}
-                                            style={{ width: "100%", boxSizing: "border-box", padding: "12px 12px 12px 42px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "14px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
+                                            style={{ width: "100%", boxSizing: "border-box", padding: "12px 12px 12px 42px", backgroundColor: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: "12px", fontSize: "14px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
                                             onFocusCapture={e => { e.currentTarget.style.borderColor = VIOLET; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                            onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; setTimeout(() => setShowPartyDrop(false), 150); }}
+                                            onBlurCapture={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.backgroundColor = "#f1f5f9"; setTimeout(() => setShowPartyDrop(false), 150); }}
                                         />
                                         {showPartyDrop && (debouncedPartySearch.length > 0 || partyResults.length > 0) && (
                                             <div
@@ -513,9 +513,9 @@ export default function PaymentsPage() {
                                             const val = e.target.value;
                                             if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) setForm({ ...form, amount: val });
                                         }}
-                                        style={{ width: "100%", boxSizing: "border-box", padding: "13px 16px 13px 32px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "16px", fontWeight: 800, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
+                                        style={{ width: "100%", boxSizing: "border-box", padding: "13px 16px 13px 32px", backgroundColor: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: "12px", fontSize: "16px", fontWeight: 800, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
                                         onFocusCapture={e => { e.currentTarget.style.borderColor = VIOLET; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                        onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
+                                        onBlurCapture={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.backgroundColor = "#f1f5f9"; }} />
                                 </div>
                             </div>
 
@@ -525,7 +525,7 @@ export default function PaymentsPage() {
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem" }}>
                                     {[{ v: "CASH", l: "Cash" }, { v: "BANK_TRANSFER", l: "Bank" }, { v: "OTHER", l: "Other" }].map(opt => (
                                         <button key={opt.v} type="button" onClick={() => setForm({ ...form, mode: opt.v })}
-                                            style={{ padding: "10px 8px", borderRadius: "10px", border: `2px solid ${form.mode === opt.v ? VIOLET : "var(--border-main)"}`, backgroundColor: form.mode === opt.v ? VIOLET_BG : "#f8fafc", fontSize: "12px", fontWeight: 900, color: form.mode === opt.v ? VIOLET : "#64748b", cursor: "pointer", transition: "all 0.15s" }}>
+                                            style={{ padding: "10px 8px", borderRadius: "10px", border: `2px solid ${form.mode === opt.v ? VIOLET : "#e2e8f0"}`, backgroundColor: form.mode === opt.v ? VIOLET_BG : "#f1f5f9", fontSize: "12px", fontWeight: 900, color: form.mode === opt.v ? VIOLET : "#64748b", cursor: "pointer", transition: "all 0.15s" }}>
                                             {opt.l}
                                         </button>
                                     ))}
@@ -536,18 +536,18 @@ export default function PaymentsPage() {
                             <div>
                                 <p style={{ margin: "0 0 8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>{t("payments.date") || "Date"}</p>
                                 <input type="date" value={form.paymentDate} onChange={e => setForm({ ...form, paymentDate: e.target.value })}
-                                    style={{ width: "100%", boxSizing: "border-box", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "14px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
+                                    style={{ width: "100%", boxSizing: "border-box", padding: "12px 16px", backgroundColor: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: "12px", fontSize: "14px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
                                     onFocusCapture={e => { e.currentTarget.style.borderColor = VIOLET; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
+                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.backgroundColor = "#f1f5f9"; }} />
                             </div>
 
                             {/* Notes */}
                             <div>
                                 <p style={{ margin: "0 0 8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>{t("payments.notes") || "Notes (optional)"}</p>
                                 <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="e.g. For Bill #SAL-0001"
-                                    style={{ width: "100%", boxSizing: "border-box", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "14px", fontWeight: 700, color: "var(--text-main)", outline: "none", resize: "none", fontFamily: "inherit", transition: "all 0.2s" }}
+                                    style={{ width: "100%", boxSizing: "border-box", padding: "12px 16px", backgroundColor: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: "12px", fontSize: "14px", fontWeight: 700, color: "var(--text-main)", outline: "none", resize: "none", fontFamily: "inherit", transition: "all 0.2s" }}
                                     onFocusCapture={e => { e.currentTarget.style.borderColor = VIOLET; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
+                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.backgroundColor = "#f1f5f9"; }} />
                             </div>
 
                             <div style={{ display: "flex", gap: "0.75rem" }}>

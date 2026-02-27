@@ -24,9 +24,6 @@ export default function NewSaleBillPage() {
 
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [lines, setLines] = useState<BillLine[]>([]);
-    const [labourCharges, setLabourCharges] = useState("0");
-    const [freightCharges, setFreightCharges] = useState("0");
-    const [advanceDeduction, setAdvanceDeduction] = useState("0");
     const [config, setConfig] = useState<BusinessConfig | null>(null);
     const [customerSearch, setCustomerSearch] = useState("");
     const [customersList, setCustomersList] = useState<Customer[]>([]);
@@ -131,21 +128,14 @@ export default function NewSaleBillPage() {
     const removeLine = (index: number) => setLines(lines.filter((_, i) => i !== index));
 
     const subtotal = lines.reduce((acc, l) => acc + l.total, 0);
-    const lc = parseFloat(labourCharges) || 0;
-    const fc = parseFloat(freightCharges) || 0;
-    const ad = parseFloat(advanceDeduction) || 0;
-    const subtotalWithCharges = subtotal + lc + fc;
-    const taxAmount = config ? (config.taxType === "PERCENTAGE" ? subtotalWithCharges * (config.taxValue / 100) : Number(config.taxValue)) : 0;
-    const serviceChargeAmount = config ? (config.serviceChargeType === "PERCENTAGE" ? subtotalWithCharges * (config.serviceChargeValue / 100) : Number(config.serviceChargeValue)) : 0;
-    const grossTotal = subtotalWithCharges + taxAmount + serviceChargeAmount;
-    const netTotal = grossTotal - ad;
+    const taxAmount = config ? (config.taxType === "PERCENTAGE" ? subtotal * (config.taxValue / 100) : Number(config.taxValue)) : 0;
+    const serviceChargeAmount = config ? (config.serviceChargeType === "PERCENTAGE" ? subtotal * (config.serviceChargeValue / 100) : Number(config.serviceChargeValue)) : 0;
+    const grossTotal = subtotal + taxAmount + serviceChargeAmount;
+    const netTotal = grossTotal;
 
     const handleSubmit = async () => {
         const data = {
             customerId: selectedCustomer?.id || "",
-            labourCharges: parseFloat(labourCharges) || 0,
-            freightCharges: parseFloat(freightCharges) || 0,
-            advanceDeduction: parseFloat(advanceDeduction) || 0,
             items: lines.map(l => ({
                 itemId: l.itemId,
                 pricingMode: l.pricingMode,
@@ -237,9 +227,9 @@ export default function NewSaleBillPage() {
                                 <input type="text" placeholder={t("bills.sale.customerPlaceholder")} value={customerSearch}
                                     onFocus={() => setIsCustomerDropdownOpen(true)}
                                     onChange={e => setCustomerSearch(e.target.value)}
-                                    style={{ width: "100%", boxSizing: "border-box", padding: "14px 14px 14px 52px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "14px", fontSize: "14px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
+                                    style={{ width: "100%", boxSizing: "border-box", padding: "14px 14px 14px 52px", backgroundColor: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: "14px", fontSize: "14px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
                                     onFocusCapture={e => { e.currentTarget.style.borderColor = "#0369a1"; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
+                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.backgroundColor = "#f1f5f9"; }} />
                                 {isCustomerDropdownOpen && (debouncedCustomerSearch.length > 0 || customersList.length > 0) && (
                                     <div
                                         style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: "8px", backgroundColor: "#fff", border: "1px solid var(--border-main)", borderRadius: "16px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", zIndex: 100, padding: "6px", maxHeight: "280px", overflowY: "auto" }}
@@ -290,9 +280,9 @@ export default function NewSaleBillPage() {
                                 <input type="text" placeholder={t("bills.purchase.addItem")} value={itemSearch}
                                     onFocus={() => setIsItemDropdownOpen(true)}
                                     onChange={e => setItemSearch(e.target.value)}
-                                    style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px 10px 44px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "13px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
+                                    style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px 10px 44px", backgroundColor: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: "12px", fontSize: "13px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
                                     onFocusCapture={e => { e.currentTarget.style.borderColor = "#0369a1"; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
+                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.backgroundColor = "#f1f5f9"; }} />
                                 {isItemDropdownOpen && (debouncedItemSearch.length > 0 || itemsList.length > 0) && (
                                     <div
                                         style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: "8px", backgroundColor: "#fff", border: "1px solid var(--border-main)", borderRadius: "14px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", zIndex: 100, padding: "4px", maxHeight: "240px", overflowY: "auto" }}
@@ -354,18 +344,18 @@ export default function NewSaleBillPage() {
                                                 <td style={{ padding: "16px" }}>
                                                     <input type="text" inputMode="decimal" value={line.quantity}
                                                         onChange={e => updateLine(idx, "quantity", e.target.value)}
-                                                        style={{ width: "80px", display: "block", margin: "0 auto", padding: "8px", textAlign: "center", backgroundColor: "#f8fafc", border: "1.5px solid transparent", borderRadius: "10px", fontWeight: 800, fontSize: "14px", outline: "none", transition: "all 0.2s" }}
+                                                        style={{ width: "80px", display: "block", margin: "0 auto", padding: "8px", textAlign: "center", backgroundColor: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: "10px", fontWeight: 800, fontSize: "14px", outline: "none", transition: "all 0.2s" }}
                                                         onFocusCapture={e => { e.currentTarget.style.borderColor = "#0369a1"; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                                        onBlurCapture={e => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
+                                                        onBlurCapture={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.backgroundColor = "#f1f5f9"; }} />
                                                 </td>
                                                 <td style={{ padding: "16px" }}>
                                                     <div style={{ position: "relative", width: "100px", margin: "0 auto" }}>
                                                         <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", fontSize: "11px", fontWeight: 800, color: "#94a3b8" }}>₹</span>
                                                         <input type="text" inputMode="decimal" value={line.price}
                                                             onChange={e => updateLine(idx, "price", e.target.value)}
-                                                            style={{ width: "100%", boxSizing: "border-box", padding: "8px 8px 8px 24px", textAlign: "center", backgroundColor: "#f8fafc", border: "1.5px solid transparent", borderRadius: "10px", fontWeight: 800, fontSize: "14px", outline: "none", transition: "all 0.2s" }}
+                                                            style={{ width: "100%", boxSizing: "border-box", padding: "8px 8px 8px 24px", textAlign: "center", backgroundColor: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: "10px", fontWeight: 800, fontSize: "14px", outline: "none", transition: "all 0.2s" }}
                                                             onFocusCapture={e => { e.currentTarget.style.borderColor = "#0369a1"; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                                            onBlurCapture={e => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
+                                                            onBlurCapture={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.backgroundColor = "#f1f5f9"; }} />
                                                     </div>
                                                 </td>
                                                 <td style={{ padding: "16px 20px", textAlign: "right", fontWeight: 900, fontSize: "15px", color: "#0f172a" }}>
@@ -428,34 +418,6 @@ export default function NewSaleBillPage() {
                         )}
                     </div>
 
-                    {/* Extra Charges */}
-                    <div className="charges-grid" style={{ display: "grid", gap: "1rem" }}>
-                        {[
-                            { label: t("bills.sale.labour"), value: labourCharges, set: setLabourCharges, color: "#b45309", bg: "rgba(180,83,9,0.08)", Icon: Hammer },
-                            { label: t("bills.sale.freight"), value: freightCharges, set: setFreightCharges, color: "#7c3aed", bg: "rgba(124,58,237,0.08)", Icon: Truck },
-                            { label: t("bills.sale.advance"), value: advanceDeduction, set: setAdvanceDeduction, color: "#0369a1", bg: "rgba(3,105,161,0.08)", Icon: Wallet },
-                        ].map(({ label, value, set, color, bg, Icon }) => (
-                            <div key={label} className="premium-card" style={{ padding: "1.25rem" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "0.75rem" }}>
-                                    <div style={{ width: "32px", height: "32px", backgroundColor: bg, borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", color }}>
-                                        <Icon size={16} strokeWidth={2} />
-                                    </div>
-                                    <p style={{ margin: 0, fontSize: "10px", fontWeight: 900, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em" }}>{label}</p>
-                                </div>
-                                <div style={{ position: "relative" }}>
-                                    <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", fontWeight: 800, color: "#94a3b8" }}>₹</span>
-                                    <input type="text" inputMode="decimal" value={value}
-                                        onChange={e => {
-                                            const val = e.target.value;
-                                            if (val === "" || /^\d*\.?\d*$/.test(val)) set(val);
-                                        }}
-                                        style={{ width: "100%", boxSizing: "border-box", padding: "12px 12px 12px 36px", backgroundColor: "#f8fafc", border: "1.5px solid transparent", borderRadius: "12px", fontWeight: 800, fontSize: "16px", color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
-                                        onFocusCapture={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                        onBlurCapture={e => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
                 </div>
 
                 {/* Right Column — Summary */}
@@ -468,16 +430,10 @@ export default function NewSaleBillPage() {
                             <p style={{ margin: 0, fontSize: "10px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.2em", color: "#94a3b8" }}>{t("bills.purchase.summary")}</p>
                         </div>
 
-                        {[
-                            { label: t("bills.purchase.subtotal"), value: fmt(subtotal), muted: true },
-                            { label: t("bills.sale.labour"), value: fmt(lc), muted: true },
-                            { label: t("bills.sale.freight"), value: fmt(fc), muted: true },
-                        ].map(({ label, value, muted }) => (
-                            <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.875rem" }}>
-                                <span style={{ fontSize: "11px", fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</span>
-                                <span style={{ fontSize: "13px", fontWeight: 800, color: "#94a3b8" }}>{value}</span>
-                            </div>
-                        ))}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.875rem" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("bills.purchase.subtotal")}</span>
+                            <span style={{ fontSize: "13px", fontWeight: 800, color: "#94a3b8" }}>{fmt(subtotal)}</span>
+                        </div>
 
                         <div style={{ height: "1px", backgroundColor: "rgba(255,255,255,0.07)", margin: "1rem 0" }} />
 
@@ -493,14 +449,6 @@ export default function NewSaleBillPage() {
 
                         <div style={{ height: "1px", backgroundColor: "rgba(255,255,255,0.07)", margin: "1rem 0" }} />
 
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                            <span style={{ fontSize: "11px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("bills.sale.grossTotal")}</span>
-                            <span style={{ fontSize: "15px", fontWeight: 900, color: "#e2e8f0" }}>{fmt(grossTotal)}</span>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "11px", fontWeight: 900, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("bills.sale.advance")}</span>
-                            <span style={{ fontSize: "13px", fontWeight: 800, color: "#f87171" }}>– {fmt(ad)}</span>
-                        </div>
 
                         <div style={{ marginTop: "1.5rem", padding: "1.25rem", backgroundColor: "rgba(255,255,255,0.04)", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.06)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "0.5rem" }}>

@@ -42,9 +42,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         id={inputId}
                         type={inputType}
                         className={`
-                            w-full h-14 rounded-xl border-2 border-slate-100 bg-slate-50
+                            w-full h-14 rounded-xl border-2 border-slate-200 bg-slate-100/50
                             px-5 text-[15px] font-semibold text-slate-700
-                            placeholder:text-slate-300/80
+                            placeholder:text-slate-400/60
                             focus:border-emerald-500/30 focus:bg-white
                             focus:outline-none focus:ring-4 focus:ring-emerald-500/[0.05]
                             transition-all duration-300

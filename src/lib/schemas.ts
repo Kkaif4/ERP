@@ -40,14 +40,14 @@ export const billItemSchema = z.object({
 export const purchaseBillSchema = z.object({
     farmerId: z.string().min(1, "Select a farmer"),
     items: z.array(billItemSchema).min(1, "Add at least one item"),
+    labourCharges: z.number().nonnegative().optional(),
+    freightCharges: z.number().nonnegative().optional(),
+    advanceDeduction: z.number().nonnegative().optional(),
 });
 
 export const saleBillSchema = z.object({
     customerId: z.string().min(1, "Select a customer"),
     items: z.array(billItemSchema).min(1, "Add at least one item"),
-    labourCharges: z.number().nonnegative().optional(),
-    freightCharges: z.number().nonnegative().optional(),
-    advanceDeduction: z.number().nonnegative().optional(),
 });
 
 export const businessConfigSchema = z.object({
