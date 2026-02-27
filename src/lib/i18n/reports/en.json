@@ -36,6 +36,8 @@
     "party": "Party Name",
     "amount": "Amount",
     "mode": "Mode",
-    "type": "Type"
+    "type": "Type",
+    "qtyKg": "Qty (KG)",
+    "qtyUnits": "Qty (Units)"
   }
 }

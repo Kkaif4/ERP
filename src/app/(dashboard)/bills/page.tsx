@@ -253,7 +253,9 @@ export default function BillsPage() {
                                                 <div style={{ padding: "8px", borderRadius: "10px", backgroundColor: bill.type === 'PURCHASE' ? "rgba(21, 128, 61, 0.08)" : "rgba(3, 105, 161, 0.08)", color: bill.type === 'PURCHASE' ? "var(--primary-main)" : "#0369a1" }}>
                                                     {bill.type === 'PURCHASE' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                                                 </div>
-                                                <span style={{ fontSize: "14px", fontWeight: 900, color: "var(--text-main)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{bill.billNumber}</span>
+                                                <Link href={`/bills/${bill.id}`} style={{ fontSize: "14px", fontWeight: 900, color: "var(--primary-main)", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }} className="hover:underline">
+                                                    {bill.billNumber}
+                                                </Link>
                                             </div>
                                         </td>
                                         <td style={{ padding: "1.25rem 1.5rem" }}>
@@ -301,37 +303,39 @@ export default function BillsPage() {
                         </div>
                     ) : (
                         bills.map((bill) => (
-                            <div key={bill.id} style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }} className="active:bg-slate-50 transition-colors">
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                        <div style={{ width: "36px", height: "36px", borderRadius: "10px", display: "flex", alignItems: "center", justifyItems: "center", backgroundColor: bill.type === 'PURCHASE' ? "rgba(21, 128, 61, 0.08)" : "rgba(3, 105, 161, 0.08)", color: bill.type === 'PURCHASE' ? "var(--primary-main)" : "#0369a1", paddingLeft: "10px" }}>
-                                            {bill.type === 'PURCHASE' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                            <Link key={bill.id} href={`/bills/${bill.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                                <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }} className="active:bg-slate-50 transition-colors">
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                            <div style={{ width: "36px", height: "36px", borderRadius: "10px", display: "flex", alignItems: "center", justifyItems: "center", backgroundColor: bill.type === 'PURCHASE' ? "rgba(21, 128, 61, 0.08)" : "rgba(3, 105, 161, 0.08)", color: bill.type === 'PURCHASE' ? "var(--primary-main)" : "#0369a1", paddingLeft: "10px" }}>
+                                                {bill.type === 'PURCHASE' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                                            </div>
+                                            <div>
+                                                <p style={{ fontSize: "13px", fontWeight: 900, color: "var(--text-main)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{bill.billNumber}</p>
+                                                <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", margin: 0 }}>
+                                                    {new Date(bill.billDate).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' })}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p style={{ fontSize: "13px", fontWeight: 900, color: "var(--text-main)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{bill.billNumber}</p>
-                                            <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", margin: 0 }}>
-                                                {new Date(bill.billDate).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' })}
+                                        <div style={{ textAlign: "right" }}>
+                                            <p style={{ fontSize: "15px", fontWeight: 950, color: "var(--text-main)", margin: 0 }}>
+                                                ₹ {bill.netTotal.toLocaleString("en-IN")}
                                             </p>
+                                            <span style={{ fontSize: "9px", fontWeight: 900, textTransform: "uppercase", color: bill.type === 'PURCHASE' ? "var(--primary-main)" : "#0369a1", opacity: 0.8 }}>
+                                                {bill.type === 'PURCHASE' ? 'PURCHASE' : 'SALE'}
+                                            </span>
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: "right" }}>
-                                        <p style={{ fontSize: "15px", fontWeight: 950, color: "var(--text-main)", margin: 0 }}>
-                                            ₹ {bill.netTotal.toLocaleString("en-IN")}
-                                        </p>
-                                        <span style={{ fontSize: "9px", fontWeight: 900, textTransform: "uppercase", color: bill.type === 'PURCHASE' ? "var(--primary-main)" : "#0369a1", opacity: 0.8 }}>
-                                            {bill.type === 'PURCHASE' ? 'PURCHASE' : 'SALE'}
-                                        </span>
-                                    </div>
-                                </div>
 
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#f8fafc", padding: "10px 14px", borderRadius: "12px" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                        <User size={14} className="text-slate-400" />
-                                        <span style={{ fontSize: "13px", fontWeight: 800, color: "var(--text-main)" }}>{bill.party}</span>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#f8fafc", padding: "10px 14px", borderRadius: "12px" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <User size={14} className="text-slate-400" />
+                                            <span style={{ fontSize: "13px", fontWeight: 800, color: "var(--text-main)" }}>{bill.party}</span>
+                                        </div>
+                                        <ArrowRight size={14} className="text-slate-300" />
                                     </div>
-                                    <ArrowRight size={14} className="text-slate-300" />
                                 </div>
-                            </div>
+                            </Link>
                         ))
                     )}
                 </div>

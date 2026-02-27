@@ -42,6 +42,7 @@ export async function GET(req: Request) {
                     where,
                     include: {
                         farmer: { select: { name: true, mobile: true } },
+                        items: { select: { quantityKg: true, quantityUnits: true } },
                     },
                     orderBy: { billDate: "desc" },
                 });
@@ -53,6 +54,8 @@ export async function GET(req: Request) {
                         date: b.billDate,
                         party: b.farmer?.name || "Unknown",
                         amount: Number(b.netTotal),
+                        totalKg: b.items.reduce((acc, item) => acc + Number(item.quantityKg), 0),
+                        totalUnits: b.items.reduce((acc, item) => acc + Number(item.quantityUnits), 0),
                     })),
                     summary: {
                         totalAmount: bills.reduce((acc, b) => acc + Number(b.netTotal), 0),
@@ -76,6 +79,7 @@ export async function GET(req: Request) {
                     where,
                     include: {
                         customer: { select: { name: true, mobile: true } },
+                        items: { select: { quantityKg: true, quantityUnits: true } },
                     },
                     orderBy: { billDate: "desc" },
                 });
@@ -87,6 +91,8 @@ export async function GET(req: Request) {
                         date: b.billDate,
                         party: b.customer?.name || "Unknown",
                         amount: Number(b.netTotal),
+                        totalKg: b.items.reduce((acc, item) => acc + Number(item.quantityKg), 0),
+                        totalUnits: b.items.reduce((acc, item) => acc + Number(item.quantityUnits), 0),
                     })),
                     summary: {
                         totalAmount: bills.reduce((acc, b) => acc + Number(b.netTotal), 0),

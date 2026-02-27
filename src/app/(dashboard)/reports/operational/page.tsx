@@ -59,9 +59,16 @@ export default function OperationalReportsPage() {
             case "FARMER_PURCHASE":
             case "CUSTOMER_SALE":
                 return [
-                    { key: "billNumber", label: t("reports.table.billNumber") },
+                    {
+                        key: "billNumber",
+                        label: t("reports.table.billNumber"),
+                        render: (v: string, item: any) => <Link href={`/bills/${item.id}`} className="text-emerald-600 hover:underline font-bold">{v}</Link>,
+                        pdfValue: (v: string, item: any) => v
+                    },
                     { key: "date", label: t("reports.table.date"), render: (v: string) => new Date(v).toLocaleDateString() },
                     { key: "party", label: t("reports.table.party") },
+                    { key: "totalKg", label: t("reports.table.qtyKg"), align: "right" as const, render: (v: number) => v?.toFixed(2) || "0.00" },
+                    { key: "totalUnits", label: t("reports.table.qtyUnits"), align: "right" as const, render: (v: number) => v?.toFixed(2) || "0.00" },
                     { key: "amount", label: t("reports.table.amount"), align: "right" as const, render: (v: number) => `₹ ${v.toLocaleString("en-IN")}` },
                 ];
             case "PAYMENT_HISTORY":
@@ -123,8 +130,16 @@ export default function OperationalReportsPage() {
             data.forEach(item => {
                 html += '<tr>';
                 columns.forEach(col => {
-                    const renderFn = col.render as ((v: any) => string) | undefined;
-                    const value = renderFn ? renderFn(item[col.key]) : item[col.key];
+                    let value = "";
+                    if (col.pdfValue) {
+                        value = col.pdfValue(item[col.key], item);
+                    } else if (typeof col.render === 'function') {
+                        // Cast to any to avoid TS error on argument count
+                        const rendered = (col.render as any)(item[col.key], item);
+                        value = (typeof rendered === 'string' || typeof rendered === 'number') ? String(rendered) : String(item[col.key] || "");
+                    } else {
+                        value = String(item[col.key] || "");
+                    }
                     html += '<td class="' + (col.align === 'right' ? 'text-right' : '') + '">' + value + '</td>';
                 });
                 html += '</tr>';
