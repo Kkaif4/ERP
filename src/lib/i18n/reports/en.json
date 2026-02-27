@@ -1,41 +1,41 @@
 {
-    "title": "Operational Reports",
-    "subtitle": "Track daily trading activities and histories",
-    "dateRange": "Select Date Range",
-    "startDate": "Start Date",
-    "endDate": "End Date",
-    "reportType": "Report Type",
-    "noData": "No data found for the selected range",
-    "totalAmount": "Total Amount",
-    "totalCount": "Total Count",
-    "desc": {
-        "operational": "Daily transaction summaries, purchase and sales histories.",
-        "financial": "Detailed view of outstanding payables and receivables.",
-        "insights": "Business growth metrics, profit analysis, and item trends."
-    },
-    "presets": {
-        "today": "Today",
-        "yesterday": "Yesterday",
-        "last7Days": "Last 7 Days",
-        "thisMonth": "This Month"
-    },
-    "types": {
-        "operational": "Operational Reports",
-        "financial": "Financial Reports",
-        "insights": "Business Insights",
-        "FARMER_PURCHASE": "Farmer Purchase History",
-        "CUSTOMER_SALE": "Customer Sales History",
-        "PAYMENT_HISTORY": "Payment History",
-        "DAILY_SUMMARY": "Daily Transaction Summary",
-        "OUTSTANDING_PAYABLES": "Outstanding Payables (Farmers)",
-        "OUTSTANDING_RECEIVABLES": "Outstanding Receivables (Customers)"
-    },
-    "table": {
-        "billNumber": "Bill #",
-        "date": "Date",
-        "party": "Party Name",
-        "amount": "Amount",
-        "mode": "Mode",
-        "type": "Type"
-    }
+  "title": "Operational Reports",
+  "subtitle": "Track daily trading activities and histories",
+  "dateRange": "Select Date Range",
+  "startDate": "Start Date",
+  "endDate": "End Date",
+  "reportType": "Report Type",
+  "noData": "No data found for the selected range",
+  "totalAmount": "Total Amount",
+  "totalCount": "Total Count",
+  "desc": {
+    "operational": "Daily transaction summaries, purchase and sales histories.",
+    "financial": "Detailed view of outstanding payables and receivables.",
+    "insights": "Business growth metrics, profit analysis, and item trends."
+  },
+  "presets": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "last7Days": "Last 7 Days",
+    "thisMonth": "This Month"
+  },
+  "types": {
+    "operational": "Operational Reports",
+    "financial": "Financial Reports",
+    "insights": "Business Insights",
+    "FARMER_PURCHASE": "Farmer Purchase History",
+    "CUSTOMER_SALE": "Customer Sales History",
+    "PAYMENT_HISTORY": "Payment History",
+    "DAILY_SUMMARY": "Daily Transaction Summary",
+    "OUTSTANDING_PAYABLES": "Outstanding Payables (Farmers)",
+    "OUTSTANDING_RECEIVABLES": "Outstanding Receivables (Customers)"
+  },
+  "table": {
+    "billNumber": "Bill #",
+    "date": "Date",
+    "party": "Party Name",
+    "amount": "Amount",
+    "mode": "Mode",
+    "type": "Type"
+  }
 }

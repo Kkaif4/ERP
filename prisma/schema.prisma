@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ─── Enums ──────────────────────────────────────────────
@@ -22,8 +21,9 @@ enum BillType {
 }
 
 enum PricingMode {
-  WEIGHT // per 10 KG
-  UNIT   // per crate / unit
+  WEIGHT    // per 10 KG
+  WEIGHT_KG // per KG
+  UNIT      // per crate / unit
 }
 
 enum PaymentMode {
@@ -78,6 +78,7 @@ model Organization {
   bills          Bill[]
   payments       Payment[]
   returns        Return[]
+  expenses       Expense[]
   auditLogs      AuditLog[]
   businessConfig BusinessConfig?
   subscriptions  Subscription[]
@@ -257,11 +258,13 @@ model BillItem {
   bill         Bill        @relation(fields: [billId], references: [id], onDelete: Cascade)
   itemId       String      @db.Uuid
   item         Item        @relation(fields: [itemId], references: [id])
-  pricingMode  PricingMode
-  quantity     Decimal     @db.Decimal(10, 2) // KG or crate count
-  pricePerUnit Decimal     @db.Decimal(10, 2) // per 10 KG or per crate
-  total        Decimal     @db.Decimal(12, 2)
-  createdAt    DateTime    @default(now())
+  pricingMode   PricingMode
+  quantity      Decimal     @db.Decimal(10, 2) // pricing qty (derived from pricingMode)
+  pricePerUnit  Decimal     @db.Decimal(10, 2) // per 10 KG, per KG, or per crate
+  total         Decimal     @db.Decimal(12, 2)
+  quantityKg    Decimal     @default(0) @db.Decimal(10, 2) // weight in KG (always stored)
+  quantityUnits Decimal     @default(0) @db.Decimal(10, 2) // count in units/crates (always stored)
+  createdAt     DateTime    @default(now())
 
   returnItems ReturnItem[]
 }
@@ -279,6 +282,7 @@ model Payment {
   billId         String?      @db.Uuid
   bill           Bill?        @relation(fields: [billId], references: [id])
   amount         Decimal      @db.Decimal(12, 2)
+  roundOffAmount Decimal      @default(0) @db.Decimal(12, 2)
   mode           PaymentMode
   paymentDate    DateTime     @default(now())
   notes          String?
@@ -286,6 +290,8 @@ model Payment {
   recordedBy     User         @relation(fields: [recordedById], references: [id])
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  expenses Expense[]
 
   @@index([organizationId])
   @@index([farmerId])
@@ -361,4 +367,21 @@ model BusinessConfig {
   serviceChargeType  ChargeType   @default(PERCENTAGE)
   serviceChargeValue Decimal      @default(0) @db.Decimal(8, 4)
   updatedAt          DateTime     @updatedAt
+}
+
+// ─── Expenses ───────────────────────────────────────────
+
+model Expense {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  paymentId      String       @db.Uuid
+  payment        Payment      @relation(fields: [paymentId], references: [id])
+  category       String       // e.g. "ROUND_OFF"
+  amount         Decimal      @db.Decimal(12, 2)
+  description    String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([paymentId])
 }

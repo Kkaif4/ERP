@@ -4,139 +4,146 @@ import { saleBillSchema } from "@/lib/schemas";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-    const session = await getSession();
-    if (!session || !session.organizationId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getSession();
+  if (!session || !session.organizationId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const validationResult = saleBillSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: validationResult.error.issues[0].message },
+        { status: 400 },
+      );
+    }
+    const { customerId, items } = validationResult.data;
+
+    // Fetch Customer
+    const customer = await prisma.customer.findFirst({
+      where: { id: customerId, organizationId: session.organizationId },
+    });
+    if (!customer) {
+      return NextResponse.json(
+        { error: "Customer not found" },
+        { status: 404 },
+      );
     }
 
-    try {
-        const body = await req.json();
-        const validationResult = saleBillSchema.safeParse(body);
-        if (!validationResult.success) {
-            return NextResponse.json({ error: validationResult.error.issues[0].message }, { status: 400 });
-        }
-        const {
-            customerId,
-            items
-        } = validationResult.data;
+    // Fetch Business Config
+    const config = await prisma.businessConfig.findUnique({
+      where: { organizationId: session.organizationId },
+    });
 
+    // 1. Item Subtotal
+    let subtotal = 0;
+    const lineItems = items.map((item: any) => {
+      let lineTotal = 0;
+      if (item.pricingMode === "WEIGHT") {
+        lineTotal = (item.quantity / 10) * item.pricePerUnit;
+      } else if (item.pricingMode === "WEIGHT_KG") {
+        lineTotal = item.quantity * item.pricePerUnit;
+      } else {
+        lineTotal = item.quantity * item.pricePerUnit;
+      }
+      subtotal += lineTotal;
+      return {
+        itemId: item.itemId,
+        pricingMode: item.pricingMode,
+        quantity: item.quantity,
+        pricePerUnit: item.pricePerUnit,
+        total: lineTotal,
+        quantityKg: item.quantityKg,
+        quantityUnits: item.quantityUnits,
+      };
+    });
 
-        // Fetch Customer
-        const customer = await prisma.customer.findFirst({
-            where: { id: customerId, organizationId: session.organizationId }
-        });
-        if (!customer) {
-            return NextResponse.json({ error: "Customer not found" }, { status: 404 });
-        }
+    // 2. Tax and Service Charge
+    let taxAmount = 0;
+    let serviceChargeAmount = 0;
 
-        // Fetch Business Config
-        const config = await prisma.businessConfig.findUnique({
-            where: { organizationId: session.organizationId }
-        });
+    if (config) {
+      taxAmount =
+        config.taxType === "PERCENTAGE"
+          ? subtotal * (Number(config.taxValue) / 100)
+          : Number(config.taxValue);
 
-        // 1. Item Subtotal
-        let subtotal = 0;
-        const lineItems = items.map((item: any) => {
-            let lineTotal = 0;
-            if (item.pricingMode === "WEIGHT") {
-                lineTotal = (item.quantity / 10) * item.pricePerUnit;
-            } else {
-                lineTotal = item.quantity * item.pricePerUnit;
-            }
-            subtotal += lineTotal;
-            return {
-                itemId: item.itemId,
-                pricingMode: item.pricingMode,
-                quantity: item.quantity,
-                pricePerUnit: item.pricePerUnit,
-                total: lineTotal
-            };
-        });
-
-        // 2. Tax and Service Charge
-        let taxAmount = 0;
-        let serviceChargeAmount = 0;
-
-        if (config) {
-            taxAmount = config.taxType === "PERCENTAGE"
-                ? subtotal * (Number(config.taxValue) / 100)
-                : Number(config.taxValue);
-
-            serviceChargeAmount = config.serviceChargeType === "PERCENTAGE"
-                ? subtotal * (Number(config.serviceChargeValue) / 100)
-                : Number(config.serviceChargeValue);
-        }
-
-        // 3. Totals
-        const grossTotal = subtotal + taxAmount + serviceChargeAmount;
-        const netTotal = grossTotal;
-
-        // 5. Generate Bill Number
-        const lastBill = await prisma.bill.findFirst({
-            where: { organizationId: session.organizationId, type: "SALE" },
-            orderBy: { createdAt: "desc" },
-            select: { billNumber: true }
-        });
-
-        let nextNum = 1;
-        if (lastBill) {
-            const lastNum = parseInt(lastBill.billNumber.split("-")[1]);
-            if (!isNaN(lastNum)) nextNum = lastNum + 1;
-        }
-        const billNumber = `SAL-${nextNum.toString().padStart(4, "0")}`;
-
-        // 6. Database Transaction
-        const result = await prisma.$transaction(async (tx) => {
-            // Create Bill
-            const bill = await tx.bill.create({
-                data: {
-                    organizationId: session.organizationId!,
-                    billNumber,
-                    type: "SALE",
-                    customerId,
-                    subtotal,
-                    labourCharges: 0,
-                    freightCharges: 0,
-                    taxAmount,
-                    serviceChargeAmount,
-                    grossTotal,
-                    advanceDeduction: 0,
-                    netTotal,
-                    createdById: session.userId,
-                    items: {
-                        create: lineItems
-                    }
-                },
-                include: { items: true }
-            });
-
-            // Update Customer Balance
-            await tx.customer.update({
-                where: { id: customerId },
-                data: {
-                    balance: { increment: netTotal }
-                }
-            });
-
-            // Audit Log
-            await tx.auditLog.create({
-                data: {
-                    action: "CREATE",
-                    entity: "BILL",
-                    entityId: bill.id,
-                    newValue: bill as any,
-                    userId: session.userId,
-                    organizationId: session.organizationId!,
-                }
-            });
-
-            return bill;
-        });
-
-        return NextResponse.json(result);
-
-    } catch (error: any) {
-        console.error("Sale Bill Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+      serviceChargeAmount =
+        config.serviceChargeType === "PERCENTAGE"
+          ? subtotal * (Number(config.serviceChargeValue) / 100)
+          : Number(config.serviceChargeValue);
     }
+
+    // 3. Totals
+    const grossTotal = subtotal + taxAmount + serviceChargeAmount;
+    const netTotal = grossTotal;
+
+    // 5. Generate Bill Number
+    const lastBill = await prisma.bill.findFirst({
+      where: { organizationId: session.organizationId, type: "SALE" },
+      orderBy: { createdAt: "desc" },
+      select: { billNumber: true },
+    });
+
+    let nextNum = 1;
+    if (lastBill) {
+      const lastNum = parseInt(lastBill.billNumber.split("-")[1]);
+      if (!isNaN(lastNum)) nextNum = lastNum + 1;
+    }
+    const billNumber = `SAL-${nextNum.toString().padStart(4, "0")}`;
+
+    // 6. Database Transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create Bill
+      const bill = await tx.bill.create({
+        data: {
+          organizationId: session.organizationId!,
+          billNumber,
+          type: "SALE",
+          customerId,
+          subtotal,
+          labourCharges: 0,
+          freightCharges: 0,
+          taxAmount,
+          serviceChargeAmount,
+          grossTotal,
+          advanceDeduction: 0,
+          netTotal,
+          createdById: session.userId,
+          items: {
+            create: lineItems,
+          },
+        },
+        include: { items: true },
+      });
+
+      // Update Customer Balance
+      await tx.customer.update({
+        where: { id: customerId },
+        data: {
+          balance: { increment: netTotal },
+        },
+      });
+
+      // Audit Log
+      await tx.auditLog.create({
+        data: {
+          action: "CREATE",
+          entity: "BILL",
+          entityId: bill.id,
+          newValue: bill as any,
+          userId: session.userId,
+          organizationId: session.organizationId!,
+        },
+      });
+
+      return bill;
+    });
+
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error("Sale Bill Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }

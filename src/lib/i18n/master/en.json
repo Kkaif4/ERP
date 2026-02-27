@@ -49,7 +49,8 @@
         "noItems": "No items found.",
         "successAdd": "Item added successfully",
         "errorAdd": "Failed to add item",
-        "errorLoad": "Failed to load items"
+        "errorLoad": "Failed to load items",
+        "weightKg": "Weight Based (KG)"
     },
     "actions": {
         "save": "Save Changes",

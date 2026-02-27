@@ -1,27 +1,27 @@
 {
-    "overview": "Today's Overview",
-    "today": "Today",
-    "latestBills": "Latest Market Bills",
-    "viewAll": "View All",
-    "noBills": "No bills yet today",
-    "createFirst": "Create your first bill to get started",
-    "quickNav": "Quick Navigation",
-    "purchaseBill": "Purchase Bill",
-    "saleBill": "Sale Bill",
-    "createBill": "Create New Bill",
-    "stats": {
-        "todayBills": "Bills Today",
-        "todayPayments": "Payments Today",
-        "farmerPayable": "Farmer Payable",
-        "customerDue": "Customer Due"
-    },
-    "billTable": {
-        "number": "Bill #",
-        "party": "Party",
-        "type": "Type",
-        "amount": "Amount",
-        "time": "Time",
-        "purchase": "Purchase",
-        "sale": "Sale"
-    }
+  "overview": "Today's Overview",
+  "today": "Today",
+  "latestBills": "Latest Market Bills",
+  "viewAll": "View All",
+  "noBills": "No bills yet today",
+  "createFirst": "Create your first bill to get started",
+  "quickNav": "Quick Navigation",
+  "purchaseBill": "Farmer Bill",
+  "saleBill": "Sale Bill",
+  "createBill": "Create New Bill",
+  "stats": {
+    "todayBills": "Bills Today",
+    "todayPayments": "Payments Today",
+    "farmerPayable": "Farmer Payable",
+    "customerDue": "Customer Due"
+  },
+  "billTable": {
+    "number": "Bill #",
+    "party": "Party",
+    "type": "Type",
+    "amount": "Amount",
+    "time": "Time",
+    "purchase": "Purchase",
+    "sale": "Sale"
+  }
 }
