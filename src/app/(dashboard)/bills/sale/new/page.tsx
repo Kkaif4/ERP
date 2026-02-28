@@ -34,6 +34,8 @@ interface Item {
   id: string;
   name: string;
   defaultPricingMode: "WEIGHT" | "WEIGHT_KG" | "UNIT";
+  availableKg: number;
+  availableUnits: number;
 }
 interface BillLine {
   itemId: string;
@@ -44,6 +46,8 @@ interface BillLine {
   quantityUnits: string;
   price: string;
   total: number;
+  availableKg: number;
+  availableUnits: number;
 }
 interface BusinessConfig {
   taxType: "PERCENTAGE" | "FIXED";
@@ -174,6 +178,8 @@ export default function NewSaleBillPage() {
         quantityUnits: "",
         price: "",
         total: 0,
+        availableKg: item.availableKg || 0,
+        availableUnits: item.availableUnits || 0,
       },
     ]);
     setItemSearch("");
@@ -200,6 +206,18 @@ export default function NewSaleBillPage() {
     }
 
     const q = parseFloat(l.quantity) || 0;
+
+    // Frontend validation for stock
+    if (l.pricingMode === "WEIGHT" || l.pricingMode === "WEIGHT_KG") {
+      if (q > l.availableKg) {
+        toast.error(`${t("common.error")}: ${l.itemName} (${t("bills.sale.available")}: ${l.availableKg} KG)`);
+      }
+    } else {
+      if (q > l.availableUnits) {
+        toast.error(`${t("common.error")}: ${l.itemName} (${t("bills.sale.available")}: ${l.availableUnits} Units)`);
+      }
+    }
+
     const p = parseFloat(l.price) || 0;
 
     if (l.pricingMode === "WEIGHT") {
@@ -788,7 +806,12 @@ export default function NewSaleBillPage() {
                               "transparent";
                           }}
                         >
-                          {item.name}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span>{item.name}</span>
+                            <span style={{ fontSize: "11px", color: (item.availableKg <= 0 && item.availableUnits <= 0) ? "#ef4444" : "#10b981", fontWeight: 800 }}>
+                              {item.availableKg > 0 ? `${item.availableKg} KG` : item.availableUnits > 0 ? `${item.availableUnits} Units` : "No Stock"}
+                            </span>
+                          </div>
                         </button>
                       ))}
                       {isItemLoading && (
@@ -944,23 +967,37 @@ export default function NewSaleBillPage() {
                           >
                             {line.itemName}
                           </p>
-                          <span
-                            style={{
-                              fontSize: "14px",
-                              fontWeight: 800,
-                              color: "#0369a1",
-                              backgroundColor: "rgba(3,105,161,0.08)",
-                              padding: "2px 8px",
-                              borderRadius: "6px",
-                              textTransform: "uppercase",
-                            }}
-                          >
-                            {line.pricingMode === "WEIGHT"
-                              ? "per 10 KG"
-                              : line.pricingMode === "WEIGHT_KG"
-                                ? "per KG"
-                                : "per Unit"}
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "4px 0" }}>
+                            <span
+                              style={{
+                                fontSize: "14px",
+                                fontWeight: 800,
+                                color: "#0369a1",
+                                backgroundColor: "rgba(3,105,161,0.08)",
+                                padding: "2px 8px",
+                                borderRadius: "6px",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {line.pricingMode === "WEIGHT"
+                                ? "per 10 KG"
+                                : line.pricingMode === "WEIGHT_KG"
+                                  ? "per KG"
+                                  : "per Unit"}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 800,
+                                color: (line.availableKg <= 0 && line.availableUnits <= 0) ? "#ef4444" : "#64748b",
+                                backgroundColor: (line.availableKg <= 0 && line.availableUnits <= 0) ? "rgba(239, 68, 68, 0.08)" : "#f8fafc",
+                                padding: "2px 8px",
+                                borderRadius: "6px",
+                              }}
+                            >
+                              Stock: {line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG`}
+                            </span>
+                          </div>
                         </td>
                         <td style={{ padding: "16px" }}>
                           <input

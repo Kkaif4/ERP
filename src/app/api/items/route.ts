@@ -30,8 +30,19 @@ export async function GET(req: Request) {
         }),
     ]);
 
+    // Fetch stock for these items
+    const itemIds = items.map(i => i.id);
+    const { getBatchAvailableStock } = await import("@/lib/inventory");
+    const stockMap = await getBatchAvailableStock(itemIds, session.organizationId!);
+
+    const itemsWithStock = items.map(item => ({
+        ...item,
+        availableKg: stockMap[item.id]?.availableKg || 0,
+        availableUnits: stockMap[item.id]?.availableUnits || 0,
+    }));
+
     return NextResponse.json({
-        data: items,
+        data: itemsWithStock,
         pagination: {
             total,
             page,

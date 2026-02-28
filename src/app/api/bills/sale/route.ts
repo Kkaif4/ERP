@@ -36,6 +36,40 @@ export async function POST(req: Request) {
       where: { organizationId: session.organizationId },
     });
 
+    // Stock Validation
+    const { getBatchAvailableStock } = await import("@/lib/inventory");
+    const requestedItemIds = Array.from(new Set(items.map((i: any) => i.itemId)));
+    const [stockMap, dbItems] = await Promise.all([
+      getBatchAvailableStock(requestedItemIds, session.organizationId!),
+      prisma.item.findMany({
+        where: { id: { in: requestedItemIds }, organizationId: session.organizationId },
+        select: { id: true, name: true }
+      })
+    ]);
+
+    const itemNamesMap = Object.fromEntries(dbItems.map(i => [i.id, i.name]));
+
+    for (const item of items) {
+      const stock = stockMap[item.itemId];
+      const itemName = itemNamesMap[item.itemId] || "Selected Item";
+
+      const availKg = stock?.availableKg || 0;
+      const availUnits = stock?.availableUnits || 0;
+
+      if (item.quantityKg > availKg) {
+        return NextResponse.json(
+          { error: `Insufficient stock for ${itemName}. Available: ${availKg} KG, Requested: ${item.quantityKg} KG` },
+          { status: 400 }
+        );
+      }
+      if (item.quantityUnits > availUnits) {
+        return NextResponse.json(
+          { error: `Insufficient stock for ${itemName}. Available: ${availUnits} Units, Requested: ${item.quantityUnits} Units` },
+          { status: 400 }
+        );
+      }
+    }
+
     // 1. Item Subtotal
     let subtotal = 0;
     const lineItems = items.map((item: any) => {
