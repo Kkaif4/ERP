@@ -215,6 +215,8 @@ model Item {
   name               String
   defaultPricingMode PricingMode  @default(WEIGHT)
   isActive           Boolean      @default(true)
+  availableKg       Decimal      @default(0) @db.Decimal(12, 2)
+  availableUnits    Decimal      @default(0) @db.Decimal(12, 2)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
@@ -383,8 +385,9 @@ model BusinessConfig {
   upiId              String?
   logoBase64         String?      @db.Text
   defaultPageSize    String       @default("A4")
-  city               String?      // Used for jurisdiction text
-  updatedAt          DateTime     @updatedAt
+  city                   String?      // Used for jurisdiction text
+  enableStockRestriction Boolean      @default(false)
+  updatedAt              DateTime     @updatedAt
 }
 
 // ─── Expenses ───────────────────────────────────────────

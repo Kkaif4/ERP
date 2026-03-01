@@ -138,6 +138,15 @@ export async function POST(req: Request) {
       return bill;
     });
 
+    // 5. Sync Stock (Non-blocking or awaited)
+    const uniqueItemIds = Array.from(new Set(items.map((i: any) => i.itemId)));
+    const { syncItemStock } = await import("@/lib/inventory");
+    await Promise.all(
+      uniqueItemIds.map((itemId: any) =>
+        syncItemStock(itemId, session.organizationId!)
+      )
+    );
+
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Farmer Bill Error:", error);

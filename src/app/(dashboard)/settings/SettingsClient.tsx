@@ -17,6 +17,7 @@ interface BusinessConfigDto {
     logoBase64?: string;
     defaultPageSize: string;
     city?: string;
+    enableStockRestriction: boolean;
 }
 
 export default function SettingsClient() {
@@ -33,6 +34,7 @@ export default function SettingsClient() {
     const [logoBase64, setLogoBase64] = useState<string>("");
     const [defaultPageSize, setDefaultPageSize] = useState<string>("A4");
     const [city, setCity] = useState<string>("");
+    const [enableStockRestriction, setEnableStockRestriction] = useState<boolean>(false);
     const [uploadingLogo, setUploadingLogo] = useState(false);
 
     useEffect(() => {
@@ -50,6 +52,7 @@ export default function SettingsClient() {
                 setLogoBase64(data.logoBase64 ?? "");
                 setDefaultPageSize(data.defaultPageSize ?? "A4");
                 setCity(data.city ?? "");
+                setEnableStockRestriction(data.enableStockRestriction ?? false);
             } catch (e: any) {
                 console.error(e);
                 toast.error(e?.message || "Unable to load business settings");
@@ -73,6 +76,7 @@ export default function SettingsClient() {
             upiId,
             defaultPageSize,
             city,
+            enableStockRestriction,
         };
 
         const validationResult = businessConfigSchema.safeParse(data);
@@ -577,6 +581,68 @@ export default function SettingsClient() {
                                 <p style={{ marginTop: "8px", fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>
                                     {t("settings.cityHint") || "This city will be used in the 'Subject to Jurisdiction' text on bills."}
                                 </p>
+                            </div>
+                        </div>
+
+                        {/* Inventory Section */}
+                        <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}>
+                            <p
+                                style={{
+                                    margin: "0 0 1rem",
+                                    fontSize: "11px",
+                                    fontWeight: 900,
+                                    color: "var(--text-muted)",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.18em",
+                                }}
+                            >
+                                {t("settings.inventorySection") || "Inventory Settings"}
+                            </p>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    padding: "1rem",
+                                    backgroundColor: "#f8fafc",
+                                    borderRadius: "16px",
+                                    border: "1.5px solid var(--border-main)",
+                                }}
+                            >
+                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                    <span style={{ fontSize: "14px", fontWeight: 800, color: "var(--text-main)" }}>
+                                        {t("settings.stockRestrictionLabel") || "Enable Stock Restriction"}
+                                    </span>
+                                    <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>
+                                        {t("settings.stockRestrictionHint") || "If enabled, sale bills cannot exceed available stock."}
+                                    </span>
+                                </div>
+                                <div
+                                    onClick={() => setEnableStockRestriction(!enableStockRestriction)}
+                                    style={{
+                                        width: "52px",
+                                        height: "28px",
+                                        borderRadius: "14px",
+                                        backgroundColor: enableStockRestriction ? "var(--primary-main)" : "#e2e8f0",
+                                        position: "relative",
+                                        cursor: "pointer",
+                                        transition: "background-color 0.2s",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            top: "2px",
+                                            left: enableStockRestriction ? "26px" : "2px",
+                                            width: "24px",
+                                            height: "24px",
+                                            borderRadius: "50%",
+                                            backgroundColor: "#fff",
+                                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                                            transition: "left 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                                        }}
+                                    />
+                                </div>
                             </div>
                         </div>
 

@@ -56,7 +56,9 @@
     "taxPercentage": "% of subtotal",
     "taxFixed": " fixed amount",
     "scPercentage": "% of subtotal",
-    "scFixed": " fixed amount"
+    "scFixed": " fixed amount",
+    "availableStock": "Available: {{amount}}",
+    "noStock": "No Stock"
   },
   "details": {
     "back": "Back to History",

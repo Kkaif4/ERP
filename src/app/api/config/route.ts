@@ -52,6 +52,7 @@ export async function PUT(req: NextRequest) {
             upiId,
             defaultPageSize,
             city,
+            enableStockRestriction,
         } = validationResult.data;
 
         const config = await prisma.$transaction(async (tx) => {
@@ -66,6 +67,7 @@ export async function PUT(req: NextRequest) {
                     upiId,
                     defaultPageSize,
                     city,
+                    enableStockRestriction,
                 },
                 create: {
                     organizationId: session.organizationId,
@@ -76,6 +78,7 @@ export async function PUT(req: NextRequest) {
                     upiId,
                     defaultPageSize,
                     city,
+                    enableStockRestriction,
                 },
             });
 

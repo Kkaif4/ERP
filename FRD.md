@@ -631,11 +631,11 @@ Export: PDF and Excel.
   GST Filing Automation            Deferred to future version
   Accounting Software Integration  Out of scope for v2
   Multi-Branch Support             Single location only
-  Permanent Inventory / Stock      Not needed; daily veg trading confirmed by owner
+  Permanent Inventory / Stock      Not needed; daily veg trading confirmed by owner (Note: Stock restriction setting added in v2.1)
   Offline Mode                     Progressive enhancement; not implemented in v2
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-23. Glossary
+24. Glossary
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Term                  Meaning
 Kisan / Farmer        Supplier who sells vegetables to the business
@@ -657,14 +657,14 @@ BottomNav             Fixed mobile bottom tab bar (hidden on desktop)
 Modal                 Centralized UI component for all dialogs and forms
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-24. Opening Balance Entry
+25. Opening Balance Entry
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-24.1 Feature Description
+25.1 Feature Description
 The system allows the Admin to enter an initial account balance when creating a new farmer
 or customer. This is required to carry forward previous dues or advance payments that
 existed before using the system.
 
-24.2 Functional Requirements
+25.2 Functional Requirements
 1. Opening Balance Field
    • During creation, a numeric Opening Balance field is provided (default: 0).
    • Supports both outstanding dues and advance/credit balances.
@@ -680,27 +680,27 @@ existed before using the system.
    • Balance is included in the running running ledger total.
    • Opening balance is IMMUTABLE after creation. Corrections require a separate adjustment entry.
 
-24.3 Reporting Impact
+25.3 Reporting Impact
 • Opening balance entries appear at the top of the ledger history.
 • Opening balances are factored into all due calculations and financial reports.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-25. Unified Bill Format Specification
+26. Unified Bill Format Specification
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-25.1 Overview
+26.1 Overview
 A professional, unified document structure used for both Farmer (Purchase) and Customer (Sale)
 bills. Designed for high readability, branding consistency, and mobile payment efficiency.
 
-25.2 Bill Header Section
+26.2 Bill Header Section
 • Business Information: Centered at top. Includes Business Name, Address, Description, Contact.
 • Metadata (Top Right): Bill Number, Date, Location Jurisdiction.
 • Brand Identity: Supports a custom business logo (stored as optimized WebP Base64).
 
-25.3 Party Information Section
+26.3 Party Information Section
 • Farmer Bill: Displays Name, Village/Address, Mobile.
 • Customer Bill: Displays Name, Mobile, Bill Date.
 
-25.4 Item Details Table (Dual Quantity Structure)
+26.4 Item Details Table (Dual Quantity Structure)
 The table MUST display both physical count and weight:
 1. Sr. No.
 2. Item Name & Mode (e.g., Tomato - per 10 KG)
@@ -710,24 +710,24 @@ The table MUST display both physical count and weight:
 6. Amount (Line Total)
 Footer Totals: Sum of Units, Sum of Weight, Sum of Amount.
 
-25.5 Charges & Adjustments Section
+26.5 Charges & Adjustments Section
 • For Farmer Bills: Deductions (Commission, Advance, Labour/Hamali, Freight, Others).
 • For Customer Bills: Additions (Labour, Freight, Tax, Service Charge) and Deductions (Advance).
 
-25.6 Summary Section (Bottom-Right)
+26.6 Summary Section (Bottom-Right)
 • Gross Amount: Total from items table.
 • Total Charges: Aggregate of all adjustments.
 • Net Total: The final payable/receivable amount.
 • Labels: "Net Payable" (Farmer) vs "Final Amount / Total Due" (Customer).
 
-25.7 Branding & Payment Features
+26.7 Branding & Payment Features
 • Dynamic UPI QR Code: Generated in the summary area for Sale Bills. Pre-fills the
   Amount and Business Name for instant mobile payments using `upi://` protocol.
 • Logo Storage: Business logos are uploaded via Settings, processed server-side using
   Sharp (resized and converted to WebP), and stored as a Base64 string in the database
   to avoid reliance on 3rd party file providers (Vercel-native approach).
 
-25.8 Print Layout & Page Sizes
+26.8 Print Layout & Page Sizes
 The system supports the following standard Indian paper sizes:
 1. A4 Size: 210 × 297 mm (Standard office)
 2. A5 Size: 148 × 210 mm (Compact/Half-page)
@@ -740,5 +740,29 @@ Selection Behavior:
 • Layout scales dynamically using CSS `@media print` rules.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-— End of Document — Version 2.0 | February 2026
+27. Stock Restriction Setting
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+27.1 Description
+The system must provide a setting to control whether stock availability should be enforced during customer bill creation.
+• If enabled, the system must prevent selling more quantity than available stock.
+• If disabled, the system must allow bill creation regardless of stock availability.
+
+27.2 Setting Configuration
+• Setting Name: “Enable Stock Restriction”
+• Access Control: Only the Admin user can enable or disable this setting.
+• Audit Trail: Changes to this setting must be logged in the audit trail.
+
+27.3 Implementation & Performance
+• Persistent Stock Fields: To ensure high performance, each Item record stores `availableKg` and `availableUnits`.
+• Atomic Updates: Stock levels are updated automatically when a Sale (deduction) or Purchase (addition) bill is confirmed.
+• Synchronization: A dedicated `syncItemStock` utility ensures the cached values remain accurate by periodically reconciling with the ledger history if needed.
+• Enforcement: When enabled, the system prevents creation of a customer bill if the quantity entered exceeds the cached `availableKg` or `availableUnits`.
+• User Feedback: A clear validation message must be shown displaying the available quantity.
+
+27.5 Scope
+• This setting applies only to customer sales bills.
+• Purchase bills are not affected (they increase stock).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+— End of Document — Version 2.1 | March 2026
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -55,8 +55,10 @@
     "payableTooltip": "देय = पोटएकूण + कर + सेवा शुल्क",
     "taxPercentage": "% (पोटएकूणच्या)",
     "taxFixed": " निश्चित रक्कम",
-    "scPercentage": "% (पोटएकूणच्या)",
-    "scFixed": " निश्चित रक्कम"
+    "scPercentage": "एकूणच्या %",
+    "scFixed": " निश्चित रक्कम",
+    "availableStock": "उपलब्ध: {{amount}}",
+    "noStock": "स्टॉक नाही"
   },
   "details": {
     "back": "इतिहास (History) वर परत जा",

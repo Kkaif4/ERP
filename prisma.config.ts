@@ -8,5 +8,6 @@ export default defineConfig({
     },
     datasource: {
         url: env("DATABASE_URL")
+        // shadowDatabaseUrl: "postgresql://postgres:postgres@localhost:5432/feeling-erp?sslmode=disable"
     },
 });

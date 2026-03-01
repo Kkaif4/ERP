@@ -55,8 +55,10 @@
     "payableTooltip": "देय = उपकुल + टैक्स + सेवा शुल्क",
     "taxPercentage": "% (उपकुल का)",
     "taxFixed": " निश्चित राशि",
-    "scPercentage": "% (उपकुल का)",
-    "scFixed": " निश्चित राशि"
+    "scPercentage": "कुल का %",
+    "scFixed": " निश्चित राशि",
+    "availableStock": "उपलब्ध: {{amount}}",
+    "noStock": "स्टॉक नहीं है"
   },
   "details": {
     "back": "वापस इतिहास (History) पर जाएं",

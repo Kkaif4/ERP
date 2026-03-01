@@ -89,6 +89,7 @@ export const businessConfigSchema = z
     logoBase64: z.string().optional().or(z.literal("")),
     defaultPageSize: z.enum(["A4", "A5", "LEGAL", "FOLIO"]).optional().default("A4"),
     city: z.string().optional().or(z.literal("")),
+    enableStockRestriction: z.boolean().optional().default(false),
   })
   .refine(
     (data) => {

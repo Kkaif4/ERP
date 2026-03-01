@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     Truck,
     Plus,
@@ -75,6 +75,10 @@ export default function NewPurchaseBillPage() {
 
     const [farmerPage, setFarmerPage] = useState(1);
     const [hasMoreFarmers, setHasMoreFarmers] = useState(true);
+
+    // Refs for click outside dismissal
+    const farmerSearchRef = useRef<HTMLDivElement>(null);
+    const itemSearchRef = useRef<HTMLDivElement>(null);
     const [isFarmerLoading, setIsFarmerLoading] = useState(false);
     const [debouncedFarmerSearch, setDebouncedFarmerSearch] = useState("");
 
@@ -88,6 +92,28 @@ export default function NewPurchaseBillPage() {
             .then((r) => (r.ok ? r.json() : null))
             .then((d) => d && setConfig(d))
             .catch(() => { });
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                farmerSearchRef.current &&
+                !farmerSearchRef.current.contains(event.target as Node)
+            ) {
+                setIsFarmerDropdownOpen(false);
+            }
+            if (
+                itemSearchRef.current &&
+                !itemSearchRef.current.contains(event.target as Node)
+            ) {
+                setIsItemDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
     }, []);
 
     // Debounce farmer search
@@ -372,7 +398,7 @@ export default function NewPurchaseBillPage() {
                     style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
                 >
                     {/* Farmer Card */}
-                    <div className="premium-card" style={{ padding: "1.75rem" }}>
+                    <div className="premium-card" style={{ padding: "1.75rem", position: "relative", zIndex: 40 }}>
                         <div
                             style={{
                                 display: "flex",
@@ -490,7 +516,10 @@ export default function NewPurchaseBillPage() {
                                 </button>
                             </div>
                         ) : (
-                            <div style={{ position: "relative" }}>
+                            <div
+                                ref={farmerSearchRef}
+                                style={{ position: "relative" }}
+                            >
                                 <Search
                                     style={{
                                         position: "absolute",
@@ -525,7 +554,6 @@ export default function NewPurchaseBillPage() {
                                         e.currentTarget.style.backgroundColor = "#fff";
                                     }}
                                     onBlurCapture={(e) => {
-                                        setTimeout(() => setIsFarmerDropdownOpen(false), 150);
                                         e.currentTarget.style.borderColor = "#e2e8f0";
                                         e.currentTarget.style.backgroundColor = "#f1f5f9";
                                     }}
@@ -647,7 +675,7 @@ export default function NewPurchaseBillPage() {
                     </div>
 
                     {/* Items Card */}
-                    <div className="premium-card" style={{ overflow: "hidden" }}>
+                    <div className="premium-card" style={{ overflow: "visible", position: "relative", zIndex: 30 }}>
                         <div
                             style={{
                                 display: "flex",
@@ -691,7 +719,10 @@ export default function NewPurchaseBillPage() {
                                     {t("bills.purchase.billItems")}
                                 </p>
                             </div>
-                            <div style={{ position: "relative", minWidth: "220px" }}>
+                            <div
+                                ref={itemSearchRef}
+                                style={{ position: "relative", minWidth: "220px" }}
+                            >
                                 <Plus
                                     style={{
                                         position: "absolute",
@@ -726,7 +757,6 @@ export default function NewPurchaseBillPage() {
                                         e.currentTarget.style.backgroundColor = "#fff";
                                     }}
                                     onBlurCapture={(e) => {
-                                        setTimeout(() => setIsItemDropdownOpen(false), 150);
                                         e.currentTarget.style.borderColor = "#e2e8f0";
                                         e.currentTarget.style.backgroundColor = "#f1f5f9";
                                     }}

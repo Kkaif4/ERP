@@ -37,36 +37,38 @@ export async function POST(req: Request) {
     });
 
     // Stock Validation
-    const { getBatchAvailableStock } = await import("@/lib/inventory");
-    const requestedItemIds = Array.from(new Set(items.map((i: any) => i.itemId)));
-    const [stockMap, dbItems] = await Promise.all([
-      getBatchAvailableStock(requestedItemIds, session.organizationId!),
-      prisma.item.findMany({
-        where: { id: { in: requestedItemIds }, organizationId: session.organizationId },
-        select: { id: true, name: true }
-      })
-    ]);
+    if (config?.enableStockRestriction) {
+      const { getBatchAvailableStock } = await import("@/lib/inventory");
+      const requestedItemIds = Array.from(new Set(items.map((i: any) => i.itemId)));
+      const [stockMap, dbItems] = await Promise.all([
+        getBatchAvailableStock(requestedItemIds, session.organizationId!),
+        prisma.item.findMany({
+          where: { id: { in: requestedItemIds }, organizationId: session.organizationId },
+          select: { id: true, name: true }
+        })
+      ]);
 
-    const itemNamesMap = Object.fromEntries(dbItems.map(i => [i.id, i.name]));
+      const itemNamesMap = Object.fromEntries(dbItems.map(i => [i.id, i.name]));
 
-    for (const item of items) {
-      const stock = stockMap[item.itemId];
-      const itemName = itemNamesMap[item.itemId] || "Selected Item";
+      for (const item of items) {
+        const stock = stockMap[item.itemId];
+        const itemName = itemNamesMap[item.itemId] || "Selected Item";
 
-      const availKg = stock?.availableKg || 0;
-      const availUnits = stock?.availableUnits || 0;
+        const availKg = stock?.availableKg || 0;
+        const availUnits = stock?.availableUnits || 0;
 
-      if (item.quantityKg > availKg) {
-        return NextResponse.json(
-          { error: `Insufficient stock for ${itemName}. Available: ${availKg} KG, Requested: ${item.quantityKg} KG` },
-          { status: 400 }
-        );
-      }
-      if (item.quantityUnits > availUnits) {
-        return NextResponse.json(
-          { error: `Insufficient stock for ${itemName}. Available: ${availUnits} Units, Requested: ${item.quantityUnits} Units` },
-          { status: 400 }
-        );
+        if (item.quantityKg > availKg) {
+          return NextResponse.json(
+            { error: `Insufficient stock for ${itemName}. Available: ${availKg} KG, Requested: ${item.quantityKg} KG` },
+            { status: 400 }
+          );
+        }
+        if (item.quantityUnits > availUnits) {
+          return NextResponse.json(
+            { error: `Insufficient stock for ${itemName}. Available: ${availUnits} Units, Requested: ${item.quantityUnits} Units` },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -174,6 +176,15 @@ export async function POST(req: Request) {
 
       return bill;
     });
+
+    // 7. Sync Stock (Non-blocking or awaited)
+    const uniqueItemIds = Array.from(new Set(items.map((i: any) => i.itemId)));
+    const { syncItemStock } = await import("@/lib/inventory");
+    await Promise.all(
+      uniqueItemIds.map((itemId: any) =>
+        syncItemStock(itemId, session.organizationId!)
+      )
+    );
 
     return NextResponse.json(result);
   } catch (error: any) {

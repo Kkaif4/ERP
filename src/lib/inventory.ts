@@ -1,104 +1,97 @@
 import { prisma } from "./prisma";
 
 /**
- * Calculates the available stock for a specific item within an organization.
- * Available Stock = Total Purchased Quantity - Total Sold Quantity.
- * 
- * @param itemId The ID of the item to check stock for.
- * @param organizationId The organization ID.
- * @param excludeBillId Optional bill ID to exclude from calculations (useful for editing).
- * @returns An object containing available quantity in KG and Units.
+ * Recalculates and persists the available stock for a specific item.
+ * Syncs the cached availableKg and availableUnits fields in the Item model.
  */
-export async function getAvailableStock(
-    itemId: string,
-    organizationId: string,
-    excludeBillId?: string
-) {
+export async function syncItemStock(itemId: string, organizationId: string) {
     const result = await prisma.billItem.findMany({
         where: {
             itemId,
-            bill: {
-                organizationId,
-                ...(excludeBillId ? { id: { not: excludeBillId } } : {}),
-            },
+            bill: { organizationId },
         },
         select: {
             quantityKg: true,
             quantityUnits: true,
             bill: {
-                select: {
-                    type: true,
-                },
+                select: { type: true },
             },
         },
     });
 
-    let totalPurchasedKg = 0;
-    let totalPurchasedUnits = 0;
-    let totalSoldKg = 0;
-    let totalSoldUnits = 0;
+    let purchasedKg = 0;
+    let purchasedUnits = 0;
+    let soldKg = 0;
+    let soldUnits = 0;
 
     for (const bi of result) {
         if (bi.bill.type === "PURCHASE") {
-            totalPurchasedKg += Number(bi.quantityKg);
-            totalPurchasedUnits += Number(bi.quantityUnits);
+            purchasedKg += Number(bi.quantityKg);
+            purchasedUnits += Number(bi.quantityUnits);
         } else if (bi.bill.type === "SALE") {
-            totalSoldKg += Number(bi.quantityKg);
-            totalSoldUnits += Number(bi.quantityUnits);
+            soldKg += Number(bi.quantityKg);
+            soldUnits += Number(bi.quantityUnits);
         }
     }
 
+    const availableKg = Math.max(0, purchasedKg - soldKg);
+    const availableUnits = Math.max(0, purchasedUnits - soldUnits);
+
+    await prisma.item.update({
+        where: { id: itemId },
+        data: { availableKg, availableUnits },
+    });
+
+    return { availableKg, availableUnits };
+}
+
+/**
+ * Returns the cached available stock for a specific item.
+ * Falls back to live calculation if necessary, but primarily uses cached fields.
+ */
+export async function getAvailableStock(
+    itemId: string,
+    organizationId: string
+) {
+    const item = await prisma.item.findUnique({
+        where: { id: itemId },
+        select: { availableKg: true, availableUnits: true },
+    });
+
+    if (!item) return { availableKg: 0, availableUnits: 0 };
+
     return {
-        availableKg: Math.max(0, totalPurchasedKg - totalSoldKg),
-        availableUnits: Math.max(0, totalPurchasedUnits - totalSoldUnits),
+        availableKg: Number(item.availableKg),
+        availableUnits: Number(item.availableUnits),
     };
 }
 
 /**
- * Batch version of getAvailableStock for multiple items.
+ * Batch version of getAvailableStock using cached fields.
  */
 export async function getBatchAvailableStock(
     itemIds: string[],
     organizationId: string
 ) {
-    const result = await prisma.billItem.findMany({
-        where: {
-            itemId: { in: itemIds },
-            bill: { organizationId },
-        },
-        select: {
-            itemId: true,
-            quantityKg: true,
-            quantityUnits: true,
-            bill: {
-                select: {
-                    type: true,
-                },
-            },
-        },
+    const items = await prisma.item.findMany({
+        where: { id: { in: itemIds }, organizationId },
+        select: { id: true, availableKg: true, availableUnits: true },
     });
 
-    const stockMap: Record<string, { availableKg: number; availableUnits: number; purchasedKg: number; purchasedUnits: number; soldKg: number; soldUnits: number }> = {};
+    const stockMap: Record<string, { availableKg: number; availableUnits: number }> = {};
 
-    for (const itemId of itemIds) {
-        stockMap[itemId] = { availableKg: 0, availableUnits: 0, purchasedKg: 0, purchasedUnits: 0, soldKg: 0, soldUnits: 0 };
+    for (const item of items) {
+        stockMap[item.id] = {
+            availableKg: Number(item.availableKg),
+            availableUnits: Number(item.availableUnits),
+        };
     }
 
-    for (const bi of result) {
-        if (!stockMap[bi.itemId]) continue;
-
-        if (bi.bill.type === "PURCHASE") {
-            stockMap[bi.itemId].purchasedKg += Number(bi.quantityKg);
-            stockMap[bi.itemId].purchasedUnits += Number(bi.quantityUnits);
-        } else if (bi.bill.type === "SALE") {
-            stockMap[bi.itemId].soldKg += Number(bi.quantityKg);
-            stockMap[bi.itemId].soldUnits += Number(bi.quantityUnits);
+    // Ensure all requested IDs are in the map
+    for (const id of itemIds) {
+        if (!stockMap[id]) {
+            stockMap[id] = { availableKg: 0, availableUnits: 0 };
         }
-    }
-
-    for (const itemId of itemIds) {
-        stockMap[itemId].availableKg = Math.max(0, stockMap[itemId].purchasedKg - stockMap[itemId].soldKg);
-        stockMap[itemId].availableUnits = Math.max(0, stockMap[itemId].purchasedUnits - stockMap[itemId].soldUnits);
     }
 
     return stockMap;

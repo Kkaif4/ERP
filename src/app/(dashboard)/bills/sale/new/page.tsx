@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ShoppingCart,
   Plus,
@@ -54,6 +54,7 @@ interface BusinessConfig {
   taxValue: number;
   serviceChargeType: "PERCENTAGE" | "FIXED";
   serviceChargeValue: number;
+  enableStockRestriction: boolean;
 }
 
 export default function NewSaleBillPage() {
@@ -75,6 +76,10 @@ export default function NewSaleBillPage() {
 
   const [customerPage, setCustomerPage] = useState(1);
   const [hasMoreCustomers, setHasMoreCustomers] = useState(true);
+
+  // Refs for click outside dismissal
+  const customerSearchRef = useRef<HTMLDivElement>(null);
+  const itemSearchRef = useRef<HTMLDivElement>(null);
   const [isCustomerLoading, setIsCustomerLoading] = useState(false);
   const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState("");
 
@@ -88,6 +93,28 @@ export default function NewSaleBillPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setConfig(d))
       .catch(() => { });
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        customerSearchRef.current &&
+        !customerSearchRef.current.contains(event.target as Node)
+      ) {
+        setIsCustomerDropdownOpen(false);
+      }
+      if (
+        itemSearchRef.current &&
+        !itemSearchRef.current.contains(event.target as Node)
+      ) {
+        setIsItemDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   // Debounce customer search
@@ -206,18 +233,6 @@ export default function NewSaleBillPage() {
     }
 
     const q = parseFloat(l.quantity) || 0;
-
-    // Frontend validation for stock
-    if (l.pricingMode === "WEIGHT" || l.pricingMode === "WEIGHT_KG") {
-      if (q > l.availableKg) {
-        toast.error(`${t("common.error")}: ${l.itemName} (${t("bills.sale.available")}: ${l.availableKg} KG)`);
-      }
-    } else {
-      if (q > l.availableUnits) {
-        toast.error(`${t("common.error")}: ${l.itemName} (${t("bills.sale.available")}: ${l.availableUnits} Units)`);
-      }
-    }
-
     const p = parseFloat(l.price) || 0;
 
     if (l.pricingMode === "WEIGHT") {
@@ -245,6 +260,17 @@ export default function NewSaleBillPage() {
     : 0;
   const grossTotal = subtotal + taxAmount + serviceChargeAmount;
   const netTotal = grossTotal;
+
+  const isStockError = (line: BillLine) => {
+    if (!config?.enableStockRestriction) return false;
+    const q = parseFloat(line.quantity) || 0;
+    if (line.pricingMode === "WEIGHT" || line.pricingMode === "WEIGHT_KG") {
+      return q > line.availableKg;
+    }
+    return q > line.availableUnits;
+  };
+
+  const hasAnyStockError = lines.some(isStockError);
 
   const handleSubmit = async () => {
     const data = {
@@ -392,7 +418,7 @@ export default function NewSaleBillPage() {
           style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
         >
           {/* Customer Card */}
-          <div className="premium-card" style={{ padding: "1.75rem" }}>
+          <div className="premium-card" style={{ padding: "1.75rem", position: "relative", zIndex: 40 }}>
             <div
               style={{
                 display: "flex",
@@ -510,7 +536,10 @@ export default function NewSaleBillPage() {
                 </button>
               </div>
             ) : (
-              <div style={{ position: "relative" }}>
+              <div
+                ref={customerSearchRef}
+                style={{ position: "relative" }}
+              >
                 <Search
                   style={{
                     position: "absolute",
@@ -666,7 +695,7 @@ export default function NewSaleBillPage() {
           </div>
 
           {/* Items Card */}
-          <div className="premium-card" style={{ overflow: "hidden" }}>
+          <div className="premium-card" style={{ overflow: "visible", position: "relative", zIndex: 30 }}>
             <div
               style={{
                 display: "flex",
@@ -710,7 +739,10 @@ export default function NewSaleBillPage() {
                   {t("bills.purchase.billItems")}
                 </p>
               </div>
-              <div style={{ position: "relative", flex: "1", minWidth: 0 }}>
+              <div
+                ref={itemSearchRef}
+                style={{ position: "relative", flex: "1", minWidth: 0 }}
+              >
                 <Plus
                   style={{
                     position: "absolute",
@@ -782,7 +814,11 @@ export default function NewSaleBillPage() {
                       {itemsList.map((item) => (
                         <button
                           key={item.id}
-                          onMouseDown={() => addLine(item)}
+                          onMouseDown={() => {
+                            if (config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0) return;
+                            addLine(item);
+                          }}
+                          disabled={config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0}
                           style={{
                             width: "100%",
                             display: "block",
@@ -790,26 +826,27 @@ export default function NewSaleBillPage() {
                             padding: "10px 14px",
                             border: "none",
                             backgroundColor: "transparent",
-                            cursor: "pointer",
+                            cursor: (config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0) ? "not-allowed" : "pointer",
                             borderRadius: "10px",
                             fontSize: "13px",
                             fontWeight: 700,
                             color: "#1e293b",
                             transition: "background 0.15s",
+                            opacity: (config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0) ? 0.5 : 1,
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor =
-                              "rgba(3,105,161,0.06)";
+                            if (!(config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0)) {
+                              e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.06)";
+                            }
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor =
-                              "transparent";
+                            e.currentTarget.style.backgroundColor = "transparent";
                           }}
                         >
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <span>{item.name}</span>
                             <span style={{ fontSize: "11px", color: (item.availableKg <= 0 && item.availableUnits <= 0) ? "#ef4444" : "#10b981", fontWeight: 800 }}>
-                              {item.availableKg > 0 ? `${item.availableKg} KG` : item.availableUnits > 0 ? `${item.availableUnits} Units` : "No Stock"}
+                              {item.availableKg > 0 ? `${item.availableKg} KG` : item.availableUnits > 0 ? `${item.availableUnits} Units` : (config?.enableStockRestriction ? t("bills.sale.noStock") : "No Stock")}
                             </span>
                           </div>
                         </button>
@@ -1015,8 +1052,8 @@ export default function NewSaleBillPage() {
                               margin: "0 auto",
                               padding: "8px",
                               textAlign: "center",
-                              backgroundColor: "#f1f5f9",
-                              border: "1.5px solid #e2e8f0",
+                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f1f5f9",
+                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid #e2e8f0",
                               borderRadius: "10px",
                               fontWeight: 800,
                               fontSize: "14px",
@@ -1024,14 +1061,19 @@ export default function NewSaleBillPage() {
                               transition: "all 0.2s",
                             }}
                             onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = "#0369a1";
-                              e.currentTarget.style.backgroundColor = "#fff";
+                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
+                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
                             }}
                             onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = "#e2e8f0";
-                              e.currentTarget.style.backgroundColor = "#f1f5f9";
+                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#e2e8f0";
+                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f1f5f9";
                             }}
                           />
+                          {isStockError(line) && (
+                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
+                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            </p>
+                          )}
                         </td>
                         <td style={{ padding: "16px" }}>
                           <input
@@ -1049,8 +1091,8 @@ export default function NewSaleBillPage() {
                               margin: "0 auto",
                               padding: "8px",
                               textAlign: "center",
-                              backgroundColor: "#f1f5f9",
-                              border: "1.5px solid #e2e8f0",
+                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f1f5f9",
+                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid #e2e8f0",
                               borderRadius: "10px",
                               fontWeight: 800,
                               fontSize: "14px",
@@ -1058,14 +1100,19 @@ export default function NewSaleBillPage() {
                               transition: "all 0.2s",
                             }}
                             onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = "#0369a1";
-                              e.currentTarget.style.backgroundColor = "#fff";
+                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
+                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
                             }}
                             onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = "#e2e8f0";
-                              e.currentTarget.style.backgroundColor = "#f1f5f9";
+                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#e2e8f0";
+                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f1f5f9";
                             }}
                           />
+                          {isStockError(line) && (
+                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
+                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            </p>
+                          )}
                         </td>
                         <td style={{ padding: "16px" }}>
                           <div
@@ -1265,22 +1312,27 @@ export default function NewSaleBillPage() {
                               boxSizing: "border-box",
                               padding: "10px",
                               textAlign: "center",
-                              backgroundColor: "#f8fafc",
-                              border: "1.5px solid transparent",
+                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f8fafc",
+                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid transparent",
                               borderRadius: "10px",
                               fontWeight: 800,
                               fontSize: "15px",
                               outline: "none",
                             }}
                             onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = "#0369a1";
-                              e.currentTarget.style.backgroundColor = "#fff";
+                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
+                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
                             }}
                             onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = "transparent";
-                              e.currentTarget.style.backgroundColor = "#f8fafc";
+                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "transparent";
+                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f8fafc";
                             }}
                           />
+                          {isStockError(line) && (
+                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
+                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <p
@@ -1309,22 +1361,27 @@ export default function NewSaleBillPage() {
                               boxSizing: "border-box",
                               padding: "10px",
                               textAlign: "center",
-                              backgroundColor: "#f8fafc",
-                              border: "1.5px solid transparent",
+                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f8fafc",
+                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid transparent",
                               borderRadius: "10px",
                               fontWeight: 800,
                               fontSize: "15px",
                               outline: "none",
                             }}
                             onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = "#0369a1";
-                              e.currentTarget.style.backgroundColor = "#fff";
+                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
+                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
                             }}
                             onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = "transparent";
-                              e.currentTarget.style.backgroundColor = "#f8fafc";
+                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "transparent";
+                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f8fafc";
                             }}
                           />
+                          {isStockError(line) && (
+                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
+                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <p
@@ -1632,7 +1689,7 @@ export default function NewSaleBillPage() {
             </div>
 
             <button
-              disabled={isSubmitting || lines.length === 0}
+              disabled={isSubmitting || lines.length === 0 || hasAnyStockError}
               onClick={handleSubmit}
               style={{
                 width: "100%",
@@ -1641,12 +1698,12 @@ export default function NewSaleBillPage() {
                 border: "none",
                 borderRadius: "14px",
                 cursor:
-                  isSubmitting || lines.length === 0
+                  isSubmitting || lines.length === 0 || hasAnyStockError
                     ? "not-allowed"
                     : "pointer",
                 backgroundColor:
-                  isSubmitting || lines.length === 0 ? "#1e293b" : "#0369a1",
-                color: isSubmitting || lines.length === 0 ? "#475569" : "#fff",
+                  isSubmitting || lines.length === 0 || hasAnyStockError ? "#1e293b" : "#0369a1",
+                color: isSubmitting || lines.length === 0 || hasAnyStockError ? "#475569" : "#fff",
                 fontWeight: 900,
                 fontSize: "13px",
                 textTransform: "uppercase",
@@ -1657,7 +1714,7 @@ export default function NewSaleBillPage() {
                 gap: "8px",
                 transition: "all 0.2s",
                 boxShadow:
-                  isSubmitting || lines.length === 0
+                  isSubmitting || lines.length === 0 || hasAnyStockError
                     ? "none"
                     : "0 8px 16px rgba(3,105,161,0.3)",
               }}

@@ -27,5 +27,8 @@
   "folio": "Folio/F4 (Register Style)",
   "cityLabel": "Jurisdiction City",
   "cityPlaceholder": "e.g. Latur",
-  "cityHint": "This city will be used in the 'Subject to Jurisdiction' text on bills."
+  "cityHint": "This city will be used in the 'Subject to Jurisdiction' text on bills.",
+  "inventorySection": "Inventory Settings",
+  "stockRestrictionLabel": "Enable Stock Restriction",
+  "stockRestrictionHint": "If enabled, sale bills cannot exceed available stock."
 }

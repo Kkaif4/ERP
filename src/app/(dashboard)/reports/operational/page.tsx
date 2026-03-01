@@ -76,19 +76,19 @@ export default function OperationalReportsPage() {
                         align: "right" as const,
                         render: (v: number, item: any) => (
                             <div>
-                                <div style={{ fontWeight: 800 }}>₹ {v.toLocaleString("en-IN")}</div>
+                                <div style={{ fontWeight: 800 }}>₹ {(v || 0).toLocaleString("en-IN")}</div>
                                 {item.othersNote && <div style={{ fontSize: "10px", color: "var(--text-muted)", fontStyle: "italic" }}>{item.othersNote}</div>}
                             </div>
                         ),
-                        pdfValue: (v: number, item: any) => `₹ ${v.toLocaleString("en-IN")} ${item.othersNote ? '(' + item.othersNote + ')' : ''}`
+                        pdfValue: (v: number, item: any) => `₹ ${(v || 0).toLocaleString("en-IN")} ${item.othersNote ? '(' + item.othersNote + ')' : ''}`
                     },
-                    { key: "amount", label: t("reports.table.amount"), align: "right" as const, render: (v: number) => `₹ ${v.toLocaleString("en-IN")}` },
+                    { key: "amount", label: t("reports.table.amount"), align: "right" as const, render: (v: number) => `₹ ${(v || 0).toLocaleString("en-IN")}` },
                 ];
             case "PAYMENT_HISTORY":
                 return [
                     { key: "date", label: t("reports.table.date"), render: (v: string) => new Date(v).toLocaleDateString() },
                     { key: "party", label: t("reports.table.party") },
-                    { key: "amount", label: t("reports.table.amount"), align: "right" as const, render: (v: number) => `₹ ${v.toLocaleString("en-IN")}` },
+                    { key: "amount", label: t("reports.table.amount"), align: "right" as const, render: (v: number) => `₹ ${(v || 0).toLocaleString("en-IN")}` },
                     { key: "mode", label: t("reports.table.mode") },
                     { key: "type", label: t("reports.table.type") },
                 ];
@@ -96,7 +96,7 @@ export default function OperationalReportsPage() {
                 return [
                     { key: "date", label: t("reports.table.date"), render: (v: string) => new Date(v).toLocaleDateString() },
                     { key: "category", label: t("reports.table.category") },
-                    { key: "amount", label: t("reports.table.amount"), align: "right" as const, render: (v: number) => `₹ ${v.toLocaleString("en-IN")}` },
+                    { key: "amount", label: t("reports.table.amount"), align: "right" as const, render: (v: number) => `₹ ${(v || 0).toLocaleString("en-IN")}` },
                     { key: "mode", label: t("reports.table.mode") },
                     { key: "description", label: t("common.description") || "Description" },
                 ];
@@ -121,7 +121,7 @@ export default function OperationalReportsPage() {
         stats.forEach(s => {
             html += '<div class="stat-box">' +
                 '<div class="stat-label">' + s.label + '</div>' +
-                '<div class="stat-value">' + (typeof s.value === 'number' ? '₹ ' + s.value.toLocaleString("en-IN") : s.value) + '</div>' +
+                '<div class="stat-value">' + (typeof s.value === 'number' ? '₹ ' + (s.value || 0).toLocaleString("en-IN") : s.value) + '</div>' +
                 '</div>';
         });
         html += '</div>';
@@ -130,14 +130,14 @@ export default function OperationalReportsPage() {
             html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 30px;">' +
                 '<div class="stat-box">' +
                 '<h3 style="margin-top:0">' + t("reports.dailySummary.tradeSummary") + '</h3>' +
-                '<p>' + t("reports.dailySummary.totalSales") + ': <strong>₹ ' + summary.saleTotal.toLocaleString("en-IN") + '</strong></p>' +
-                '<p>' + t("reports.dailySummary.totalPurchases") + ': <strong>₹ ' + summary.purchaseTotal.toLocaleString("en-IN") + '</strong></p>' +
+                '<p>' + t("reports.dailySummary.totalSales") + ': <strong>₹ ' + (summary.saleTotal || 0).toLocaleString("en-IN") + '</strong></p>' +
+                '<p>' + t("reports.dailySummary.totalPurchases") + ': <strong>₹ ' + (summary.purchaseTotal || 0).toLocaleString("en-IN") + '</strong></p>' +
                 '<p>' + t("reports.dailySummary.totalOthers") + ': <strong>₹ ' + (summary.othersTotal || 0).toLocaleString("en-IN") + '</strong></p>' +
                 '</div>' +
                 '<div class="stat-box">' +
                 '<h3 style="margin-top:0">' + t("reports.dailySummary.expensesAndCashFlow") + '</h3>' +
-                '<p>' + t("reports.dailySummary.paymentsReceived") + ': <strong>₹ ' + summary.paymentsIn.toLocaleString("en-IN") + '</strong></p>' +
-                '<p>' + t("reports.dailySummary.paymentsPaid") + ': <strong>₹ ' + summary.paymentsOut.toLocaleString("en-IN") + '</strong></p>' +
+                '<p>' + t("reports.dailySummary.paymentsReceived") + ': <strong>₹ ' + (summary.paymentsIn || 0).toLocaleString("en-IN") + '</strong></p>' +
+                '<p>' + t("reports.dailySummary.paymentsPaid") + ': <strong>₹ ' + (summary.paymentsOut || 0).toLocaleString("en-IN") + '</strong></p>' +
                 '<p>' + t("reports.dailySummary.businessExpenses") + ': <strong>₹ ' + (summary.expenseTotal || 0).toLocaleString("en-IN") + '</strong></p>' +
                 '</div>' +
                 '</div>';
