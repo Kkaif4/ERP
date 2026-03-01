@@ -58,7 +58,7 @@ export function BottomNav({ role }: BottomNavProps) {
         <>
             {/* Action Menu (Overlay) */}
             {isMenuOpen && (
-                <div className="lg:hidden fixed inset-0 z-[100]">
+                <div className="lg:hidden fixed inset-0 z-[100] no-print">
                     {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
@@ -147,7 +147,7 @@ export function BottomNav({ role }: BottomNavProps) {
             )}
 
             {/* Bottom Nav Bar */}
-            <nav className="lg:hidden fixed bottom-1 left-0 right-0 z-50 px-4 pb-4 pointer-events-none w-full" >
+            <nav className="lg:hidden fixed bottom-1 left-0 right-0 z-50 px-4 pb-4 pointer-events-none w-full no-print" >
                 <div className="flex justify-around items-center h-20 bg-white/95 backdrop-blur-2xl border border-slate-200/50 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] mx-auto pointer-events-auto">
                     {primaryTabs.map((tab) => {
                         const Icon = tab.icon;

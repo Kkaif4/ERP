@@ -13,6 +13,10 @@ interface BusinessConfigDto {
     taxValue: number;
     serviceChargeType: ChargeType;
     serviceChargeValue: number;
+    upiId?: string;
+    logoBase64?: string;
+    defaultPageSize: string;
+    city?: string;
 }
 
 export default function SettingsClient() {
@@ -25,6 +29,11 @@ export default function SettingsClient() {
     const [taxValue, setTaxValue] = useState<string>("0");
     const [serviceChargeType, setServiceChargeType] = useState<ChargeType>("PERCENTAGE");
     const [serviceChargeValue, setServiceChargeValue] = useState<string>("0");
+    const [upiId, setUpiId] = useState<string>("");
+    const [logoBase64, setLogoBase64] = useState<string>("");
+    const [defaultPageSize, setDefaultPageSize] = useState<string>("A4");
+    const [city, setCity] = useState<string>("");
+    const [uploadingLogo, setUploadingLogo] = useState(false);
 
     useEffect(() => {
         const loadConfig = async () => {
@@ -37,6 +46,10 @@ export default function SettingsClient() {
                 setTaxValue(String(data.taxValue ?? 0));
                 setServiceChargeType(data.serviceChargeType);
                 setServiceChargeValue(String(data.serviceChargeValue ?? 0));
+                setUpiId(data.upiId ?? "");
+                setLogoBase64(data.logoBase64 ?? "");
+                setDefaultPageSize(data.defaultPageSize ?? "A4");
+                setCity(data.city ?? "");
             } catch (e: any) {
                 console.error(e);
                 toast.error(e?.message || "Unable to load business settings");
@@ -57,6 +70,9 @@ export default function SettingsClient() {
             taxValue: Number(taxValue),
             serviceChargeType,
             serviceChargeValue: Number(serviceChargeValue),
+            upiId,
+            defaultPageSize,
+            city,
         };
 
         const validationResult = businessConfigSchema.safeParse(data);
@@ -97,6 +113,32 @@ export default function SettingsClient() {
         }
     };
 
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingLogo(true);
+        const formData = new FormData();
+        formData.append("logo", file);
+
+        try {
+            const res = await fetch("/api/config/logo", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!res.ok) throw new Error("Logo upload failed");
+            const data = await res.json();
+            setLogoBase64(data.logoBase64);
+            toast.success("Logo updated successfully");
+        } catch (error: any) {
+            console.error(error);
+            toast.error("Failed to upload logo");
+        } finally {
+            setUploadingLogo(false);
+        }
+    };
+
     const title = t("settings.title") || "Business Settings";
 
     return (
@@ -128,7 +170,78 @@ export default function SettingsClient() {
                                 letterSpacing: "0.15em",
                             }}
                         >
-                            {t("settings.subtitle") || "Tax & service configuration for this mandi"}
+                            {t("settings.subtitle") || "Configure branding, payments, and tax details"}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Logo Section */}
+            <div className="premium-card" style={{ padding: "2rem", maxWidth: 640 }}>
+                <p
+                    style={{
+                        margin: "0 0 1rem",
+                        fontSize: "11px",
+                        fontWeight: 900,
+                        color: "var(--text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.18em",
+                    }}
+                >
+                    {t("settings.brandingSection") || "Business Branding"}
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
+                    <div
+                        style={{
+                            width: "120px",
+                            height: "120px",
+                            borderRadius: "16px",
+                            backgroundColor: "#f8fafc",
+                            border: "2px dashed var(--border-main)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            overflow: "hidden",
+                            position: "relative"
+                        }}
+                    >
+                        {logoBase64 ? (
+                            <img src={logoBase64} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                        ) : (
+                            <span style={{ fontSize: "10px", fontWeight: 800, color: "#94a3b8", textAlign: "center", padding: "10px" }}>
+                                {t("settings.noLogo") || "No Logo"}
+                            </span>
+                        )}
+                        {uploadingLogo && (
+                            <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <div className="loader-small" />
+                            </div>
+                        )}
+                    </div>
+                    <div>
+                        <input
+                            type="file"
+                            id="logo-upload"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            style={{ display: "none" }}
+                        />
+                        <label
+                            htmlFor="logo-upload"
+                            style={{
+                                padding: "10px 20px",
+                                borderRadius: "12px",
+                                backgroundColor: "#f1f5f9",
+                                color: "#64748b",
+                                fontWeight: 800,
+                                fontSize: "13px",
+                                cursor: uploadingLogo ? "not-allowed" : "pointer"
+                            }}
+                        >
+                            {uploadingLogo ? t("settings.uploading") || "Uploading..." : t("settings.uploadLogo") || "Upload Logo"}
+                        </label>
+                        <p style={{ marginTop: "12px", fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>
+                            {t("settings.logoHint") || "Recommended: Square image, max 2MB. Stored as optimized WebP."}
                         </p>
                     </div>
                 </div>
@@ -325,6 +438,145 @@ export default function SettingsClient() {
                                         }}
                                     />
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Payments Section */}
+                        <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}>
+                            <p
+                                style={{
+                                    margin: "0 0 0.5rem",
+                                    fontSize: "11px",
+                                    fontWeight: 900,
+                                    color: "var(--text-muted)",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.18em",
+                                }}
+                            >
+                                {t("settings.paymentSection") || "Payment Settings"}
+                            </p>
+                            <div>
+                                <label
+                                    style={{
+                                        display: "block",
+                                        marginBottom: "6px",
+                                        fontSize: "10px",
+                                        fontWeight: 800,
+                                        letterSpacing: "0.16em",
+                                        textTransform: "uppercase",
+                                        color: "#94a3b8",
+                                    }}
+                                >
+                                    {t("settings.upiIdLabel") || "UPI ID (VPA) for Customer Payments"}
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder={t("settings.upiIdPlaceholder") || "yourname@upi"}
+                                    value={upiId}
+                                    onChange={(e) => setUpiId(e.target.value)}
+                                    style={{
+                                        width: "100%",
+                                        boxSizing: "border-box",
+                                        padding: "10px 14px",
+                                        borderRadius: "12px",
+                                        border: "1.5px solid var(--border-main)",
+                                        backgroundColor: "#f8fafc",
+                                        fontSize: "14px",
+                                        fontWeight: 700,
+                                        color: "var(--text-main)",
+                                        outline: "none",
+                                    }}
+                                />
+                                <p style={{ marginTop: "8px", fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>
+                                    {t("settings.upiIdHint") || "Used to generate dynamic QR codes on sale bills."}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Print Section */}
+                        <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}>
+                            <p
+                                style={{
+                                    margin: "0 0 0.5rem",
+                                    fontSize: "11px",
+                                    fontWeight: 900,
+                                    color: "var(--text-muted)",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.18em",
+                                }}
+                            >
+                                {t("settings.printSection") || "Printing Defaults"}
+                            </p>
+                            <div>
+                                <label
+                                    style={{
+                                        display: "block",
+                                        marginBottom: "6px",
+                                        fontSize: "10px",
+                                        fontWeight: 800,
+                                        letterSpacing: "0.16em",
+                                        textTransform: "uppercase",
+                                        color: "#94a3b8",
+                                    }}
+                                >
+                                    {t("settings.pageSizeLabel") || "Default Page Size"}
+                                </label>
+                                <select
+                                    value={defaultPageSize}
+                                    onChange={(e) => setDefaultPageSize(e.target.value)}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 14px",
+                                        borderRadius: "12px",
+                                        border: "1.5px solid var(--border-main)",
+                                        backgroundColor: "#f8fafc",
+                                        fontSize: "13px",
+                                        fontWeight: 700,
+                                        color: "var(--text-main)",
+                                        outline: "none",
+                                    }}
+                                >
+                                    <option value="A4">{t("settings.a4") || "A4 (Standard Office)"}</option>
+                                    <option value="A5">{t("settings.a5") || "A5 (Half Page)"}</option>
+                                    <option value="LEGAL">{t("settings.legal") || "Legal (Traditional Long)"}</option>
+                                    <option value="FOLIO">{t("settings.folio") || "Folio/F4 (Register Style)"}</option>
+                                </select>
+                            </div>
+                            <div style={{ marginTop: "1rem" }}>
+                                <label
+                                    style={{
+                                        display: "block",
+                                        marginBottom: "6px",
+                                        fontSize: "10px",
+                                        fontWeight: 800,
+                                        letterSpacing: "0.16em",
+                                        textTransform: "uppercase",
+                                        color: "#94a3b8",
+                                    }}
+                                >
+                                    {t("settings.cityLabel") || "Jurisdiction City"}
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder={t("settings.cityPlaceholder") || "e.g. Latur"}
+                                    value={city}
+                                    onChange={(e) => setCity(e.target.value)}
+                                    style={{
+                                        width: "100%",
+                                        boxSizing: "border-box",
+                                        padding: "10px 14px",
+                                        borderRadius: "12px",
+                                        border: "1.5px solid var(--border-main)",
+                                        backgroundColor: "#f8fafc",
+                                        fontSize: "14px",
+                                        fontWeight: 700,
+                                        color: "var(--text-main)",
+                                        outline: "none",
+                                    }}
+                                />
+                                <p style={{ marginTop: "8px", fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>
+                                    {t("settings.cityHint") || "This city will be used in the 'Subject to Jurisdiction' text on bills."}
+                                </p>
                             </div>
                         </div>
 

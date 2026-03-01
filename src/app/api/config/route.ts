@@ -49,6 +49,9 @@ export async function PUT(req: NextRequest) {
             taxValue,
             serviceChargeType,
             serviceChargeValue,
+            upiId,
+            defaultPageSize,
+            city,
         } = validationResult.data;
 
         const config = await prisma.$transaction(async (tx) => {
@@ -60,6 +63,9 @@ export async function PUT(req: NextRequest) {
                     taxValue,
                     serviceChargeType,
                     serviceChargeValue,
+                    upiId,
+                    defaultPageSize,
+                    city,
                 },
                 create: {
                     organizationId: session.organizationId,
@@ -67,6 +73,9 @@ export async function PUT(req: NextRequest) {
                     taxValue,
                     serviceChargeType,
                     serviceChargeValue,
+                    upiId,
+                    defaultPageSize,
+                    city,
                 },
             });
 

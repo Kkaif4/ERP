@@ -110,7 +110,7 @@ export function Sidebar({ role }: { role: string }) {
     };
 
     return (
-        <aside className="hidden lg:flex flex-col" style={{
+        <aside className="hidden lg:flex flex-col no-print" style={{
             width: "272px",
             flexShrink: 0,
             backgroundColor: "#ffffff",

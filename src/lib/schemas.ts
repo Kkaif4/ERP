@@ -85,6 +85,10 @@ export const businessConfigSchema = z
     taxValue: z.number().nonnegative().max(1000000, "Value too large").transform(v => Number(v.toFixed(2))),
     serviceChargeType: z.enum(["PERCENTAGE", "FIXED"]),
     serviceChargeValue: z.number().nonnegative().max(1000000, "Value too large").transform(v => Number(v.toFixed(2))),
+    upiId: z.string().optional().or(z.literal("")),
+    logoBase64: z.string().optional().or(z.literal("")),
+    defaultPageSize: z.enum(["A4", "A5", "LEGAL", "FOLIO"]).optional().default("A4"),
+    city: z.string().optional().or(z.literal("")),
   })
   .refine(
     (data) => {

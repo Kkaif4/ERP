@@ -31,7 +31,7 @@ export function AppShell({ children, user }: AppShellProps) {
                 <div className="flex flex-col flex-1 min-w-0" style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom, 0px))" }} data-shell-content="true">
                     <style>{`@media (min-width: 1024px) { [data-shell-content="true"] { padding-bottom: 0 !important; } }`}</style>
                     {/* Premium Global Header */}
-                    <header className="sticky top-0 z-40 h-16 bg-white/80 border-b border-slate-200/50 backdrop-blur-xl flex items-center justify-between layout-container">
+                    <header className="sticky top-0 z-40 h-16 bg-white/80 border-b border-slate-200/50 backdrop-blur-xl flex items-center justify-between layout-container no-print">
                         <div>
                             <h2 className="text-xl font-black text-slate-800 lg:hidden tracking-tight">Mandi ERP</h2>
                         </div>

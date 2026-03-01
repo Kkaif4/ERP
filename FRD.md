@@ -52,8 +52,10 @@ balance in under 10 seconds during a phone call.
 • Icons:          Lucide React
 • Notifications:  Sonner (toast notifications)
 • Auth:           JWT (stored in HTTP-only cookie), bcrypt password hashing
-• Database:       MySQL (Prisma ORM)
+• Database:       PostgreSQL (Prisma ORM)
 • i18n:           Custom translation hook (useTranslation) — en, hi, mr supported
+• Image Processing: Sharp (server-side WebP optimization)
+• QR Generation:  qrcode.react (UPI dynamic codes)
 • Routing:        Next.js App Router
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -516,16 +518,18 @@ Example:
   if (r.ok) { const text = await r.text(); if (text) setData(JSON.parse(text)); }
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-18. Audit Trail
+18. Audit Trail & Returns
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Immutable. Admin view only.
-
+18.1 Audit Log (Backend Only)
+Stored in AuditLog table. Currently lacks a dedicated Admin UI.
   Event              Data Recorded
   Bill Created       User, bill ID, farmer/customer, total, timestamp
   Payment Recorded   User, amount, mode, bill reference, timestamp
   Record Modified    User, field changed, old/new value, timestamp
-  Return Created     User, return bill ID, original bill ID, amount, timestamp
   Login / Logout     User, IP address, timestamp
+
+18.2 Returns (Pending UI)
+Schema support exists for Return and ReturnItem. UI for processing returns is planned for v2.1.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 19. Expense Management Module
@@ -609,17 +613,26 @@ Export: PDF and Excel.
 • All protected pages check session; redirect to /login if not authenticated
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-22. Non-Goals (Explicitly Out of Scope)
+22. Product Roadmap (Future Improvements)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Feature                          Priority
+  Dashboard Visualizations         High (Charts for sales/profit trends)
+  Audit Log Viewer                 High (Admin interface for system transparency)
+  Bill Returns UI                  High (Full lifecycle for rejected/returned goods)
+  Bulk Payment Collection          Medium (Quick-pay for multiple due bills)
+  Advanced Filter/Search           Medium (Global search and deeper report filtering)
+  Native Mobile App (PWA)          Medium (Better offline/shortcut support)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+23. Non-Goals (Explicitly Out of Scope for v2.0)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Feature                          Reason
-  Payment Gateway Integration      Cash/bank only; not required in v1
+  Payment Gateway Integration      Cash/bank only; not required in v2
   GST Filing Automation            Deferred to future version
-  Native Mobile App (iOS/Android)  Progressive web app; native app is later phase
-  Accounting Software Integration  Out of scope for v1
+  Accounting Software Integration  Out of scope for v2
   Multi-Branch Support             Single location only
   Permanent Inventory / Stock      Not needed; daily veg trading confirmed by owner
-  FIFO / LIFO Costing              No stock valuation required
-  Offline Mode                     Progressive enhancement; not implemented in v1
+  Offline Mode                     Progressive enhancement; not implemented in v2
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 23. Glossary
@@ -670,6 +683,61 @@ existed before using the system.
 24.3 Reporting Impact
 • Opening balance entries appear at the top of the ledger history.
 • Opening balances are factored into all due calculations and financial reports.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+25. Unified Bill Format Specification
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+25.1 Overview
+A professional, unified document structure used for both Farmer (Purchase) and Customer (Sale)
+bills. Designed for high readability, branding consistency, and mobile payment efficiency.
+
+25.2 Bill Header Section
+• Business Information: Centered at top. Includes Business Name, Address, Description, Contact.
+• Metadata (Top Right): Bill Number, Date, Location Jurisdiction.
+• Brand Identity: Supports a custom business logo (stored as optimized WebP Base64).
+
+25.3 Party Information Section
+• Farmer Bill: Displays Name, Village/Address, Mobile.
+• Customer Bill: Displays Name, Mobile, Bill Date.
+
+25.4 Item Details Table (Dual Quantity Structure)
+The table MUST display both physical count and weight:
+1. Sr. No.
+2. Item Name & Mode (e.g., Tomato - per 10 KG)
+3. Units (Crates / Qty)
+4. Weight (KG)
+5. Rate (Price per calculated unit)
+6. Amount (Line Total)
+Footer Totals: Sum of Units, Sum of Weight, Sum of Amount.
+
+25.5 Charges & Adjustments Section
+• For Farmer Bills: Deductions (Commission, Advance, Labour/Hamali, Freight, Others).
+• For Customer Bills: Additions (Labour, Freight, Tax, Service Charge) and Deductions (Advance).
+
+25.6 Summary Section (Bottom-Right)
+• Gross Amount: Total from items table.
+• Total Charges: Aggregate of all adjustments.
+• Net Total: The final payable/receivable amount.
+• Labels: "Net Payable" (Farmer) vs "Final Amount / Total Due" (Customer).
+
+25.7 Branding & Payment Features
+• Dynamic UPI QR Code: Generated in the summary area for Sale Bills. Pre-fills the
+  Amount and Business Name for instant mobile payments using `upi://` protocol.
+• Logo Storage: Business logos are uploaded via Settings, processed server-side using
+  Sharp (resized and converted to WebP), and stored as a Base64 string in the database
+  to avoid reliance on 3rd party file providers (Vercel-native approach).
+
+25.8 Print Layout & Page Sizes
+The system supports the following standard Indian paper sizes:
+1. A4 Size: 210 × 297 mm (Standard office)
+2. A5 Size: 148 × 210 mm (Compact/Half-page)
+3. Legal Size: 216 × 356 mm (Long traditional)
+4. Folio / F4 Size: ~215 × 330 mm (Older accounting registers)
+
+Selection Behavior:
+• User selects page size during print preview.
+• Default page size can be saved in Business Settings.
+• Layout scales dynamically using CSS `@media print` rules.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 — End of Document — Version 2.0 | February 2026
