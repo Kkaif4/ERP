@@ -10,5 +10,8 @@
     "bills": "bills",
     "payments": "payments",
     "entries": "entries · chronological",
-    "noEntries": "No transactions yet"
+    "noEntries": "No transactions yet",
+    "openingBalance": "Opening Balance",
+    "roundOffAdjustment": "Round-off Adjustment",
+    "paymentWithMode": "Payment · {{mode}}"
 }

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         }),
         prisma.payment.findMany({
             where: { farmerId: id, organizationId: session.organizationId! },
-            select: { id: true, amount: true, mode: true, notes: true, paymentDate: true, recordedBy: { select: { name: true } } },
+            select: { id: true, amount: true, roundOffAmount: true, mode: true, notes: true, paymentDate: true, recordedBy: { select: { name: true } } },
             orderBy: { paymentDate: "asc" },
         }),
     ]);
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             id: "opening",
             date: farmer.openingBalanceDate,
             type: "OPENING" as const,
-            description: "Opening Balance",
+            description: "ledger.openingBalance",
             debit: farmer.openingBalanceType === "ADVANCE" ? Number(farmer.openingBalance) : 0,
             credit: farmer.openingBalanceType === "DUE" ? Number(farmer.openingBalance) : 0,
             meta: farmer.openingBalanceType === "ADVANCE" ? "Advance / Credit" : "Outstanding Due",
@@ -49,12 +49,26 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             debit: 0, credit: Number(b.netTotal), // credit = we owe farmer
             meta: b.items.map(i => i.item.name).join(", "),
         })),
-        ...payments.map(p => ({
-            id: p.id, date: p.paymentDate, type: "PAYMENT" as const,
-            description: `Payment · ${p.mode.replace("_", " ")}`,
-            debit: Number(p.amount), credit: 0, // debit = reducing what we owe
-            meta: p.notes || (p.recordedBy?.name ? `Recorded by ${p.recordedBy.name}` : ""),
-        })),
+        ...payments.flatMap(p => {
+            const pEntry = {
+                id: p.id, date: p.paymentDate, type: "PAYMENT" as const,
+                description: `ledger.paymentWithMode|${p.mode.replace("_", " ")}`,
+                debit: Number(p.amount), credit: 0, // debit = reducing what we owe
+                meta: p.notes || (p.recordedBy?.name ? `Recorded by ${p.recordedBy.name}` : ""),
+            };
+            if (Number(p.roundOffAmount) > 0) {
+                return [
+                    pEntry,
+                    {
+                        id: `${p.id}-ro`, date: p.paymentDate, type: "PAYMENT" as const,
+                        description: "ledger.roundOffAdjustment",
+                        debit: Number(p.roundOffAmount), credit: 0,
+                        meta: "Settled balance",
+                    }
+                ];
+            }
+            return [pEntry];
+        }),
     ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
     // Compute running balance (positive = we owe farmer)

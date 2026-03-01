@@ -24,5 +24,10 @@
   "remainingDue": "शेष देय",
   "dueAfterPayment": "भुगतान के बाद देय",
   "outstandingBalance": "बकाया राशि",
-  "searchPlaceholder": "पार्टी या नोट्स द्वारा खोजें..."
+  "roundOffLabel": "राउंड-ऑफ समायोजन",
+  "searchPlaceholder": "पार्टी या नोट्स द्वारा खोजें...",
+  "autoExpensed": "स्वचालित खर्च",
+  "cash": "नकद",
+  "bank": "बैंक",
+  "other": "अन्य"
 }

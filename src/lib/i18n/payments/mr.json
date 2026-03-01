@@ -24,5 +24,10 @@
   "remainingDue": "बाकी रक्कम",
   "dueAfterPayment": "पेमेंटनंतरची बाकी",
   "outstandingBalance": "थकबाकी",
-  "searchPlaceholder": "पार्टी किंवा नोट्सनुसार शोधा..."
+  "roundOffLabel": "राऊंड-ऑफ ॲडजस्टमेंट",
+  "searchPlaceholder": "पार्टी किंवा नोट्सनुसार शोधा...",
+  "autoExpensed": "स्वयंचलित खर्च",
+  "cash": "रोख",
+  "bank": "बँक",
+  "other": "इतर"
 }

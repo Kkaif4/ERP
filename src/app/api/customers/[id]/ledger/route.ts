@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         }),
         prisma.payment.findMany({
             where: { customerId: id, organizationId: session.organizationId! },
-            select: { id: true, amount: true, mode: true, notes: true, paymentDate: true, recordedBy: { select: { name: true } } },
+            select: { id: true, amount: true, roundOffAmount: true, mode: true, notes: true, paymentDate: true, recordedBy: { select: { name: true } } },
             orderBy: { paymentDate: "asc" },
         }),
     ]);
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             id: "opening",
             date: customer.openingBalanceDate,
             type: "OPENING" as const,
-            description: "Opening Balance",
+            description: "ledger.openingBalance",
             debit: customer.openingBalanceType === "DUE" ? Number(customer.openingBalance) : 0,
             credit: customer.openingBalanceType === "ADVANCE" ? Number(customer.openingBalance) : 0,
             meta: customer.openingBalanceType === "ADVANCE" ? "Advance / Credit" : "Outstanding Due",
@@ -47,12 +47,26 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             debit: Number(b.netTotal), credit: 0, // debit = customer owes us
             meta: b.items.map(i => i.item.name).join(", "),
         })),
-        ...payments.map(p => ({
-            id: p.id, date: p.paymentDate, type: "PAYMENT" as const,
-            description: `Payment · ${p.mode.replace("_", " ")}`,
-            debit: 0, credit: Number(p.amount), // credit = customer paying us
-            meta: p.notes || (p.recordedBy?.name ? `Recorded by ${p.recordedBy.name}` : ""),
-        })),
+        ...payments.flatMap(p => {
+            const pEntry = {
+                id: p.id, date: p.paymentDate, type: "PAYMENT" as const,
+                description: `ledger.paymentWithMode|${p.mode.replace("_", " ")}`,
+                debit: 0, credit: Number(p.amount), // credit = customer paying us
+                meta: p.notes || (p.recordedBy?.name ? `Recorded by ${p.recordedBy.name}` : ""),
+            };
+            if (Number(p.roundOffAmount) > 0) {
+                return [
+                    pEntry,
+                    {
+                        id: `${p.id}-ro`, date: p.paymentDate, type: "PAYMENT" as const,
+                        description: "ledger.roundOffAdjustment",
+                        debit: 0, credit: Number(p.roundOffAmount),
+                        meta: "Settled balance",
+                    }
+                ];
+            }
+            return [pEntry];
+        }),
     ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
     let running = 0;

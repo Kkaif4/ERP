@@ -10,5 +10,8 @@
     "bills": "बिल",
     "payments": "भुगतान",
     "entries": "प्रविष्टियाँ · कालक्रमानुसार",
-    "noEntries": "अभी तक कोई लेन-देन नहीं"
+    "noEntries": "अभी तक कोई लेन-देन नहीं",
+    "openingBalance": "प्रारंभिक शेष",
+    "roundOffAdjustment": "राउंड-ऑफ समायोजन",
+    "paymentWithMode": "भुगतान · {{mode}}"
 }

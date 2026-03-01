@@ -764,5 +764,34 @@ The system must provide a setting to control whether stock availability should b
 • Purchase bills are not affected (they increase stock).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-— End of Document — Version 2.1 | March 2026
+28. Round-off Handling & Business Adjustments
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+28.1 Feature Description
+The system allows staff to "round-off" a customer or farmer's remaining balance during payment
+settlement. This is common when the remaining due is a small amount (e.g., ₹5 or ₹10) and
+the business chooses to forgive it to settle the account.
+
+28.2 Functional Requirements
+1. Recording Round-off
+   • Round-off can be enabled via a checkbox in the Record Payment modal.
+   • The round-off amount is automatically calculated as: `Balance - Payment Amount`.
+   • The round-off amount is stored in the `Payment` record as `roundOffAmount`.
+2. Expense Integration
+   • Every payment with a `roundOffAmount > 0` automatically creates a corresponding
+     `Expense` record under the category "ROUND_OFF".
+   • This ensures the rounded-off amount is accounted for in profit/loss calculations.
+3. Balance & Ledger Impact
+   • The total deduction from the party's balance must be: `Amount Paid + Round-off Amount`.
+   • The Ledger MUST display the round-off adjustment to ensure the running balance reaches zero correctly.
+   • Ledger running balance logic:
+     - Customer Ledger: `Debit - (Credit + RoundOff)`
+     - Farmer Ledger: `(Credit + RoundOff) - Debit`
+
+28.3 UI/UX Standards
+• The "Round-off" option should only appear if the payment amount is less than the outstanding balance.
+• The round-off amount should be clearly indicated in the payment record details.
+• Internationalization: All round-off labels and categories must be translated (en, hi, mr).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+— End of Document — Version 2.2 | March 2026
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

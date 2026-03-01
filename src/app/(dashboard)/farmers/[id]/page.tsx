@@ -635,7 +635,11 @@ export default function FarmerLedgerPage() {
                                 color: "var(--text-main)",
                               }}
                             >
-                              {entry.description}
+                              {entry.description.includes(".")
+                                ? entry.description.includes("|")
+                                  ? t(entry.description.split("|")[0], { mode: entry.description.split("|")[1] })
+                                  : t(entry.description)
+                                : entry.description}
                             </p>
                             {entry.meta && (
                               <p
@@ -768,7 +772,11 @@ export default function FarmerLedgerPage() {
                             color: "var(--text-main)",
                           }}
                         >
-                          {entry.description}
+                          {entry.description.includes(".")
+                            ? entry.description.includes("|")
+                              ? t(entry.description.split("|")[0], { mode: entry.description.split("|")[1] })
+                              : t(entry.description)
+                            : entry.description}
                         </p>
                         <p
                           style={{
@@ -1033,7 +1041,7 @@ export default function FarmerLedgerPage() {
                             fontWeight: 500,
                           }}
                         >
-                          Auto-expensed:{" "}
+                          {t("payments.autoExpensed") || "Auto-expensed"}:{" "}
                           <span style={{ color: "#f97316" }}>
                             ₹
                             {remainingDue.toLocaleString("en-IN", {
@@ -1137,9 +1145,9 @@ export default function FarmerLedgerPage() {
                   }}
                 >
                   {[
-                    { v: "CASH", l: "Cash" },
-                    { v: "BANK_TRANSFER", l: "Bank" },
-                    { v: "OTHER", l: "Other" },
+                    { v: "CASH", l: t("payments.cash") || "Cash" },
+                    { v: "BANK_TRANSFER", l: t("payments.bank") || "Bank" },
+                    { v: "OTHER", l: t("payments.other") || "Other" },
                   ].map((opt) => (
                     <button
                       key={opt.v}

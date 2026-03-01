@@ -24,5 +24,10 @@
   "remainingDue": "Remaining Due",
   "dueAfterPayment": "Due After Payment",
   "outstandingBalance": "Outstanding Balance",
-  "searchPlaceholder": "Search by party or notes..."
+  "roundOffLabel": "Round-off Adjustment",
+  "searchPlaceholder": "Search by party or notes...",
+  "autoExpensed": "Auto-expensed",
+  "cash": "Cash",
+  "bank": "Bank",
+  "other": "Other"
 }

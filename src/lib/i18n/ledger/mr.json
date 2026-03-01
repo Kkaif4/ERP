@@ -10,5 +10,8 @@
     "bills": "बिले",
     "payments": "पेमेंट्स",
     "entries": "नोंदी · कालक्रमानुसार",
-    "noEntries": "अद्याप कोणतेही व्यवहार नाहीत"
+    "noEntries": "अद्याप कोणतेही व्यवहार नाहीत",
+    "openingBalance": "सुरुवातीची बाकी(ओपनिंग बॅलन्स)",
+    "roundOffAdjustment": "राऊंड-ऑफ ॲडजस्टमेंट",
+    "paymentWithMode": "पेमेंट · {{mode}}"
 }
