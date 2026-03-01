@@ -32,7 +32,7 @@ export async function GET(req: Request) {
                 // In a real mandi, it's Commission (Service Charge) + Tax + Labour + Freight - Expenses
                 // But as per FRD 19.3, we need Daily/Monthly Profit.
 
-                const [sales, purchases] = await Promise.all([
+                const [sales, purchases, expenses] = await Promise.all([
                     prisma.bill.aggregate({
                         where: { organizationId, type: "SALE", billDate: { gte: startDate, lte: endDate } },
                         _sum: { netTotal: true, serviceChargeAmount: true, taxAmount: true, labourCharges: true, freightCharges: true }
@@ -40,18 +40,26 @@ export async function GET(req: Request) {
                     prisma.bill.aggregate({
                         where: { organizationId, type: "PURCHASE", billDate: { gte: startDate, lte: endDate } },
                         _sum: { netTotal: true }
+                    }),
+                    prisma.expense.aggregate({
+                        where: { organizationId, expenseDate: { gte: startDate, lte: endDate }, deletedAt: null },
+                        _sum: { amount: true }
                     })
                 ]);
 
                 const grossRevenue = Number(sales._sum.netTotal || 0);
                 const costOfGoods = Number(purchases._sum.netTotal || 0);
-                const earnings = Number(sales._sum.serviceChargeAmount || 0); // Primary profit for Mandi
+                const totalExpenses = Number(expenses._sum.amount || 0);
+
+                // Primary profit for Mandi: Commissions/Charges collected - Business Expenses
+                const earnings = Number(sales._sum.serviceChargeAmount || 0) - totalExpenses;
 
                 return NextResponse.json({
                     summary: {
                         grossRevenue,
                         costOfGoods,
                         earnings,
+                        totalExpenses,
                         taxCollected: Number(sales._sum.taxAmount || 0),
                         labourCollected: Number(sales._sum.labourCharges || 0),
                     }

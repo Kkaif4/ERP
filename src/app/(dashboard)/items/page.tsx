@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { itemSchema } from "@/lib/schemas";
 import { useUser } from "@/components/providers/UserContext";
+import { Modal } from "@/components/ui/Modal";
 
 interface Item {
   id: string;
@@ -672,353 +673,260 @@ export default function ItemsPage() {
         </div>
       )}
 
-      {/* ── Add Item Modal ── */}
-      {isModalOpen && (
-        <div
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => !submitting && setIsModalOpen(false)}
+        title={t("master.items.addItem")}
+        subtitle={t("master.items.addItemSubtitle") || "Item will be available in all bills"}
+        icon={<Plus size={20} />}
+        maxWidth="460px"
+      >
+        <form
+          onSubmit={handleAddItem}
           style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
+            flexDirection: "column",
+            gap: "1.25rem",
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundColor: "rgba(15,23,42,0.6)",
-              backdropFilter: "blur(8px)",
-            }}
-            onClick={() => !submitting && setIsModalOpen(false)}
-          />
-          <div
-            style={{
-              position: "relative",
-              backgroundColor: "#fff",
-              width: "100%",
-              maxWidth: "460px",
-              borderRadius: "24px",
-              boxShadow: "0 25px 50px rgba(0,0,0,0.2)",
-              overflow: "hidden",
-            }}
-          >
-            {/* Modal header accent */}
-            <div
+          {/* Item Name */}
+          <div>
+            <p
               style={{
-                height: "4px",
-                background: "linear-gradient(90deg, #7c3aed, #a78bfa)",
+                margin: "0 0 8px",
+                fontSize: "10px",
+                fontWeight: 900,
+                color: "#94a3b8",
+                textTransform: "uppercase",
+                letterSpacing: "0.15em",
+              }}
+            >
+              {t("master.items.itemName")} *
+            </p>
+            <input
+              required
+              type="text"
+              placeholder={
+                t("master.items.itemNamePlaceholder") ||
+                "e.g. Tomato, Onion, Potato..."
+              }
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "12px 16px",
+                backgroundColor: "#f8fafc",
+                border: "1.5px solid var(--border-main)",
+                borderRadius: "12px",
+                fontSize: "15px",
+                fontWeight: 700,
+                color: "var(--text-main)",
+                outline: "none",
+                transition: "all 0.2s",
+              }}
+              onFocusCapture={(e) => {
+                e.currentTarget.style.borderColor = "#7c3aed";
+                e.currentTarget.style.backgroundColor = "#fff";
+              }}
+              onBlurCapture={(e) => {
+                e.currentTarget.style.borderColor = "var(--border-main)";
+                e.currentTarget.style.backgroundColor = "#f8fafc";
               }}
             />
+          </div>
 
+          {/* Pricing Mode */}
+          <div>
+            <p
+              style={{
+                margin: "0 0 10px",
+                fontSize: "10px",
+                fontWeight: 900,
+                color: "#94a3b8",
+                textTransform: "uppercase",
+                letterSpacing: "0.15em",
+              }}
+            >
+              {t("master.items.pricingMode") || "Default Pricing Mode"} *
+            </p>
             <div
               style={{
-                padding: "1.75rem 2rem 1rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: "0.75rem",
               }}
             >
-              <div>
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: "1.375rem",
-                    fontWeight: 900,
-                    color: "var(--text-main)",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  {t("master.items.addItem")}
-                </h2>
-                <p
-                  style={{
-                    margin: "2px 0 0",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: "#94a3b8",
-                  }}
-                >
-                  {t("master.items.addItemSubtitle") ||
-                    "Item will be available in all bills"}
-                </p>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  border: "none",
-                  backgroundColor: "#f1f5f9",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#64748b",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#e2e8f0")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#f1f5f9")
-                }
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleAddItem}
-              style={{
-                padding: "1rem 2rem 2rem",
-                display: "flex",
-                flexDirection: "column",
-                gap: "1.25rem",
-              }}
-            >
-              {/* Item Name */}
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 8px",
-                    fontSize: "10px",
-                    fontWeight: 900,
-                    color: "#94a3b8",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                  }}
-                >
-                  {t("master.items.itemName")} *
-                </p>
-                <input
-                  required
-                  type="text"
-                  placeholder={
-                    t("master.items.itemNamePlaceholder") ||
-                    "e.g. Tomato, Onion, Potato..."
-                  }
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    padding: "12px 16px",
-                    backgroundColor: "#f8fafc",
-                    border: "1.5px solid var(--border-main)",
-                    borderRadius: "12px",
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    color: "var(--text-main)",
-                    outline: "none",
-                    transition: "all 0.2s",
-                  }}
-                  onFocusCapture={(e) => {
-                    e.currentTarget.style.borderColor = "#7c3aed";
-                    e.currentTarget.style.backgroundColor = "#fff";
-                  }}
-                  onBlurCapture={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border-main)";
-                    e.currentTarget.style.backgroundColor = "#f8fafc";
-                  }}
-                />
-              </div>
-
-              {/* Pricing Mode */}
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 10px",
-                    fontSize: "10px",
-                    fontWeight: 900,
-                    color: "#94a3b8",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                  }}
-                >
-                  {t("master.items.pricingMode") || "Default Pricing Mode"} *
-                </p>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gap: "0.75rem",
-                  }}
-                >
-                  {[
-                    {
-                      value: "WEIGHT",
-                      label: t("master.items.weight") || "Weight Based",
-                      sublabel: "Price per 10 KG",
-                      icon: Scale,
-                      color: "#0ea5e9",
-                      bg: "rgba(14,165,233,0.08)",
-                      border: "rgba(14,165,233,0.3)",
-                    },
-                    {
-                      value: "WEIGHT_KG",
-                      label: t("master.items.weightKg") || "Per KG",
-                      sublabel: "Price per KG",
-                      icon: Scale,
-                      color: "#d97706",
-                      bg: "rgba(217,119,6,0.08)",
-                      border: "rgba(217,119,6,0.3)",
-                    },
-                    {
-                      value: "UNIT",
-                      label: t("master.items.unit") || "Unit Based",
-                      sublabel: "Price per Crate / Piece",
-                      icon: Boxes,
-                      color: "#15803d",
-                      bg: "rgba(21,128,61,0.08)",
-                      border: "rgba(21,128,61,0.3)",
-                    },
-                  ].map((opt) => {
-                    const Icon = opt.icon;
-                    const selected = formData.defaultPricingMode === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() =>
-                          setFormData({
-                            ...formData,
-                            defaultPricingMode: opt.value as any,
-                          })
-                        }
+              {[
+                {
+                  value: "WEIGHT",
+                  label: t("master.items.weight") || "Weight Based",
+                  sublabel: "Price per 10 KG",
+                  icon: Scale,
+                  color: "#0ea5e9",
+                  bg: "rgba(14,165,233,0.08)",
+                  border: "rgba(14,165,233,0.3)",
+                },
+                {
+                  value: "WEIGHT_KG",
+                  label: t("master.items.weightKg") || "Per KG",
+                  sublabel: "Price per KG",
+                  icon: Scale,
+                  color: "#d97706",
+                  bg: "rgba(217,119,6,0.08)",
+                  border: "rgba(217,119,6,0.3)",
+                },
+                {
+                  value: "UNIT",
+                  label: t("master.items.unit") || "Unit Based",
+                  sublabel: "Price per Crate / Piece",
+                  icon: Boxes,
+                  color: "#15803d",
+                  bg: "rgba(21,128,61,0.08)",
+                  border: "rgba(21,128,61,0.3)",
+                },
+              ].map((opt) => {
+                const Icon = opt.icon;
+                const selected = formData.defaultPricingMode === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        defaultPricingMode: opt.value as any,
+                      })
+                    }
+                    style={{
+                      padding: "14px 12px",
+                      borderRadius: "14px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      border: `2px solid ${selected ? opt.border : "var(--border-main)"}`,
+                      backgroundColor: selected ? opt.bg : "#f8fafc",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      <Icon
+                        size={16}
+                        color={selected ? opt.color : "#94a3b8"}
+                      />
+                      <span
                         style={{
-                          padding: "14px 12px",
-                          borderRadius: "14px",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          border: `2px solid ${selected ? opt.border : "var(--border-main)"}`,
-                          backgroundColor: selected ? opt.bg : "#f8fafc",
-                          transition: "all 0.2s",
+                          fontSize: "12px",
+                          fontWeight: 900,
+                          color: selected ? opt.color : "#64748b",
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            marginBottom: "6px",
-                          }}
-                        >
-                          <Icon
-                            size={16}
-                            color={selected ? opt.color : "#94a3b8"}
-                          />
-                          <span
-                            style={{
-                              fontSize: "12px",
-                              fontWeight: 900,
-                              color: selected ? opt.color : "#64748b",
-                            }}
-                          >
-                            {opt.label}
-                          </span>
-                        </div>
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: "10px",
-                            fontWeight: 700,
-                            color: selected ? opt.color : "#94a3b8",
-                            opacity: 0.8,
-                          }}
-                        >
-                          {opt.sublabel}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p
-                  style={{
-                    margin: "8px 0 0",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: "#94a3b8",
-                  }}
-                >
-                  💡{" "}
-                  {t("master.items.pricingModeNote") ||
-                    "This can be overridden when creating a bill"}
-                </p>
-              </div>
-
-              {/* Buttons */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.75rem",
-                  paddingTop: "0.5rem",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{
-                    flex: 1,
-                    padding: "12px",
-                    border: "none",
-                    backgroundColor: "#f1f5f9",
-                    borderRadius: "12px",
-                    fontWeight: 800,
-                    fontSize: "13px",
-                    color: "#64748b",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = "#e2e8f0")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "#f1f5f9")
-                  }
-                >
-                  {t("master.actions.cancel")}
-                </button>
-                <button
-                  disabled={submitting}
-                  type="submit"
-                  style={{
-                    flex: 2,
-                    padding: "12px",
-                    border: "none",
-                    backgroundColor: "#7c3aed",
-                    borderRadius: "12px",
-                    fontWeight: 900,
-                    fontSize: "13px",
-                    color: "#fff",
-                    cursor: submitting ? "not-allowed" : "pointer",
-                    boxShadow: "0 8px 16px rgba(124,58,237,0.25)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    transition: "all 0.2s",
-                    opacity: submitting ? 0.7 : 1,
-                  }}
-                >
-                  {submitting ? (
-                    <Loader2
-                      size={18}
-                      style={{ animation: "spin 0.6s linear infinite" }}
-                    />
-                  ) : (
-                    t("master.actions.save")
-                  )}
-                </button>
-              </div>
-            </form>
+                        {opt.label}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        color: selected ? opt.color : "#94a3b8",
+                        opacity: 0.8,
+                      }}
+                    >
+                      {opt.sublabel}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+            <p
+              style={{
+                margin: "8px 0 0",
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "#94a3b8",
+              }}
+            >
+              💡{" "}
+              {t("master.items.pricingModeNote") ||
+                "This can be overridden when creating a bill"}
+            </p>
           </div>
-        </div>
-      )}
+
+          {/* Buttons */}
+          <div
+            style={{
+              display: "flex",
+              gap: "0.75rem",
+              paddingTop: "0.5rem",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              style={{
+                flex: 1,
+                padding: "12px",
+                border: "none",
+                backgroundColor: "#f1f5f9",
+                borderRadius: "12px",
+                fontWeight: 800,
+                fontSize: "13px",
+                color: "#64748b",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#e2e8f0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f1f5f9")
+              }
+            >
+              {t("master.actions.cancel")}
+            </button>
+            <button
+              disabled={submitting}
+              type="submit"
+              style={{
+                flex: 2,
+                padding: "12px",
+                border: "none",
+                backgroundColor: "#7c3aed",
+                borderRadius: "12px",
+                fontWeight: 900,
+                fontSize: "13px",
+                color: "#fff",
+                cursor: submitting ? "not-allowed" : "pointer",
+                boxShadow: "0 8px 16px rgba(124,58,237,0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                transition: "all 0.2s",
+                opacity: submitting ? 0.7 : 1,
+              }}
+            >
+              {submitting ? (
+                <Loader2
+                  size={18}
+                  style={{ animation: "spin 0.6s linear infinite" }}
+                />
+              ) : (
+                t("master.actions.save")
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.8; } }

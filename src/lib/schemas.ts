@@ -133,3 +133,10 @@ export const staffSchema = z
     message: "Either Password or PIN must be provided",
     path: ["password"],
   });
+export const expenseSchema = z.object({
+  expenseDate: z.string().transform((val) => new Date(val)),
+  amount: z.number().positive("Expense amount must be greater than zero"),
+  paymentMode: z.enum(["CASH", "BANK_TRANSFER", "OTHER"]),
+  category: z.string().optional(),
+  description: z.string().optional(),
+});

@@ -31,6 +31,7 @@ export const masterNav: NavItem[] = [
 
 export const financeNav: NavItem[] = [
     { key: "payments", href: "/payments", icon: WalletCards },
+    { key: "expenses", href: "/expenses", icon: ReceiptText },
     { key: "reports", href: "/reports", icon: BarChart3, adminOnly: false },
 ];
 

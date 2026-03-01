@@ -28,7 +28,8 @@
         "PAYMENT_HISTORY": "पेमेंट इतिहास",
         "DAILY_SUMMARY": "दैनंदिन व्यवहार सारांश",
         "OUTSTANDING_PAYABLES": "बकाया देय रक्कम (शेतकरी)",
-        "OUTSTANDING_RECEIVABLES": "बकाया येणी (ग्राहक)"
+        "OUTSTANDING_RECEIVABLES": "बकाया येणी (ग्राहक)",
+        "EXPENSE_REPORT": "व्यवसाय खर्च अहवाल"
     },
     "table": {
         "billNumber": "बिल #",
@@ -37,7 +38,28 @@
         "amount": "रक्कम",
         "mode": "मोड",
         "type": "प्रकार",
+        "category": "श्रेणी",
         "qtyKg": "वजन (किलो)",
         "qtyUnits": "नग (यूनिट)"
+    },
+    "dailySummary": {
+        "tradeSummary": "व्यापार सारांश",
+        "salesVsPurchases": "विक्री विरुद्ध खरेदी",
+        "totalSales": "एकूण विक्री",
+        "totalPurchases": "एकूण खरेदी",
+        "expensesAndCashFlow": "खर्च आणि रोख प्रवाह",
+        "paymentsReceived": "प्राप्त देयके",
+        "paymentsPaid": "दिलेली देयके",
+        "businessExpenses": "व्यवसाय खर्च"
+    },
+    "insights": {
+        "grossRevenue": "एकूण महसूल",
+        "netEarnings": "निव्वळ कमाई",
+        "topCustomers": "प्रमुख ग्राहक",
+        "topFarmers": "प्रमुख शेतकरी",
+        "itemSalesTrends": "वस्तू विक्री ट्रेंड",
+        "item": "वस्तु",
+        "qtySold": "विकलेली संख्या",
+        "revenue": "महसूल"
     }
 }

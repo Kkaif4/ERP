@@ -28,7 +28,8 @@
         "PAYMENT_HISTORY": "भुगतान इतिहास",
         "DAILY_SUMMARY": "दैनिक लेनदेन सारांश",
         "OUTSTANDING_PAYABLES": "बकाया देय राशि (किसान)",
-        "OUTSTANDING_RECEIVABLES": "बकाया प्राप्तियां (ग्राहक)"
+        "OUTSTANDING_RECEIVABLES": "बकाया प्राप्तियां (ग्राहक)",
+        "EXPENSE_REPORT": "व्यवसाय व्यय रिपोर्ट"
     },
     "table": {
         "billNumber": "बिल #",
@@ -37,7 +38,28 @@
         "amount": "राशि",
         "mode": "मोड",
         "type": "प्रकार",
+        "category": "श्रेणी",
         "qtyKg": "मात्रा (किलो)",
         "qtyUnits": "मात्रा (यूनिट)"
+    },
+    "dailySummary": {
+        "tradeSummary": "व्यापार सारांश",
+        "salesVsPurchases": "बिक्री बनाम खरीद",
+        "totalSales": "कुल बिक्री",
+        "totalPurchases": "कुल खरीद",
+        "expensesAndCashFlow": "व्यय और नकद प्रवाह",
+        "paymentsReceived": "प्राप्त भुगतान",
+        "paymentsPaid": "किए गए भुगतान",
+        "businessExpenses": "व्यवसाय व्यय"
+    },
+    "insights": {
+        "grossRevenue": "कुल राजस्व",
+        "netEarnings": "शुद्ध कमाई",
+        "topCustomers": "प्रमुख ग्राहक",
+        "topFarmers": "प्रमुख किसान",
+        "itemSalesTrends": "वस्तु बिक्री रुझान",
+        "item": "वस्तु",
+        "qtySold": "बिकी मात्रा",
+        "revenue": "राजस्व"
     }
 }

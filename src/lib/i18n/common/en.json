@@ -9,6 +9,8 @@
     "noData": "No data found",
     "back": "Back",
     "logout": "Logout",
+    "downloadPdf": "Download PDF",
+    "exportCsv": "Export CSV",
     "language": "Language",
     "hindi": "Hindi",
     "marathi": "Marathi",
@@ -24,5 +26,10 @@
     "type": "Type",
     "amount": "Amount",
     "actions": "Actions",
-    "all": "All"
+    "all": "All",
+    "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "status": "Page {{page}} of {{total}} ({{count}} total)"
+    }
 }

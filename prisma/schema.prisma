@@ -145,6 +145,7 @@ model User {
   bills     Bill[]
   payments  Payment[]
   returns   Return[]
+  expenses  Expense[]    @relation("CreatedExpenses")
   auditLogs AuditLog[]
 
   @@index([organizationId])
@@ -375,13 +376,20 @@ model Expense {
   id             String       @id @default(uuid(7)) @db.Uuid
   organizationId String       @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id])
-  paymentId      String       @db.Uuid
-  payment        Payment      @relation(fields: [paymentId], references: [id])
-  category       String       // e.g. "ROUND_OFF"
+  expenseDate    DateTime     @default(now())
   amount         Decimal      @db.Decimal(12, 2)
+  paymentId      String?      @db.Uuid
+  payment        Payment?     @relation(fields: [paymentId], references: [id])
+  paymentMode    PaymentMode? @default(CASH)
+  category       String?
   description    String?
+  createdById    String?      @db.Uuid
+  createdBy      User?        @relation("CreatedExpenses", fields: [createdById], references: [id])
+  deletedAt      DateTime?    // For soft delete
   createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([organizationId])
   @@index([paymentId])
+  @@index([createdById])
 }

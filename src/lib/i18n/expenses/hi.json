@@ -1,0 +1,30 @@
+{
+    "title": "व्यापार व्यय (Expenses)",
+    "subtitle": "{{count}} प्रविष्टियां · कुल: {{total}}",
+    "recordBtn": "व्यय दर्ज करें",
+    "searchPlaceholder": "श्रेणी या नोट्स द्वारा खोजें...",
+    "noExpenses": "कोई व्यय नहीं मिला",
+    "general": "सामान्य",
+    "totalLabel": "कुल व्यय",
+    "table": {
+        "category": "श्रेणी",
+        "paymentMode": "भुगतान का तरीका",
+        "description": "विवरण"
+    },
+    "modal": {
+        "titleRecord": "नया व्यय दर्ज करें",
+        "titleEdit": "व्यय संपादित करें",
+        "subtitleRecord": "व्यापार व्यय के लिए विवरण दर्ज करें",
+        "subtitleEdit": "मौजूदा व्यय विवरण संशोधित करें",
+        "amount": "राशि (₹)",
+        "category": "श्रेणी",
+        "description": "विवरण / नोट्स",
+        "submitRecord": "व्यय दर्ज करें",
+        "submitEdit": "व्यय अपडेट करें"
+    },
+    "paymentModes": {
+        "CASH": "नकद भुगतान",
+        "BANK_TRANSFER": "बैंक ट्रांसफर",
+        "OTHER": "अन्य / विविध"
+    }
+}

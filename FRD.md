@@ -148,6 +148,23 @@ component MUST follow these rules exactly.
   Warnings / Pending:       #b45309 (amber)
   Danger / Due balance:     #dc2626 (red)
 
+4.9 Unified Modal Pattern (.premium-modal)
+  All modals must use the centralized `<Modal />` component from `src/components/ui/Modal.tsx`.
+  Inline modal implementations are forbidden.
+
+  Standard Styles:
+    • Backdrop: background: rgba(15, 23, 42, 0.4), backdrop-filter: blur(8px)
+    • Container: background: #fff, border-radius: 24px, overflow: hidden
+    • Header: padding: 24px 32px, unified icon-badge + title/subtitle layout
+    • Footer: padding: 32px, right-aligned buttons [Cancel] [Primary Action]
+    • Animation: slide-up + fade (0.4s cubic-bezier(0.16, 1, 0.3, 1))
+
+  Usage:
+    ```tsx
+    <Modal isOpen={show} onClose={() => setShow(false)} title="Add Item">
+       {/* Form Content */}
+    </Modal>
+    ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 5. Layout & Navigation
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -507,18 +524,68 @@ Immutable. Admin view only.
   Login / Logout     User, IP address, timestamp
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-19. Reports
+19. Expense Management Module
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-19.1 Operational (Admin + Staff)
+19.1 Module Overview
+The Expense Module manages all normal business-related expenses and integrates them into
+financial reporting.
+This module supports:
+• Manual expense recording by Admin only
+• Expense reporting
+• Profit calculation impact
+Expenses are tracked independently from customer and farmer ledgers.
+
+19.2 Expense Entry
+1. Only the Admin user is allowed to create expense entries.
+2. Staff users do not have permission to create expenses.
+
+Required Fields:
+1. Expense date
+2. Expense amount
+3. Payment mode (Cash / Bank / Other)
+4. Category (Rent, Electricity, Tea, etc.)
+5. Description / notes
+6. Created by user (Admin)
+7. Timestamp
+
+Validation Rules:
+1. Expense amount must be greater than zero.
+2. Expense date cannot be in the future.
+3. Payment mode selection is mandatory.
+
+19.3 Editing & Deletion
+1. Only the Admin user may edit or delete expense entries.
+2. Editing or deletion creates an audit log entry.
+3. Deletion uses a "soft delete" pattern (deletedAt timestamp) to preserve financial history.
+
+19.4 Financial Integration & Profit Impact
+1. Expenses are included in Profit calculation reports and Financial summaries.
+2. Expenses reduce net profit.
+3. Profit is computed as: Profit = Earnings (Commissions/Charges) - Business Expenses.
+
+19.5 Audit Requirements
+Each expense action (Create, Update, Delete) stores:
+• User ID
+• Timestamp
+• Action performed
+• Previous value (if modified)
+• New value
+Audit records are immutable and stored in the AuditLog table.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+20. Reports
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+20.1 Operational (Admin + Staff)
   • Farmer Purchase History (filter by date)
   • Customer Sales History (filter by date)
   • Payment History (filter by date, mode)
   • Daily Transaction Summary
+  • Business Expense Report (filter by date, category)
 
-19.2 Financial (Admin only)
+20.2 Financial (Admin only)
   • Outstanding Dues | Farmer Payables | Customer Receivables
 
-19.3 Business Insights (Admin only)
+20.3 Business Insights (Admin only)
   • Daily Profit Summary | Monthly Profit Analysis
   • Top Customers | Top Farmers | Item-wise Sales Trends
 
@@ -527,7 +594,7 @@ Most important number in largest text at top of each report.
 Export: PDF and Excel.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-20. Security
+21. Security
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • JWT stored in HTTP-only cookie (not localStorage)
 • Passwords: bcrypt hashed
@@ -538,7 +605,7 @@ Export: PDF and Excel.
 • All protected pages check session; redirect to /login if not authenticated
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-21. Non-Goals (Explicitly Out of Scope)
+22. Non-Goals (Explicitly Out of Scope)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Feature                          Reason
   Payment Gateway Integration      Cash/bank only; not required in v1
@@ -551,7 +618,7 @@ Export: PDF and Excel.
   Offline Mode                     Progressive enhancement; not implemented in v1
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-22. Glossary
+23. Glossary
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Term                  Meaning
 Kisan / Farmer        Supplier who sells vegetables to the business
@@ -570,6 +637,7 @@ WEIGHT mode           Pricing calculated per 10 KG
 UNIT mode             Pricing calculated per unit/crate
 AppShell              The root layout component wrapping all dashboard pages
 BottomNav             Fixed mobile bottom tab bar (hidden on desktop)
+Modal                 Centralized UI component for all dialogs and forms
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 — End of Document — Version 2.0 | February 2026

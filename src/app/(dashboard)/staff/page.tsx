@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { staffSchema } from "@/lib/schemas";
 import { useUser } from "@/components/providers/UserContext";
+import { Modal } from "@/components/ui/Modal";
 
 interface StaffMember {
     id: string;
@@ -201,80 +202,70 @@ export default function StaffPage() {
             )}
 
             {/* Add Staff Modal */}
-            {isModalOpen && (
-                <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-                    <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(15,23,42,0.6)", backdropFilter: "blur(8px)" }} onClick={() => !submitting && setIsModalOpen(false)} />
-                    <div style={{ position: "relative", backgroundColor: "#fff", width: "100%", maxWidth: "480px", borderRadius: "24px", boxShadow: "0 25px 50px rgba(0,0,0,0.2)", overflow: "hidden" }}>
-                        <div style={{ height: "4px", background: "linear-gradient(90deg, #7c3aed, #a78bfa)" }} />
-
-                        <div style={{ padding: "2rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "var(--text-main)" }}>{t("staff.modal.title")}</h2>
-                                <p style={{ margin: "4px 0 0", fontSize: "12px", fontWeight: 700, color: "#94a3b8" }}>{t("staff.modal.subtitle")}</p>
-                            </div>
-                            <button onClick={() => setIsModalOpen(false)} style={{ width: "40px", height: "40px", borderRadius: "50%", border: "none", backgroundColor: "#f1f5f9", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <X size={20} className="text-slate-500" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleAddStaff} style={{ padding: "0 2rem 2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                            <div>
-                                <label style={{ display: "block", marginBottom: "8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("staff.modal.fullName")}</label>
-                                <input
-                                    required
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: "block", marginBottom: "8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("staff.modal.username")}</label>
-                                <input
-                                    required
-                                    type="text"
-                                    value={formData.username}
-                                    onChange={e => setFormData({ ...formData, username: e.target.value })}
-                                    placeholder={t("staff.modal.usernamePlaceholder")}
-                                    style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
-                                />
-                            </div>
-
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                                <div>
-                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("staff.modal.password")}</label>
-                                    <input
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                        placeholder={t("staff.modal.passwordPlaceholder")}
-                                        style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("staff.modal.pin")}</label>
-                                    <input
-                                        type="text"
-                                        maxLength={4}
-                                        value={formData.pin}
-                                        onChange={e => setFormData({ ...formData, pin: e.target.value })}
-                                        placeholder={t("staff.modal.pinPlaceholder")}
-                                        style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div style={{ display: "flex", gap: "1rem", paddingTop: "0.5rem" }}>
-                                <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: "14px", borderRadius: "14px", border: "none", backgroundColor: "#f1f5f9", fontWeight: 800, color: "#64748b", cursor: "pointer" }}>{t("staff.modal.cancel")}</button>
-                                <button disabled={submitting} type="submit" style={{ flex: 2, padding: "14px", borderRadius: "14px", border: "none", backgroundColor: "#7c3aed", fontWeight: 900, color: "#fff", cursor: submitting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                                    {submitting ? <Loader2 size={18} className="animate-spin" /> : t("staff.modal.save")}
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => !submitting && setIsModalOpen(false)}
+                title={t("staff.modal.title")}
+                subtitle={t("staff.modal.subtitle")}
+                icon={<Plus size={20} />}
+                maxWidth="480px"
+            >
+                <form onSubmit={handleAddStaff} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                    <div>
+                        <label style={{ display: "block", marginBottom: "8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("staff.modal.fullName")}</label>
+                        <input
+                            required
+                            type="text"
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
+                        />
                     </div>
-                </div>
-            )}
+
+                    <div>
+                        <label style={{ display: "block", marginBottom: "8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("staff.modal.username")}</label>
+                        <input
+                            required
+                            type="text"
+                            value={formData.username}
+                            onChange={e => setFormData({ ...formData, username: e.target.value })}
+                            placeholder={t("staff.modal.usernamePlaceholder")}
+                            style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
+                        />
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                        <div>
+                            <label style={{ display: "block", marginBottom: "8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("staff.modal.password")}</label>
+                            <input
+                                type="password"
+                                value={formData.password}
+                                onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                placeholder={t("staff.modal.passwordPlaceholder")}
+                                style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: "block", marginBottom: "8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("staff.modal.pin")}</label>
+                            <input
+                                type="text"
+                                maxLength={4}
+                                value={formData.pin}
+                                onChange={e => setFormData({ ...formData, pin: e.target.value })}
+                                placeholder={t("staff.modal.pinPlaceholder")}
+                                style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
+                            />
+                        </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "1rem", paddingTop: "0.5rem" }}>
+                        <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: "14px", borderRadius: "14px", border: "none", backgroundColor: "#f1f5f9", fontWeight: 800, color: "#64748b", cursor: "pointer" }}>{t("staff.modal.cancel")}</button>
+                        <button disabled={submitting} type="submit" style={{ flex: 2, padding: "14px", borderRadius: "14px", border: "none", backgroundColor: "#7c3aed", fontWeight: 900, color: "#fff", cursor: submitting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                            {submitting ? <Loader2 size={18} style={{ animation: "spin 0.6s linear infinite" } as any} /> : t("staff.modal.save")}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }

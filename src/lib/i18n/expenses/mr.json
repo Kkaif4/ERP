@@ -1,0 +1,30 @@
+{
+    "title": "व्यावसायिक खर्च",
+    "subtitle": "{{count}} नोंदी · एकूण: {{total}}",
+    "recordBtn": "खर्च नोंदवा",
+    "searchPlaceholder": "श्रेणी किंवा नोट्सनुसार शोधा...",
+    "noExpenses": "कोणताही खर्च आढळला नाही",
+    "general": "सामान्य",
+    "totalLabel": "एकूण खर्च",
+    "table": {
+        "category": "श्रेणी",
+        "paymentMode": "पेमेंट मोड",
+        "description": "वर्णन"
+    },
+    "modal": {
+        "titleRecord": "नवीन खर्च नोंदवा",
+        "titleEdit": "खर्च संपादित करा",
+        "subtitleRecord": "व्यावसायिक खर्चाचा तपशील प्रविष्ट करा",
+        "subtitleEdit": "विद्यमान खर्च तपशील सुधारित करा",
+        "amount": "रक्कम (₹)",
+        "category": "श्रेणी",
+        "description": "वर्णन / नोट्स",
+        "submitRecord": "खर्च नोंदवा",
+        "submitEdit": "खर्च अपडेट करा"
+    },
+    "paymentModes": {
+        "CASH": "रोख पेमेंट",
+        "BANK_TRANSFER": "बँक ट्रान्सफर",
+        "OTHER": "इतर / संकीर्ण"
+    }
+}

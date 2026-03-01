@@ -131,7 +131,7 @@ export default function FinancialReportsPage() {
                             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
                         >
                             <ArrowLeft size={16} />
-                            BACK TO REPORTS
+                            {t("common.back") || "BACK"}
                         </Link>
                     </div>
                     <h1 style={{ fontSize: "1.875rem", fontWeight: 900, color: "var(--text-main)", letterSpacing: "-0.02em", margin: 0 }}>
@@ -156,7 +156,7 @@ export default function FinancialReportsPage() {
                         disabled={loading || !summary}
                         style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "#7c3aed", color: "#fff", borderRadius: "12px", border: "none", fontWeight: 800, fontSize: "12px", cursor: "pointer", opacity: (loading || !summary) ? 0.5 : 1 }}
                     >
-                        <Download size={16} /> DOWNLOAD PDF
+                        <Download size={16} /> {t("common.downloadPdf") || "DOWNLOAD PDF"}
                     </button>
                 </div>
             </div>

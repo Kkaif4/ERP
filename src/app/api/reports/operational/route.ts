@@ -142,7 +142,7 @@ export async function GET(req: Request) {
             }
 
             case "DAILY_SUMMARY": {
-                const [purchaseBills, saleBills, payments] = await Promise.all([
+                const [purchaseBills, saleBills, payments, expenses] = await Promise.all([
                     prisma.bill.findMany({
                         where: { organizationId, type: "PURCHASE", billDate: { gte: startDate, lte: endDate } }
                     }),
@@ -151,6 +151,9 @@ export async function GET(req: Request) {
                     }),
                     prisma.payment.findMany({
                         where: { organizationId, paymentDate: { gte: startDate, lte: endDate } }
+                    }),
+                    prisma.expense.findMany({
+                        where: { organizationId, expenseDate: { gte: startDate, lte: endDate }, deletedAt: null }
                     })
                 ]);
 
@@ -160,7 +163,34 @@ export async function GET(req: Request) {
                         saleTotal: saleBills.reduce((acc, b) => acc + Number(b.netTotal), 0),
                         paymentsOut: payments.filter(p => p.farmerId).reduce((acc, p) => acc + Number(p.amount), 0),
                         paymentsIn: payments.filter(p => p.customerId).reduce((acc, p) => acc + Number(p.amount), 0),
+                        expenseTotal: expenses.reduce((acc, e) => acc + Number(e.amount), 0),
                         billsCount: purchaseBills.length + saleBills.length,
+                    }
+                });
+            }
+
+            case "EXPENSE_REPORT": {
+                const expenses = await prisma.expense.findMany({
+                    where: {
+                        organizationId,
+                        expenseDate: { gte: startDate, lte: endDate },
+                        deletedAt: null
+                    },
+                    orderBy: { expenseDate: "desc" }
+                });
+
+                return NextResponse.json({
+                    data: expenses.map(e => ({
+                        id: e.id,
+                        date: e.expenseDate,
+                        category: e.category || "General",
+                        amount: Number(e.amount),
+                        mode: e.paymentMode || "CASH",
+                        description: e.description || "-"
+                    })),
+                    summary: {
+                        totalAmount: expenses.reduce((acc, e) => acc + Number(e.amount), 0),
+                        count: expenses.length,
                     }
                 });
             }

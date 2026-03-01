@@ -1,0 +1,30 @@
+{
+    "title": "Business Expenses",
+    "subtitle": "{{count}} entries · Total: {{total}}",
+    "recordBtn": "Record Expense",
+    "searchPlaceholder": "Search by category or notes...",
+    "noExpenses": "No expenses found",
+    "general": "General",
+    "totalLabel": "Total Expenses",
+    "table": {
+        "category": "Category",
+        "paymentMode": "Payment Mode",
+        "description": "Description"
+    },
+    "modal": {
+        "titleRecord": "Record New Expense",
+        "titleEdit": "Edit Business Expense",
+        "subtitleRecord": "Enter details for the business expenditure",
+        "subtitleEdit": "Modify the existing expense details",
+        "amount": "Amount (₹)",
+        "category": "Category",
+        "description": "Description / Notes",
+        "submitRecord": "Record Expense",
+        "submitEdit": "Update Expense"
+    },
+    "paymentModes": {
+        "CASH": "Cash Payment",
+        "BANK_TRANSFER": "Bank Transfer",
+        "OTHER": "Other / Misc"
+    }
+}

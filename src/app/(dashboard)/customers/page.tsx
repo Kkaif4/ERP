@@ -7,6 +7,7 @@ import { UserSearch, Plus, Search, Phone, MapPin, Loader2, X, ArrowRight, Clock 
 import { toast } from "sonner";
 import { customerSchema } from "@/lib/schemas";
 import { useUser } from "@/components/providers/UserContext";
+import { Modal } from "@/components/ui/Modal";
 
 interface Customer { id: string; name: string; mobile: string; address: string | null; balance: number; }
 
@@ -188,20 +189,20 @@ export default function CustomersPage() {
                     {pagination.totalPages > 1 && (
                         <div className="premium-card" style={{ marginTop: "2rem", padding: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                             <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "var(--text-muted)" }}>
-                                Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+                                {t("common.pagination.status", { page: pagination.page, total: pagination.totalPages, count: pagination.total })}
                             </p>
                             <div style={{ display: "flex", gap: "0.5rem" }}>
                                 <button
                                     onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
                                     disabled={pagination.page === 1}
                                     style={{ padding: "8px 16px", borderRadius: "10px", border: "1px solid var(--border-main)", backgroundColor: pagination.page === 1 ? "#f8fafc" : "#fff", fontSize: "12px", fontWeight: 800, color: pagination.page === 1 ? "#cbd5e1" : "var(--text-main)", cursor: pagination.page === 1 ? "not-allowed" : "pointer" }}>
-                                    Previous
+                                    {t("common.pagination.previous")}
                                 </button>
                                 <button
                                     onClick={() => handlePageChange(Math.min(pagination.totalPages, pagination.page + 1))}
                                     disabled={pagination.page === pagination.totalPages}
                                     style={{ padding: "8px 16px", borderRadius: "10px", border: "1px solid var(--border-main)", backgroundColor: pagination.page === pagination.totalPages ? "#f8fafc" : "#fff", fontSize: "12px", fontWeight: 800, color: pagination.page === pagination.totalPages ? "#cbd5e1" : "var(--text-main)", cursor: pagination.page === pagination.totalPages ? "not-allowed" : "pointer" }}>
-                                    Next
+                                    {t("common.pagination.next")}
                                 </button>
                             </div>
                         </div>
@@ -210,61 +211,54 @@ export default function CustomersPage() {
             )}
 
             {/* ── Add Customer Modal ── */}
-            {isModalOpen && (
-                <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-                    <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(15,23,42,0.6)", backdropFilter: "blur(8px)" }} onClick={() => !submitting && setIsModalOpen(false)} />
-                    <div style={{ position: "relative", backgroundColor: "#fff", width: "100%", maxWidth: "480px", borderRadius: "24px", boxShadow: "0 25px 50px rgba(0,0,0,0.2)", overflow: "hidden" }}>
-                        <div style={{ padding: "1.75rem 2rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "var(--text-main)", letterSpacing: "-0.02em" }}>{t("master.customers.addCustomer")}</h2>
-                            <button onClick={() => setIsModalOpen(false)} style={{ width: "36px", height: "36px", borderRadius: "50%", border: "none", backgroundColor: "#f1f5f9", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#e2e8f0"}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#f1f5f9"}>
-                                <X size={18} />
-                            </button>
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => !submitting && setIsModalOpen(false)}
+                title={t("master.customers.addCustomer")}
+                icon={<Plus size={20} />}
+                maxWidth="480px"
+            >
+                <form onSubmit={handleAddCustomer} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                    {[
+                        { label: `${t("master.customers.name")} *`, key: "name", type: "text", required: true },
+                        { label: `${t("master.customers.mobile")} *`, key: "mobile", type: "tel", required: true },
+                    ].map(({ label, key, type, required }) => (
+                        <div key={key}>
+                            <p style={{ margin: "0 0 8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>{label}</p>
+                            <input required={required} type={type} value={(formData as any)[key]}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    if (key === "mobile") {
+                                        const digits = val.replace(/\D/g, "").slice(0, 10);
+                                        setFormData({ ...formData, [key]: digits });
+                                    } else {
+                                        setFormData({ ...formData, [key]: val });
+                                    }
+                                }}
+                                style={{ width: "100%", boxSizing: "border-box", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "15px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
+                                onFocusCapture={e => { e.currentTarget.style.borderColor = BLUE; e.currentTarget.style.backgroundColor = "#fff"; }}
+                                onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
                         </div>
-                        <form onSubmit={handleAddCustomer} style={{ padding: "1rem 2rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                            {[
-                                { label: `${t("master.customers.name")} *`, key: "name", type: "text", required: true },
-                                { label: `${t("master.customers.mobile")} *`, key: "mobile", type: "tel", required: true },
-                            ].map(({ label, key, type, required }) => (
-                                <div key={key}>
-                                    <p style={{ margin: "0 0 8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>{label}</p>
-                                    <input required={required} type={type} value={(formData as any)[key]}
-                                        onChange={e => {
-                                            const val = e.target.value;
-                                            if (key === "mobile") {
-                                                const digits = val.replace(/\D/g, "").slice(0, 10);
-                                                setFormData({ ...formData, [key]: digits });
-                                            } else {
-                                                setFormData({ ...formData, [key]: val });
-                                            }
-                                        }}
-                                        style={{ width: "100%", boxSizing: "border-box", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "15px", fontWeight: 700, color: "var(--text-main)", outline: "none", transition: "all 0.2s" }}
-                                        onFocusCapture={e => { e.currentTarget.style.borderColor = BLUE; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                        onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
-                                </div>
-                            ))}
-                            <div>
-                                <p style={{ margin: "0 0 8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>{t("master.customers.address")}</p>
-                                <textarea rows={3} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })}
-                                    style={{ width: "100%", boxSizing: "border-box", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "15px", fontWeight: 700, color: "var(--text-main)", outline: "none", resize: "none", transition: "all 0.2s", fontFamily: "inherit" }}
-                                    onFocusCapture={e => { e.currentTarget.style.borderColor = BLUE; e.currentTarget.style.backgroundColor = "#fff"; }}
-                                    onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
-                            </div>
-                            <div style={{ display: "flex", gap: "0.75rem", paddingTop: "0.5rem" }}>
-                                <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: "12px", border: "none", backgroundColor: "#f1f5f9", borderRadius: "12px", fontWeight: 800, fontSize: "13px", color: "#64748b", cursor: "pointer", transition: "all 0.2s" }}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#e2e8f0"}
-                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#f1f5f9"}>
-                                    {t("master.actions.cancel")}
-                                </button>
-                                <button disabled={submitting} type="submit" style={{ flex: 2, padding: "12px", border: "none", backgroundColor: BLUE, borderRadius: "12px", fontWeight: 900, fontSize: "13px", color: "#fff", cursor: submitting ? "not-allowed" : "pointer", boxShadow: "0 8px 16px rgba(3,105,161,0.2)", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: submitting ? 0.7 : 1 }}>
-                                    {submitting ? <Loader2 size={18} style={{ animation: "spin 0.6s linear infinite" } as any} /> : t("master.actions.save")}
-                                </button>
-                            </div>
-                        </form>
+                    ))}
+                    <div>
+                        <p style={{ margin: "0 0 8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.15em" }}>{t("master.customers.address")}</p>
+                        <textarea rows={3} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })}
+                            style={{ width: "100%", boxSizing: "border-box", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid var(--border-main)", borderRadius: "12px", fontSize: "15px", fontWeight: 700, color: "var(--text-main)", outline: "none", resize: "none", transition: "all 0.2s", fontFamily: "inherit" }}
+                            onFocusCapture={e => { e.currentTarget.style.borderColor = BLUE; e.currentTarget.style.backgroundColor = "#fff"; }}
+                            onBlurCapture={e => { e.currentTarget.style.borderColor = "var(--border-main)"; e.currentTarget.style.backgroundColor = "#f8fafc"; }} />
                     </div>
-                </div>
-            )}
+                    <div style={{ display: "flex", gap: "0.75rem", paddingTop: "0.5rem" }}>
+                        <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: "12px", border: "none", backgroundColor: "#f1f5f9", borderRadius: "12px", fontWeight: 800, fontSize: "13px", color: "#64748b", cursor: "pointer", transition: "all 0.2s" }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = "#e2e8f0"}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = "#f1f5f9"}>
+                            {t("master.actions.cancel")}
+                        </button>
+                        <button disabled={submitting} type="submit" style={{ flex: 2, padding: "12px", border: "none", backgroundColor: BLUE, borderRadius: "12px", fontWeight: 900, fontSize: "13px", color: "#fff", cursor: submitting ? "not-allowed" : "pointer", boxShadow: "0 8px 16px rgba(3,105,161,0.2)", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: submitting ? 0.7 : 1 }}>
+                            {submitting ? <Loader2 size={18} style={{ animation: "spin 0.6s linear infinite" } as any} /> : t("master.actions.save")}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
 
             <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.8; } }

@@ -28,7 +28,8 @@
     "PAYMENT_HISTORY": "Payment History",
     "DAILY_SUMMARY": "Daily Transaction Summary",
     "OUTSTANDING_PAYABLES": "Outstanding Payables (Farmers)",
-    "OUTSTANDING_RECEIVABLES": "Outstanding Receivables (Customers)"
+    "OUTSTANDING_RECEIVABLES": "Outstanding Receivables (Customers)",
+    "EXPENSE_REPORT": "Business Expense Report"
   },
   "table": {
     "billNumber": "Bill #",
@@ -37,7 +38,28 @@
     "amount": "Amount",
     "mode": "Mode",
     "type": "Type",
+    "category": "Category",
     "qtyKg": "Qty (KG)",
     "qtyUnits": "Qty (Units)"
+  },
+  "dailySummary": {
+    "tradeSummary": "Trade Summary",
+    "salesVsPurchases": "Sales vs Purchases",
+    "totalSales": "Total Sales",
+    "totalPurchases": "Total Purchases",
+    "expensesAndCashFlow": "Expenses & Cash Flow",
+    "paymentsReceived": "Payments Received",
+    "paymentsPaid": "Payments Paid",
+    "businessExpenses": "Business Expenses"
+  },
+  "insights": {
+    "grossRevenue": "Gross Revenue",
+    "netEarnings": "Net Earnings",
+    "topCustomers": "Top Customers",
+    "topFarmers": "Top Farmers",
+    "itemSalesTrends": "Item Sales Trends",
+    "item": "Item",
+    "qtySold": "Qty Sold",
+    "revenue": "Revenue"
   }
 }

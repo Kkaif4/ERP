@@ -23,5 +23,6 @@
   "roundOffAmount": "Round-off Amount",
   "remainingDue": "Remaining Due",
   "dueAfterPayment": "Due After Payment",
-  "outstandingBalance": "Outstanding Balance"
+  "outstandingBalance": "Outstanding Balance",
+  "searchPlaceholder": "Search by party or notes..."
 }

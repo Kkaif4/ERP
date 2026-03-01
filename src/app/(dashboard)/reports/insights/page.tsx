@@ -50,8 +50,8 @@ export default function BusinessInsightsPage() {
     }, [startDate, endDate]);
 
     const stats = insights?.summary ? [
-        { label: "Gross Revenue", value: insights.summary.grossRevenue, icon: TrendingUp, color: "#0369a1" },
-        { label: "Net Earnings", value: insights.summary.earnings, icon: PieChart, color: "#15803d" },
+        { label: t("reports.insights.grossRevenue"), value: insights.summary.grossRevenue, icon: TrendingUp, color: "#0369a1" },
+        { label: t("reports.insights.netEarnings"), value: insights.summary.earnings, icon: PieChart, color: "#15803d" },
     ] : [];
 
     const handleDownloadPDF = () => {
@@ -71,19 +71,19 @@ export default function BusinessInsightsPage() {
 
         // Top Parties
         html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">' +
-            '<div><h3 style="border-bottom: 2px solid #0369a1; padding-bottom: 5px;">TOP CUSTOMERS</h3>';
+            '<div><h3 style="border-bottom: 2px solid #0369a1; padding-bottom: 5px;">' + t("reports.insights.topCustomers").toUpperCase() + '</h3>';
         insights.customers.forEach((c: any, i: number) => {
             html += '<p style="font-size: 12px; margin: 8px 0;">' + (i + 1) + '. <strong>' + c.name + '</strong> - ₹ ' + c.amount.toLocaleString("en-IN") + '</p>';
         });
-        html += '</div><div><h3 style="border-bottom: 2px solid #15803d; padding-bottom: 5px;">TOP FARMERS</h3>';
+        html += '</div><div><h3 style="border-bottom: 2px solid #15803d; padding-bottom: 5px;">' + t("reports.insights.topFarmers").toUpperCase() + '</h3>';
         insights.farmers.forEach((f: any, i: number) => {
             html += '<p style="font-size: 12px; margin: 8px 0;">' + (i + 1) + '. <strong>' + f.name + '</strong> - ₹ ' + f.amount.toLocaleString("en-IN") + '</p>';
         });
         html += '</div></div>';
 
         // Item Trends
-        html += '<h3 style="margin-top: 40px; border-bottom: 2px solid #ea580c; padding-bottom: 5px;">ITEM SALES TRENDS</h3>' +
-            '<table><thead><tr><th>Item</th><th>Qty Sold</th><th class="text-right">Revenue</th></tr></thead><tbody>';
+        html += '<h3 style="margin-top: 40px; border-bottom: 2px solid #ea580c; padding-bottom: 5px;">' + t("reports.insights.itemSalesTrends").toUpperCase() + '</h3>' +
+            '<table><thead><tr><th>' + t("reports.insights.item") + '</th><th>' + t("reports.insights.qtySold") + '</th><th class="text-right">' + t("reports.insights.revenue") + '</th></tr></thead><tbody>';
         insights.items.forEach((item: any) => {
             html += '<tr>' +
                 '<td><strong>' + item.name + '</strong></td>' +
@@ -93,7 +93,7 @@ export default function BusinessInsightsPage() {
         });
         html += '</tbody></table>';
 
-        openPrintWindow("Business Insights (" + startDate + " to " + endDate + ")", html);
+        openPrintWindow(t("reports.types.insights") + " (" + startDate + " to " + endDate + ")", html);
     };
 
     return (
@@ -120,7 +120,7 @@ export default function BusinessInsightsPage() {
                             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
                         >
                             <ArrowLeft size={16} />
-                            BACK TO REPORTS
+                            {t("common.back") || "BACK"}
                         </Link>
                     </div>
                     <h1 style={{ fontSize: "1.875rem", fontWeight: 900, color: "var(--text-main)", letterSpacing: "-0.02em", margin: 0 }}>
@@ -145,7 +145,7 @@ export default function BusinessInsightsPage() {
                         disabled={loading || !insights}
                         style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "#0369a1", color: "#fff", borderRadius: "12px", border: "none", fontWeight: 800, fontSize: "12px", cursor: "pointer", opacity: (loading || !insights) ? 0.5 : 1 }}
                     >
-                        <Download size={16} /> DOWNLOAD PDF
+                        <Download size={16} /> {t("common.downloadPdf") || "DOWNLOAD PDF"}
                     </button>
                 </div>
             </div>
@@ -170,7 +170,7 @@ export default function BusinessInsightsPage() {
                                 <div style={{ width: "36px", height: "36px", backgroundColor: "rgba(3, 105, 161, 0.1)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "#0369a1" }}>
                                     <Trophy size={18} />
                                 </div>
-                                <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 900 }}>TOP CUSTOMERS</h3>
+                                <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 900 }}>{t("reports.insights.topCustomers").toUpperCase()}</h3>
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                                 {insights.customers.map((c: any, i: number) => (
@@ -191,7 +191,7 @@ export default function BusinessInsightsPage() {
                                 <div style={{ width: "36px", height: "36px", backgroundColor: "rgba(21, 128, 61, 0.1)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "#15803d" }}>
                                     <Trophy size={18} />
                                 </div>
-                                <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 900 }}>TOP FARMERS</h3>
+                                <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 900 }}>{t("reports.insights.topFarmers").toUpperCase()}</h3>
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                                 {insights.farmers.map((f: any, i: number) => (
@@ -212,15 +212,15 @@ export default function BusinessInsightsPage() {
                             <div style={{ width: "36px", height: "36px", backgroundColor: "rgba(234, 88, 12, 0.1)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "#ea580c" }}>
                                 <LineChart size={18} />
                             </div>
-                            <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 900 }}>ITEM SALES TRENDS</h3>
+                            <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 900 }}>{t("reports.insights.itemSalesTrends").toUpperCase()}</h3>
                         </div>
                         <div style={{ overflowX: "auto" }}>
                             <table style={{ width: "100%", borderCollapse: "collapse" }}>
                                 <thead>
                                     <tr style={{ textAlign: "left", fontSize: "10px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                                        <th style={{ padding: "12px" }}>ITEM</th>
-                                        <th style={{ padding: "12px" }}>QTY SOLD</th>
-                                        <th style={{ padding: "12px", textAlign: "right" }}>REVENUE</th>
+                                        <th style={{ padding: "12px" }}>{t("reports.insights.item").toUpperCase()}</th>
+                                        <th style={{ padding: "12px" }}>{t("reports.insights.qtySold").toUpperCase()}</th>
+                                        <th style={{ padding: "12px", textAlign: "right" }}>{t("reports.insights.revenue").toUpperCase()}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
