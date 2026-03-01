@@ -56,7 +56,12 @@ export async function POST(req: Request) {
         if (!result.success) {
             return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
         }
-        const { name, mobile, address } = result.data;
+        const { name, mobile, address, openingBalance, openingBalanceType } = result.data;
+
+        // Calculate initial balance
+        // Farmer balance represents "amount business owes farmer"
+        // DUE = positive balance, ADVANCE = negative balance
+        const initialBalance = openingBalanceType === "ADVANCE" ? -(openingBalance || 0) : (openingBalance || 0);
 
         const farmer = await prisma.farmer.create({
             data: {
@@ -64,7 +69,9 @@ export async function POST(req: Request) {
                 mobile,
                 address: address || "",
                 organizationId: session.organizationId!,
-                balance: 0, // Initial balance is 0
+                balance: initialBalance,
+                openingBalance: openingBalance || 0,
+                openingBalanceType: openingBalanceType || "DUE",
             },
         });
 

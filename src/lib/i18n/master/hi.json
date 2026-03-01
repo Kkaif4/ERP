@@ -12,7 +12,11 @@
         "errorAdd": "किसान जोड़ने में विफल",
         "errorLoad": "किसान सूची लोड करने में विफल",
         "emptyFields": "कृपया सभी आवश्यक फ़ील्ड भरें",
-        "totalFarmers": "कुल किसान"
+        "totalFarmers": "कुल किसान",
+        "openingBalance": "प्रारंभिक शेष",
+        "openingBalanceType": "शेष राशि का प्रकार",
+        "due": "बकाया राशि (Due)",
+        "advance": "अग्रिम (Advance)"
     },
     "customers": {
         "title": "ग्राहक",
@@ -25,7 +29,11 @@
         "noCustomers": "कोई ग्राहक नहीं मिला।",
         "successAdd": "ग्राहक सफलतापूर्वक जोड़ा गया",
         "errorAdd": "ग्राहक जोड़ने में विफल",
-        "errorLoad": "ग्राहक सूची लोड करने में विफल"
+        "errorLoad": "ग्राहक सूची लोड करने में विफल",
+        "openingBalance": "प्रारंभिक शेष",
+        "openingBalanceType": "शेष राशि का प्रकार",
+        "due": "बकाया राशि (Due)",
+        "advance": "अग्रिम (Advance)"
     },
     "items": {
         "title": "आइटम मास्टर",

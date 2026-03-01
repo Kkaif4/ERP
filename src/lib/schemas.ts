@@ -7,6 +7,8 @@ export const farmerSchema = z.object({
     .length(10, "Mobile must be 10 digits")
     .regex(/^\d+$/, "Mobile must contain only digits"),
   address: z.string().optional(),
+  openingBalance: z.number().nonnegative().optional().default(0),
+  openingBalanceType: z.enum(["DUE", "ADVANCE"]).optional().default("DUE"),
 });
 
 export const customerSchema = z.object({
@@ -16,6 +18,8 @@ export const customerSchema = z.object({
     .length(10, "Mobile must be 10 digits")
     .regex(/^\d+$/, "Mobile must contain only digits"),
   address: z.string().optional(),
+  openingBalance: z.number().nonnegative().optional().default(0),
+  openingBalanceType: z.enum(["DUE", "ADVANCE"]).optional().default("DUE"),
 });
 
 export const itemSchema = z.object({

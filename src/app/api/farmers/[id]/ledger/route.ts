@@ -10,7 +10,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     const farmer = await prisma.farmer.findFirst({
         where: { id, organizationId: session.organizationId! },
-        select: { id: true, name: true, mobile: true, balance: true },
+        select: { id: true, name: true, mobile: true, balance: true, openingBalance: true, openingBalanceType: true, openingBalanceDate: true },
     });
     if (!farmer) return NextResponse.json({ error: "Farmer not found" }, { status: 404 });
 
@@ -29,11 +29,20 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     // Combine into chronological ledger entries
     type Entry = {
-        id: string; date: Date; type: "BILL" | "PAYMENT";
+        id: string; date: Date; type: "BILL" | "PAYMENT" | "OPENING";
         description: string; debit: number; credit: number; meta?: string;
     };
 
     const entries: Entry[] = [
+        ...(Number(farmer.openingBalance) > 0 ? [{
+            id: "opening",
+            date: farmer.openingBalanceDate,
+            type: "OPENING" as const,
+            description: "Opening Balance",
+            debit: farmer.openingBalanceType === "ADVANCE" ? Number(farmer.openingBalance) : 0,
+            credit: farmer.openingBalanceType === "DUE" ? Number(farmer.openingBalance) : 0,
+            meta: farmer.openingBalanceType === "ADVANCE" ? "Advance / Credit" : "Outstanding Due",
+        }] : []),
         ...bills.map(b => ({
             id: b.id, date: b.billDate, type: "BILL" as const,
             description: b.billNumber,

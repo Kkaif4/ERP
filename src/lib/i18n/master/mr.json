@@ -12,7 +12,11 @@
         "errorAdd": "शेतकरी जोडण्यात अडथळा आला",
         "errorLoad": "शेतकरी यादी लोड करण्यात अडथळा आला",
         "emptyFields": "कृपया सर्व आवश्यक माहिती भरा",
-        "totalFarmers": "एकूण शेतकरी"
+        "totalFarmers": "एकूण शेतकरी",
+        "openingBalance": "सुरुवातीची शिल्लक",
+        "openingBalanceType": "शिल्लक प्रकार",
+        "due": "थकीत रक्कम (Due)",
+        "advance": "अ‍ॅडव्हान्स / जमा (Advance)"
     },
     "customers": {
         "title": "ग्राहक",
@@ -25,7 +29,11 @@
         "noCustomers": "ग्राहक सापडले नाहीत.",
         "successAdd": "ग्राहक यशस्वीरित्या जोडला गेला",
         "errorAdd": "ग्राहक जोडण्यात अडथळा आला",
-        "errorLoad": "ग्राहक यादी लोड करण्यात अडथळा आला"
+        "errorLoad": "ग्राहक यादी लोड करण्यात अडथळा आला",
+        "openingBalance": "सुरुवातीची शिल्लक",
+        "openingBalanceType": "शिल्लक प्रकार",
+        "due": "थकीत रक्कम (Due)",
+        "advance": "अ‍ॅडव्हान्स / जमा (Advance)"
     },
     "items": {
         "title": "माल मास्टर",

@@ -22,7 +22,7 @@ import { paymentSchema } from "@/lib/schemas";
 interface LedgerEntry {
   id: string;
   date: string;
-  type: "BILL" | "PAYMENT";
+  type: "BILL" | "PAYMENT" | "OPENING";
   description: string;
   debit: number;
   credit: number;
@@ -609,15 +609,19 @@ export default function FarmerLedgerPage() {
                               backgroundColor:
                                 entry.type === "BILL"
                                   ? GREEN_BG
-                                  : "rgba(14,165,233,0.08)",
+                                  : entry.type === "OPENING"
+                                    ? "rgba(100, 116, 139, 0.08)"
+                                    : "rgba(14,165,233,0.08)",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              color: entry.type === "BILL" ? GREEN : "#0ea5e9",
+                              color: entry.type === "BILL" ? GREEN : entry.type === "OPENING" ? "#64748b" : "#0ea5e9",
                             }}
                           >
                             {entry.type === "BILL" ? (
                               <ReceiptText size={14} />
+                            ) : entry.type === "OPENING" ? (
+                              <Wallet size={14} />
                             ) : (
                               <Banknote size={14} />
                             )}
@@ -738,15 +742,19 @@ export default function FarmerLedgerPage() {
                           backgroundColor:
                             entry.type === "BILL"
                               ? GREEN_BG
-                              : "rgba(14,165,233,0.08)",
+                              : entry.type === "OPENING"
+                                ? "rgba(100, 116, 139, 0.08)"
+                                : "rgba(14,165,233,0.08)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: entry.type === "BILL" ? GREEN : "#0ea5e9",
+                          color: entry.type === "BILL" ? GREEN : entry.type === "OPENING" ? "#64748b" : "#0ea5e9",
                         }}
                       >
                         {entry.type === "BILL" ? (
                           <ReceiptText size={16} />
+                        ) : entry.type === "OPENING" ? (
+                          <Wallet size={16} />
                         ) : (
                           <Banknote size={16} />
                         )}
@@ -1061,8 +1069,8 @@ export default function FarmerLedgerPage() {
                         {roundOff
                           ? "0.00"
                           : remainingDue.toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
+                            minimumFractionDigits: 2,
+                          })}
                       </p>
                     </div>
                   </div>

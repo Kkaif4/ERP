@@ -12,7 +12,11 @@
         "errorAdd": "Failed to add farmer",
         "errorLoad": "Failed to load farmers",
         "emptyFields": "Please fill all required fields",
-        "totalFarmers": "Total Farmers"
+        "totalFarmers": "Total Farmers",
+        "openingBalance": "Opening Balance",
+        "openingBalanceType": "Balance Type",
+        "due": "Outstanding Due",
+        "advance": "Advance / Credit"
     },
     "customers": {
         "title": "Customers",
@@ -25,7 +29,11 @@
         "noCustomers": "No customers found.",
         "successAdd": "Customer added successfully",
         "errorAdd": "Failed to add customer",
-        "errorLoad": "Failed to load customers"
+        "errorLoad": "Failed to load customers",
+        "openingBalance": "Opening Balance",
+        "openingBalanceType": "Balance Type",
+        "due": "Outstanding Due",
+        "advance": "Advance / Credit"
     },
     "items": {
         "title": "Items Master",

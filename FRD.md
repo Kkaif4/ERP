@@ -317,7 +317,7 @@ Implementation note: Staff screens hide (not just disable) admin controls entire
 
 9.5 Summary Panel (.premium-card, bg: #0f172a dark)
   Header: Calculator icon (emerald tint) + "SUMMARY" label
-  Rows: Subtotal | Tax (with rate badge) | Service Charge (with rate badge)
+  Rows: Subtotal | Labour | Freight | Advance | Others
   Net Total box: TrendingUp (green) + "NET TOTAL" label + large ₹ amount
   Confirm button: full width, emerald, disabled (dark + grey text) when no items
 
@@ -325,9 +325,11 @@ Implementation note: Staff screens hide (not just disable) admin controls entire
   subtotal = Σ line.total
   line.total = quantity × price            (UNIT mode)
   line.total = (quantity ÷ 10) × price    (WEIGHT mode)
-  taxAmount = subtotal × (taxValue/100) or fixed taxValue
-  serviceCharge = subtotal × (scValue/100) or fixed scValue
-  netTotal = subtotal + tax + serviceCharge
+  netTotal = subtotal − (labour + freight + advance + others)
+
+9.7 Others Note
+  Available when 'Others' amount is > 0. A text area for explaining miscellaneous charges.
+  Note is saved with the bill and appears in reports and detail views.
 
 9.7 API Calls
   GET /api/config → BusinessConfig (taxType, taxValue, serviceChargeType, serviceChargeValue)
@@ -414,7 +416,7 @@ Implementation note: Staff screens hide (not just disable) admin controls entire
   Trigger: "Add Farmer" header button
   Backdrop: rgba(15,23,42,0.6) + backdrop-blur(8px) | click outside to close
   Panel: bg #fff | max-width 480px | border-radius 24px | box-shadow large
-  Fields: Name (required) | Mobile (required) | Address (textarea, optional)
+  Fields: Name (required) | Mobile (required) | Address (textarea, optional) | Opening Balance (optional) | Balance Type (Due/Advance)
   Field labels: 10px, weight 900, uppercase, muted — above each input
   Input style: same standard (padding 12px 16px, no icon, 12px border-radius)
   Footer: [Cancel (grey)] + [Save (emerald, 2× flex)]
@@ -434,6 +436,7 @@ Identical pattern to Farmers page with the following differences:
   Balance colour: red (#dc2626) if balance > 0 (customer owes money), green if ≤ 0
   Header button: "Add Customer"
   Modal title: "Add Customer"
+  Fields: Same as Farmer (Name, Mobile, Address, Opening Balance, Balance Type)
   API: GET /api/customers?search=... | POST /api/customers
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -463,7 +466,7 @@ Identical pattern to Farmers page with the following differences:
   RecordedBy: auto-logged from JWT session.
 
 14.2 Ledger View
-  Chronological list: Date | Description | Amount In/Out | Running Balance
+  Chronological list: Date | Description (e.g., Bill #, Payment, Opening Balance) | Amount In/Out | Running Balance
   Current balance shown prominently at top.
   Designed to be read aloud on a phone call with a farmer or customer.
 
@@ -477,9 +480,10 @@ Admin configures once via /api/config. Staff cannot modify.
   Service Charge         % or Fixed ₹       Customer sale bills only
   Labour Charges         Fixed ₹ (manual)   Entered per sale bill
   Freight Charges        Fixed ₹ (manual)   Entered per sale bill
-  Advance Deduction      Fixed ₹ (manual)   Entered per sale bill, deducted last
+  Advance Deduction      Fixed ₹ (manual)   Entered per bill, deducted last
+  Others Amount          Fixed ₹ (manual)   Miscellaneous charges/deductions
 
-Purchase bills apply tax and service charge to item subtotal only (no labour/freight).
+Purchase bills deduct labour, freight, advance, and others from the item subtotal.
 Sale bills apply tax and service charge to (subtotal + labour + freight).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -638,6 +642,34 @@ UNIT mode             Pricing calculated per unit/crate
 AppShell              The root layout component wrapping all dashboard pages
 BottomNav             Fixed mobile bottom tab bar (hidden on desktop)
 Modal                 Centralized UI component for all dialogs and forms
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+24. Opening Balance Entry
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+24.1 Feature Description
+The system allows the Admin to enter an initial account balance when creating a new farmer
+or customer. This is required to carry forward previous dues or advance payments that
+existed before using the system.
+
+24.2 Functional Requirements
+1. Opening Balance Field
+   • During creation, a numeric Opening Balance field is provided (default: 0).
+   • Supports both outstanding dues and advance/credit balances.
+2. Balance Type Selection
+   • Type selector: [Receivable / Payable Due] or [Advance / Credit Balance].
+   • For Customers: Due (Customer owes money) | Advance (Business owes value).
+   • For Farmers: Due (Business owes money) | Advance (Farmer has been pre-paid).
+3. Ledger Entry Creation
+   • Entering an opening balance automatically creates a ledger entry.
+   • Record includes: Entity Type, Entity ID, Amount, Type, Creation Date, and Reference.
+4. Validation & Rules
+   • Amount must be ≥ 0.
+   • Balance is included in the running running ledger total.
+   • Opening balance is IMMUTABLE after creation. Corrections require a separate adjustment entry.
+
+24.3 Reporting Impact
+• Opening balance entries appear at the top of the ledger history.
+• Opening balances are factored into all due calculations and financial reports.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 — End of Document — Version 2.0 | February 2026

@@ -22,7 +22,7 @@ import { paymentSchema } from "@/lib/schemas";
 interface LedgerEntry {
   id: string;
   date: string;
-  type: "BILL" | "PAYMENT";
+  type: "BILL" | "PAYMENT" | "OPENING";
   description: string;
   debit: number;
   credit: number;
@@ -606,15 +606,19 @@ export default function CustomerLedgerPage() {
                               backgroundColor:
                                 entry.type === "BILL"
                                   ? BLUE_BG
-                                  : "rgba(21,128,61,0.08)",
+                                  : entry.type === "OPENING"
+                                    ? "rgba(100, 116, 139, 0.08)"
+                                    : "rgba(21,128,61,0.08)",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              color: entry.type === "BILL" ? BLUE : "#15803d",
+                              color: entry.type === "BILL" ? BLUE : entry.type === "OPENING" ? "#64748b" : "#15803d",
                             }}
                           >
                             {entry.type === "BILL" ? (
                               <ReceiptText size={14} />
+                            ) : entry.type === "OPENING" ? (
+                              <Wallet size={14} />
                             ) : (
                               <Banknote size={14} />
                             )}
@@ -735,15 +739,19 @@ export default function CustomerLedgerPage() {
                           backgroundColor:
                             entry.type === "BILL"
                               ? BLUE_BG
-                              : "rgba(21,128,61,0.08)",
+                              : entry.type === "OPENING"
+                                ? "rgba(100, 116, 139, 0.08)"
+                                : "rgba(21,128,61,0.08)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: entry.type === "BILL" ? BLUE : "#15803d",
+                          color: entry.type === "BILL" ? BLUE : entry.type === "OPENING" ? "#64748b" : "#15803d",
                         }}
                       >
                         {entry.type === "BILL" ? (
                           <ReceiptText size={16} />
+                        ) : entry.type === "OPENING" ? (
+                          <Wallet size={16} />
                         ) : (
                           <Banknote size={16} />
                         )}
@@ -1058,8 +1066,8 @@ export default function CustomerLedgerPage() {
                         {roundOff
                           ? "0.00"
                           : remainingDue.toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
+                            minimumFractionDigits: 2,
+                          })}
                       </p>
                     </div>
                   </div>

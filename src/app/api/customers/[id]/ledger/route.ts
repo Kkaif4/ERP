@@ -9,7 +9,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     const customer = await prisma.customer.findFirst({
         where: { id, organizationId: session.organizationId! },
-        select: { id: true, name: true, mobile: true, balance: true },
+        select: { id: true, name: true, mobile: true, balance: true, openingBalance: true, openingBalanceType: true, openingBalanceDate: true },
     });
     if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
@@ -27,11 +27,20 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     ]);
 
     type Entry = {
-        id: string; date: Date; type: "BILL" | "PAYMENT";
+        id: string; date: Date; type: "BILL" | "PAYMENT" | "OPENING";
         description: string; debit: number; credit: number; meta?: string;
     };
 
     const entries: Entry[] = [
+        ...(Number(customer.openingBalance) > 0 ? [{
+            id: "opening",
+            date: customer.openingBalanceDate,
+            type: "OPENING" as const,
+            description: "Opening Balance",
+            debit: customer.openingBalanceType === "DUE" ? Number(customer.openingBalance) : 0,
+            credit: customer.openingBalanceType === "ADVANCE" ? Number(customer.openingBalance) : 0,
+            meta: customer.openingBalanceType === "ADVANCE" ? "Advance / Credit" : "Outstanding Due",
+        }] : []),
         ...bills.map(b => ({
             id: b.id, date: b.billDate, type: "BILL" as const,
             description: b.billNumber,

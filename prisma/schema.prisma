@@ -26,6 +26,11 @@ enum PricingMode {
   UNIT      // per crate / unit
 }
 
+enum BalanceType {
+  DUE
+  ADVANCE
+}
+
 enum PaymentMode {
   CASH
   BANK_TRANSFER
@@ -159,10 +164,13 @@ model Farmer {
   organization   Organization @relation(fields: [organizationId], references: [id])
   name           String
   mobile         String
-  address        String?
-  balance        Decimal      @default(0) @db.Decimal(12, 2) // amount business owes farmer
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  address            String?
+  balance            Decimal      @default(0) @db.Decimal(12, 2) // amount business owes farmer (Current)
+  openingBalance     Decimal      @default(0) @db.Decimal(12, 2) // initial balance entered at creation
+  openingBalanceType BalanceType  @default(DUE)                  // whether it was Due or Advance
+  openingBalanceDate DateTime     @default(now())                // when it was entered
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   bills    Bill[]
   payments Payment[]
@@ -181,10 +189,13 @@ model Customer {
   organization   Organization @relation(fields: [organizationId], references: [id])
   name           String
   mobile         String
-  address        String?
-  balance        Decimal      @default(0) @db.Decimal(12, 2) // amount customer owes business
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  address            String?
+  balance            Decimal      @default(0) @db.Decimal(12, 2) // amount customer owes business (Current)
+  openingBalance     Decimal      @default(0) @db.Decimal(12, 2) // initial balance entered at creation
+  openingBalanceType BalanceType  @default(DUE)                  // whether it was Due or Advance
+  openingBalanceDate DateTime     @default(now())                // when it was entered
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   bills    Bill[]
   payments Payment[]
