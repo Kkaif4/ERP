@@ -24,6 +24,8 @@ export async function POST(req: Request) {
       labourCharges = 0,
       freightCharges = 0,
       advanceDeduction = 0,
+      othersAmount = 0,
+      othersNote = "",
     } = validationResult.data;
 
     // Fetch Farmer
@@ -67,9 +69,10 @@ export async function POST(req: Request) {
     const lc = Number(labourCharges);
     const fc = Number(freightCharges);
     const ad = Number(advanceDeduction);
+    const oa = Number(othersAmount);
 
     const grossTotal = subtotal; // No tax/service on purchase
-    const netTotal = subtotal - lc - fc - ad;
+    const netTotal = subtotal - lc - fc - ad - oa;
 
     // 3. Generate Bill Number
     const lastBill = await prisma.bill.findFirst({
@@ -100,6 +103,8 @@ export async function POST(req: Request) {
           taxAmount: 0,
           serviceChargeAmount: 0,
           grossTotal,
+          othersAmount: oa,
+          othersNote,
           advanceDeduction: Number(advanceDeduction),
           netTotal,
           createdById: session.userId,

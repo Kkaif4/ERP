@@ -69,6 +69,8 @@ export default function NewPurchaseBillPage() {
     const [labourCharges, setLabourCharges] = useState("");
     const [freightCharges, setFreightCharges] = useState("");
     const [advanceDeduction, setAdvanceDeduction] = useState("");
+    const [othersAmount, setOthersAmount] = useState("");
+    const [othersNote, setOthersNote] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [farmerPage, setFarmerPage] = useState(1);
@@ -220,10 +222,11 @@ export default function NewPurchaseBillPage() {
     const lc = parseFloat(labourCharges) || 0;
     const fc = parseFloat(freightCharges) || 0;
     const ad = parseFloat(advanceDeduction) || 0;
+    const oa = parseFloat(othersAmount) || 0;
 
     // Purchase bill logic: total items - deductions
     const grossTotal = subtotal; // No tax/service on purchase
-    const netTotal = subtotal - lc - fc - ad;
+    const netTotal = subtotal - lc - fc - ad - oa;
 
     const handleSubmit = async () => {
         const data = {
@@ -239,6 +242,8 @@ export default function NewPurchaseBillPage() {
             labourCharges: parseFloat(labourCharges) || 0,
             freightCharges: parseFloat(freightCharges) || 0,
             advanceDeduction: parseFloat(advanceDeduction) || 0,
+            othersAmount: parseFloat(othersAmount) || 0,
+            othersNote: othersNote,
         };
 
         const result = purchaseBillSchema.safeParse(data);
@@ -1453,6 +1458,15 @@ export default function NewPurchaseBillPage() {
                                     icon: Wallet,
                                     tooltip: t("bills.purchase.advanceTooltip")
                                 },
+                                {
+                                    label: t("bills.purchase.others"),
+                                    value: othersAmount,
+                                    set: setOthersAmount,
+                                    color: "#64748b",
+                                    bg: "rgba(100,116,139,0.08)",
+                                    icon: Plus,
+                                    tooltip: t("bills.purchase.othersTooltip")
+                                },
                             ].map(({ label, value, set, color, bg, icon: Icon, tooltip }) => (
                                 <div key={label}>
                                     <div
@@ -1546,6 +1560,42 @@ export default function NewPurchaseBillPage() {
                                 </div>
                             ))}
                         </div>
+
+                        {/* Others Note */}
+                        {(parseFloat(othersAmount) > 0) && (
+                            <div style={{ marginTop: "1.5rem" }}>
+                                <p style={{ margin: "0 0 8px", fontSize: "12px", fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                                    {t("bills.purchase.othersNote")}
+                                </p>
+                                <textarea
+                                    value={othersNote}
+                                    onChange={(e) => setOthersNote(e.target.value)}
+                                    placeholder={t("bills.purchase.othersNotePlaceholder")}
+                                    style={{
+                                        width: "100%",
+                                        padding: "12px",
+                                        borderRadius: "12px",
+                                        border: "1.5px solid #e2e8f0",
+                                        backgroundColor: "#f8fafc",
+                                        fontSize: "14px",
+                                        fontWeight: 600,
+                                        color: "var(--text-main)",
+                                        outline: "none",
+                                        minHeight: "80px",
+                                        transition: "all 0.2s",
+                                        resize: "vertical"
+                                    }}
+                                    onFocusCapture={(e) => {
+                                        e.currentTarget.style.borderColor = "#64748b";
+                                        e.currentTarget.style.backgroundColor = "#fff";
+                                    }}
+                                    onBlurCapture={(e) => {
+                                        e.currentTarget.style.borderColor = "#e2e8f0";
+                                        e.currentTarget.style.backgroundColor = "#f8fafc";
+                                    }}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -70,6 +70,18 @@ export default function OperationalReportsPage() {
                     { key: "party", label: t("reports.table.party") },
                     { key: "totalKg", label: t("reports.table.qtyKg"), align: "right" as const, render: (v: number) => v?.toFixed(2) || "0.00" },
                     { key: "totalUnits", label: t("reports.table.qtyUnits"), align: "right" as const, render: (v: number) => v?.toFixed(2) || "0.00" },
+                    {
+                        key: "othersAmount",
+                        label: t("reports.table.others"),
+                        align: "right" as const,
+                        render: (v: number, item: any) => (
+                            <div>
+                                <div style={{ fontWeight: 800 }}>₹ {v.toLocaleString("en-IN")}</div>
+                                {item.othersNote && <div style={{ fontSize: "10px", color: "var(--text-muted)", fontStyle: "italic" }}>{item.othersNote}</div>}
+                            </div>
+                        ),
+                        pdfValue: (v: number, item: any) => `₹ ${v.toLocaleString("en-IN")} ${item.othersNote ? '(' + item.othersNote + ')' : ''}`
+                    },
                     { key: "amount", label: t("reports.table.amount"), align: "right" as const, render: (v: number) => `₹ ${v.toLocaleString("en-IN")}` },
                 ];
             case "PAYMENT_HISTORY":
@@ -120,6 +132,7 @@ export default function OperationalReportsPage() {
                 '<h3 style="margin-top:0">' + t("reports.dailySummary.tradeSummary") + '</h3>' +
                 '<p>' + t("reports.dailySummary.totalSales") + ': <strong>₹ ' + summary.saleTotal.toLocaleString("en-IN") + '</strong></p>' +
                 '<p>' + t("reports.dailySummary.totalPurchases") + ': <strong>₹ ' + summary.purchaseTotal.toLocaleString("en-IN") + '</strong></p>' +
+                '<p>' + t("reports.dailySummary.totalOthers") + ': <strong>₹ ' + (summary.othersTotal || 0).toLocaleString("en-IN") + '</strong></p>' +
                 '</div>' +
                 '<div class="stat-box">' +
                 '<h3 style="margin-top:0">' + t("reports.dailySummary.expensesAndCashFlow") + '</h3>' +
@@ -142,7 +155,7 @@ export default function OperationalReportsPage() {
                 columns.forEach(col => {
                     let value = "";
                     if (col.pdfValue) {
-                        value = col.pdfValue(item[col.key], item);
+                        value = (col.pdfValue as any)(item[col.key], item);
                     } else if (typeof col.render === 'function') {
                         // Cast to any to avoid TS error on argument count
                         const rendered = (col.render as any)(item[col.key], item);
@@ -299,6 +312,10 @@ export default function OperationalReportsPage() {
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
                                 <span style={{ fontWeight: 700, color: "#64748b" }}>Total Purchases</span>
                                 <span style={{ fontWeight: 900, color: "#15803d" }}>₹ {summary.purchaseTotal?.toLocaleString("en-IN") || '0'}</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.5rem", borderTop: "1px solid #f1f5f9" }}>
+                                <span style={{ fontWeight: 700, color: "#64748b" }}>{t("reports.dailySummary.totalOthers")}</span>
+                                <span style={{ fontWeight: 900, color: "#64748b" }}>₹ {summary.othersTotal?.toLocaleString("en-IN") || '0'}</span>
                             </div>
                         </div>
                     </div>

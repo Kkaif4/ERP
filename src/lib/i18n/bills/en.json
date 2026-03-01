@@ -32,7 +32,11 @@
     "labourTooltip": "Labour charges for loading/unloading.",
     "freightTooltip": "Transportation charges.",
     "advanceTooltip": "Deduction for any advance previously paid to the farmer.",
-    "netTotalTooltip": "Net Total = Subtotal - Labour - Freight - Advance"
+    "others": "Others",
+    "othersTooltip": "Any other miscellaneous deductions",
+    "othersNote": "Others Note",
+    "othersNotePlaceholder": "Explain what this charge is for...",
+    "netTotalTooltip": "Net Total = Subtotal - Labour - Freight - Advance - Others"
   },
   "sale": {
     "title": "New Sale Bill",

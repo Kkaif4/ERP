@@ -54,11 +54,14 @@ export async function GET(req: Request) {
                         date: b.billDate,
                         party: b.farmer?.name || "Unknown",
                         amount: Number(b.netTotal),
+                        othersAmount: Number(b.othersAmount),
+                        othersNote: b.othersNote,
                         totalKg: b.items.reduce((acc, item) => acc + Number(item.quantityKg), 0),
                         totalUnits: b.items.reduce((acc, item) => acc + Number(item.quantityUnits), 0),
                     })),
                     summary: {
                         totalAmount: bills.reduce((acc, b) => acc + Number(b.netTotal), 0),
+                        totalOthers: bills.reduce((acc, b) => acc + Number(b.othersAmount), 0),
                         count: bills.length,
                     }
                 });
@@ -160,6 +163,7 @@ export async function GET(req: Request) {
                 return NextResponse.json({
                     summary: {
                         purchaseTotal: purchaseBills.reduce((acc, b) => acc + Number(b.netTotal), 0),
+                        othersTotal: purchaseBills.reduce((acc, b) => acc + Number(b.othersAmount), 0),
                         saleTotal: saleBills.reduce((acc, b) => acc + Number(b.netTotal), 0),
                         paymentsOut: payments.filter(p => p.farmerId).reduce((acc, p) => acc + Number(p.amount), 0),
                         paymentsIn: payments.filter(p => p.customerId).reduce((acc, p) => acc + Number(p.amount), 0),

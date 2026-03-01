@@ -40,13 +40,16 @@
     "type": "Type",
     "category": "Category",
     "qtyKg": "Qty (KG)",
-    "qtyUnits": "Qty (Units)"
+    "qtyUnits": "Qty (Units)",
+    "others": "Others",
+    "othersNote": "Others Note"
   },
   "dailySummary": {
     "tradeSummary": "Trade Summary",
     "salesVsPurchases": "Sales vs Purchases",
     "totalSales": "Total Sales",
     "totalPurchases": "Total Purchases",
+    "totalOthers": "Total Others",
     "expensesAndCashFlow": "Expenses & Cash Flow",
     "paymentsReceived": "Payments Received",
     "paymentsPaid": "Payments Paid",

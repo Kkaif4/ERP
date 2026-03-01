@@ -40,13 +40,16 @@
         "type": "प्रकार",
         "category": "श्रेणी",
         "qtyKg": "मात्रा (किलो)",
-        "qtyUnits": "मात्रा (यूनिट)"
+        "qtyUnits": "मात्रा (यूनिट)",
+        "others": "अन्य",
+        "othersNote": "अन्य नोट"
     },
     "dailySummary": {
         "tradeSummary": "व्यापार सारांश",
         "salesVsPurchases": "बिक्री बनाम खरीद",
         "totalSales": "कुल बिक्री",
         "totalPurchases": "कुल खरीद",
+        "totalOthers": "कुल अन्य",
         "expensesAndCashFlow": "व्यय और नकद प्रवाह",
         "paymentsReceived": "प्राप्त भुगतान",
         "paymentsPaid": "किए गए भुगतान",

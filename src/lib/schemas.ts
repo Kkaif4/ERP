@@ -66,6 +66,8 @@ export const purchaseBillSchema = z.object({
   labourCharges: z.number().nonnegative().max(1000000, "Charge too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
   freightCharges: z.number().nonnegative().max(1000000, "Charge too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
   advanceDeduction: z.number().nonnegative().max(1000000, "Deduction too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
+  othersAmount: z.number().max(1000000, "Amount too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
+  othersNote: z.string().optional(),
 });
 
 export const saleBillSchema = z.object({

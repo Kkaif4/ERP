@@ -228,6 +228,17 @@ export default function BillDetailPage() {
                                 <span>₹ {Number(bill.freightCharges).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                             </div>
                         )}
+                        {Number(bill.othersAmount) > 0 && (
+                            <div className="summary-row">
+                                <span>Others</span>
+                                <span>₹ {Number(bill.othersAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                            </div>
+                        )}
+                        {bill.othersNote && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '-8px', marginBottom: '8px', fontStyle: 'italic' }}>
+                                Note: {bill.othersNote}
+                            </div>
+                        )}
                         {Number(bill.taxAmount) > 0 && (
                             <div className="summary-row">
                                 <span>Tax</span>

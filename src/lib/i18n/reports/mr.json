@@ -40,13 +40,16 @@
         "type": "प्रकार",
         "category": "श्रेणी",
         "qtyKg": "वजन (किलो)",
-        "qtyUnits": "नग (यूनिट)"
+        "qtyUnits": "नग (यूनिट)",
+        "others": "इतर",
+        "othersNote": "इतर नोंद"
     },
     "dailySummary": {
         "tradeSummary": "व्यापार सारांश",
         "salesVsPurchases": "विक्री विरुद्ध खरेदी",
         "totalSales": "एकूण विक्री",
         "totalPurchases": "एकूण खरेदी",
+        "totalOthers": "एकूण इतर",
         "expensesAndCashFlow": "खर्च आणि रोख प्रवाह",
         "paymentsReceived": "प्राप्त देयके",
         "paymentsPaid": "दिलेली देयके",
