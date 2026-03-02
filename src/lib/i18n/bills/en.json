@@ -61,6 +61,8 @@
     "noStock": "No Stock"
   },
   "details": {
+    "farmerName": "Farmer",
+    "customerName": "Name",
     "back": "Back to History",
     "print": "Print Bill",
     "pageSize": "Page Size",

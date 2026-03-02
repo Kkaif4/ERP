@@ -4,23 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Printer,
-  Download,
   ArrowLeft,
-  FileText,
-  User,
-  Calendar,
-  Hash,
   Loader2,
-  CheckCircle2,
-  Building2,
   Phone,
   MapPin,
-  Smartphone,
-  Scale,
-  Layers,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
-import Link from "next/link";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { DateTime } from "luxon";
@@ -35,6 +24,8 @@ export default function BillDetailPage() {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pageSize, setPageSize] = useState<PageSize>("A4");
+  const [scale, setScale] = useState(1);
+  const [docHeight, setDocHeight] = useState(0);
   const billRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,6 +57,35 @@ export default function BillDetailPage() {
     };
     fetchBillAndConfig();
   }, [id, router]);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (typeof window !== "undefined") {
+        const width = window.innerWidth;
+        if (width < 840) {
+          // 800 is the target width of the bill document
+          const newScale = (width - 40) / 800;
+          setScale(newScale);
+        } else {
+          setScale(1);
+        }
+
+        if (billRef.current) {
+          setDocHeight(billRef.current.offsetHeight);
+        }
+      }
+    };
+
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    // Intersection observer or timeout to capture initial height after content render
+    const timer = setTimeout(updateScale, 500);
+
+    return () => {
+      window.removeEventListener("resize", updateScale);
+      clearTimeout(timer);
+    };
+  }, [bill, loading]);
 
   const handlePrint = () => {
     window.print();
@@ -128,7 +148,7 @@ export default function BillDetailPage() {
     <div className={`bill-view-container page-${pageSize.toLowerCase()}`}>
       {/* --- Action Header (Hidden during print) --- */}
       <div
-        className="no-print"
+        className="no-print action-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -205,520 +225,557 @@ export default function BillDetailPage() {
       </div>
 
       {/* --- THE BILL DOCUMENT --- */}
-      <div className="bill-document premium-card" ref={billRef}>
-        {/* --- Business Header Section (Centered) --- */}
-        <div className="bill-header">
-          <div className="business-logo-container">
-            {config?.logoBase64 && (
-              <img
-                src={config.logoBase64}
-                alt="Business Logo"
-                className="business-logo"
-              />
-            )}
-          </div>
-          <div className="business-info">
-            <h1 className="business-name">{bill.organization.name}</h1>
-            <p className="business-desc">
-              Vegetable Commission Agent & Wholesaler
-            </p>
-            <div className="business-meta">
-              {bill.organization.address && (
-                <div className="info-item">
-                  <MapPin size={12} />
-                  <span>{bill.organization.address}</span>
-                </div>
-              )}
-              {bill.organization.phone && (
-                <div className="info-item">
-                  <Phone size={12} />
-                  <span>+91 {bill.organization.phone}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="bill-meta-block">
-            <div className="meta-field">
-              <span className="meta-label">
-                {t("bills.details.billNo") || "Bill No"}:
-              </span>
-              <span className="meta-value">#{bill.billNumber}</span>
-            </div>
-            <div className="meta-field">
-              <span className="meta-label">
-                {t("bills.details.date") || "Date"}:
-              </span>
-              <span className="meta-value">
-                {bill?.billDate
-                  ? DateTime.fromISO(bill.billDate).toFormat("dd-MMM-yyyy")
-                  : "N/A"}
-              </span>
-            </div>
-            <div className="meta-jurisdiction">
-              {t("bills.details.jurisdiction", {
-                city: config?.city || "Latur",
-              })}
-            </div>
-          </div>
-        </div>
-
-        <div className="divider" />
-
-        {/* --- Party Information Section --- */}
+      <div
+        className="bill-scaling-wrapper"
+        style={{
+          width: "100%",
+          overflow: "hidden",
+          height: scale < 1 && docHeight ? `${docHeight * scale}px` : "auto",
+        }}
+      >
         <div
+          className="bill-document premium-card"
+          ref={billRef}
           style={{
-            marginBottom: "2rem",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "2rem",
-            border: "1.5px solid #eee",
-            borderRadius: "12px",
-            padding: "1.5rem",
+            transform: scale < 1 ? `scale(${scale})` : "none",
+            transformOrigin: "top center",
+            width: scale < 1 ? "800px" : "100%", // Use fixed width when scaling to preserve layout
+            maxWidth: "210mm",
+            margin: "0 auto",
           }}
         >
-          <div>
-            <h4
-              style={{
-                margin: "0 0 10px",
-                fontSize: "11px",
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: "0.15em",
-                borderBottom: "1px solid #eee",
-                paddingBottom: "6px",
-              }}
-            >
-              {isPurchase
-                ? t("bills.details.farmerDetails") || "Farmer Details"
-                : t("bills.details.customerDetails") || "Customer Details"}
-            </h4>
-            <p
-              style={{
-                margin: "0",
-                fontSize: "16px",
-                color: "#000",
-                fontWeight: 800,
-              }}
-            >
-              {partyName}
-            </p>
-            {isPurchase && bill.farmer?.village && (
-              <p
-                style={{
-                  margin: "4px 0 0",
-                  fontSize: "13px",
-                  color: "#475569",
-                  fontWeight: 600,
-                }}
-              >
-                <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                  {t("bills.details.village") || "Village"}:
-                </span>{" "}
-                {bill.farmer.village}
+          {/* --- Business Header Section (Centered) --- */}
+          <div className="bill-header">
+            <div className="business-logo-container">
+              {config?.logoBase64 && (
+                <img
+                  src={config.logoBase64}
+                  alt="Business Logo"
+                  className="business-logo"
+                />
+              )}
+            </div>
+            <div className="business-info">
+              <h1 className="business-name">{bill.organization.name}</h1>
+              <p className="business-desc">
+                Vegetable Commission Agent & Wholesaler
               </p>
-            )}
-            {partyMobile && (
-              <p
-                style={{
-                  margin: "4px 0 0",
-                  fontSize: "13px",
-                  color: "#475569",
-                  fontWeight: 600,
-                }}
-              >
-                <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                  {t("bills.details.mobile") || "Mobile"}:
-                </span>{" "}
-                {partyMobile}
-              </p>
-            )}
+              <div className="business-meta">
+                {bill.organization.address && (
+                  <div className="info-item">
+                    <MapPin size={12} />
+                    <span>{bill.organization.address}</span>
+                  </div>
+                )}
+                {bill.organization.phone && (
+                  <div className="info-item">
+                    <Phone size={12} />
+                    <span>+91 {bill.organization.phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="bill-meta-block">
+              <div className="meta-field">
+                <span className="meta-label">
+                  {t("bills.details.billNo") || "Bill No"}:
+                </span>
+                <span className="meta-value">#{bill.billNumber}</span>
+              </div>
+              <div className="meta-field">
+                <span className="meta-label">
+                  {t("bills.details.date") || "Date"}:
+                </span>
+                <span className="meta-value">
+                  {bill?.billDate
+                    ? DateTime.fromISO(bill.billDate).toFormat("dd-MMM-yyyy")
+                    : "N/A"}
+                </span>
+              </div>
+              <div className="meta-jurisdiction">
+                {t("bills.details.jurisdiction", {
+                  city: config?.city || "Latur",
+                })}
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* --- Item Details Table --- */}
-        <div className="items-container">
-          <table
+          <div className="divider" />
+
+          {/* --- Party Information Section --- */}
+          <div
             style={{
-              width: "100%",
-              borderCollapse: "collapse",
               marginBottom: "2rem",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "2rem",
+              border: "1.5px solid #eee",
+              borderRadius: "12px",
+              padding: "1.5rem",
             }}
           >
-            <thead>
-              <tr
+            <div>
+              <h4
                 style={{
-                  background: "#f8fafc",
-                  borderBottom: "2px solid #eee",
+                  margin: "0 0 10px",
+                  fontSize: "11px",
+                  color: "#000000ff",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.15em",
+                  borderBottom: "1px solid #eee",
+                  paddingBottom: "6px",
+                  fontWeight: 700,
                 }}
               >
-                <th
+                {isPurchase
+                  ? t("bills.details.farmerDetails") || "Farmer Details"
+                  : t("bills.details.customerDetails") || "Customer Details"}
+              </h4>
+              <span
+                style={{ color: "#94a3b8", fontWeight: 700, fontSize: "13px" }}
+              >
+                {isPurchase ? (
+                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                    {t("bills.details.farmerName") || "Farmer"}:
+                  </span>
+                ) : (
+                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                    {t("bills.details.customerName") || "Name"}:
+                  </span>
+                )}
+              </span>{" "}
+              {partyName}
+              {isPurchase && bill.farmer?.village && (
+                <p
                   style={{
-                    padding: "12px",
-                    textAlign: "left",
-                    fontSize: "11px",
-                    color: "#64748b",
-                    textTransform: "uppercase",
-                    fontWeight: 800,
+                    margin: "4px 0 0",
+                    fontSize: "13px",
+                    color: "#475569",
+                    fontWeight: 600,
                   }}
                 >
-                  {t("bills.details.srNo") || "Sr."}
-                </th>
-                <th
+                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                    {t("bills.details.village") || "Village"}:
+                  </span>{" "}
+                  {bill.farmer.village}
+                </p>
+              )}
+              {partyMobile && (
+                <p
                   style={{
-                    padding: "12px",
-                    textAlign: "left",
-                    fontSize: "11px",
-                    color: "#64748b",
-                    textTransform: "uppercase",
-                    fontWeight: 800,
+                    margin: "4px 0 0",
+                    fontSize: "13px",
+                    color: "#475569",
+                    fontWeight: 600,
                   }}
                 >
-                  {t("bills.details.description") || "Item Description"}
-                </th>
-                <th
+                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                    {t("bills.details.mobile") || "Mobile"}:
+                  </span>{" "}
+                  {partyMobile}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* --- Item Details Table --- */}
+          <div
+            className="items-container"
+            style={{
+              overflowX: "auto",
+              width: "100%",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                marginBottom: "2rem",
+                minWidth: "650px",
+              }}
+            >
+              <thead>
+                <tr
                   style={{
-                    padding: "12px",
-                    textAlign: "right",
-                    fontSize: "11px",
-                    color: "#64748b",
-                    textTransform: "uppercase",
-                    fontWeight: 800,
+                    background: "#f8fafc",
+                    borderBottom: "2px solid #eee",
                   }}
                 >
-                  {t("bills.details.units") || "Units"}
-                </th>
-                <th
-                  style={{
-                    padding: "12px",
-                    textAlign: "right",
-                    fontSize: "11px",
-                    color: "#64748b",
-                    textTransform: "uppercase",
-                    fontWeight: 800,
-                  }}
-                >
-                  {t("bills.details.weight") || "Weight (KG)"}
-                </th>
-                <th
-                  style={{
-                    padding: "12px",
-                    textAlign: "right",
-                    fontSize: "11px",
-                    color: "#64748b",
-                    textTransform: "uppercase",
-                    fontWeight: 800,
-                  }}
-                >
-                  {t("bills.details.rate") || "Rate"}
-                </th>
-                <th
-                  style={{
-                    padding: "12px",
-                    textAlign: "right",
-                    fontSize: "11px",
-                    color: "#64748b",
-                    textTransform: "uppercase",
-                    fontWeight: 800,
-                  }}
-                >
-                  {t("bills.details.amount") || "Amount"}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {bill.items.map((item: any, idx: number) => (
-                <tr key={item.id}>
-                  <td
+                  <th
                     style={{
                       padding: "12px",
-                      borderBottom: "1px solid #eee",
-                      fontSize: "13px",
-                      color: "#475569",
+                      textAlign: "left",
+                      fontSize: "11px",
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      fontWeight: 800,
                     }}
                   >
-                    {idx + 1}
-                  </td>
-                  <td
+                    {t("bills.details.srNo") || "Sr."}
+                  </th>
+                  <th
                     style={{
                       padding: "12px",
-                      borderBottom: "1px solid #eee",
-                      fontSize: "13px",
-                      color: "#475569",
+                      textAlign: "left",
+                      fontSize: "11px",
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      fontWeight: 800,
                     }}
                   >
-                    <div style={{ fontWeight: 600 }}>{item.item.name}</div>
-                    <div
+                    {t("bills.details.description") || "Item Description"}
+                  </th>
+                  <th
+                    style={{
+                      padding: "12px",
+                      textAlign: "right",
+                      fontSize: "11px",
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {t("bills.details.units") || "Units"}
+                  </th>
+                  <th
+                    style={{
+                      padding: "12px",
+                      textAlign: "right",
+                      fontSize: "11px",
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {t("bills.details.weight") || "Weight (KG)"}
+                  </th>
+                  <th
+                    style={{
+                      padding: "12px",
+                      textAlign: "right",
+                      fontSize: "11px",
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {t("bills.details.rate") || "Rate"}
+                  </th>
+                  <th
+                    style={{
+                      padding: "12px",
+                      textAlign: "right",
+                      fontSize: "11px",
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {t("bills.details.amount") || "Amount"}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {bill.items.map((item: any, idx: number) => (
+                  <tr key={item.id}>
+                    <td
                       style={{
-                        fontSize: "10px",
-                        color: "#94a3b8",
-                        textTransform: "uppercase",
-                        marginTop: "4px",
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                        fontSize: "13px",
+                        color: "#475569",
                       }}
                     >
-                      {item.pricingMode.replace("_", " ")}
-                    </div>
-                  </td>
+                      {idx + 1}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                        fontSize: "13px",
+                        color: "#475569",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{item.item.name}</div>
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: "#94a3b8",
+                          textTransform: "uppercase",
+                          marginTop: "4px",
+                        }}
+                      >
+                        {item.pricingMode.replace("_", " ")}
+                      </div>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                        textAlign: "right",
+                        fontSize: "13px",
+                        color: "#475569",
+                      }}
+                    >
+                      {Number(item.quantityUnits).toFixed(1)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                        textAlign: "right",
+                        fontSize: "13px",
+                        color: "#475569",
+                      }}
+                    >
+                      {Number(item.quantityKg).toFixed(2)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                        textAlign: "right",
+                        fontSize: "13px",
+                        color: "#475569",
+                      }}
+                    >
+                      ₹{Number(item.pricePerUnit).toLocaleString("en-IN")}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                        textAlign: "right",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#000",
+                      }}
+                    >
+                      ₹
+                      {Number(item.total).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr
+                  style={{
+                    borderTop: "2px solid #eee",
+                    fontWeight: 900,
+                    background: "#fdfdfd",
+                  }}
+                >
                   <td
+                    colSpan={2}
                     style={{
                       padding: "12px",
-                      borderBottom: "1px solid #eee",
-                      textAlign: "right",
-                      fontSize: "13px",
-                      color: "#475569",
+                      textAlign: "left",
+                      fontSize: "12px",
                     }}
                   >
-                    {Number(item.quantityUnits).toFixed(1)}
+                    {t("bills.details.totals") || "TOTALS"}
                   </td>
                   <td
                     style={{
                       padding: "12px",
-                      borderBottom: "1px solid #eee",
-                      textAlign: "right",
-                      fontSize: "13px",
-                      color: "#475569",
-                    }}
-                  >
-                    {Number(item.quantityKg).toFixed(2)}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px",
-                      borderBottom: "1px solid #eee",
-                      textAlign: "right",
-                      fontSize: "13px",
-                      color: "#475569",
-                    }}
-                  >
-                    ₹{Number(item.pricePerUnit).toLocaleString("en-IN")}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px",
-                      borderBottom: "1px solid #eee",
                       textAlign: "right",
                       fontSize: "14px",
-                      fontWeight: 700,
+                    }}
+                  >
+                    {totalUnits}
+                  </td>
+                  <td
+                    style={{
+                      padding: "12px",
+                      textAlign: "right",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {totalWeight.toFixed(2)}
+                  </td>
+                  <td style={{ padding: "12px", textAlign: "right" }}>-</td>
+                  <td
+                    style={{
+                      padding: "12px",
+                      textAlign: "right",
+                      fontSize: "16px",
                       color: "#000",
                     }}
                   >
                     ₹
-                    {Number(item.total).toLocaleString("en-IN", {
+                    {itemsSubtotal.toLocaleString("en-IN", {
                       minimumFractionDigits: 2,
                     })}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr
-                style={{
-                  borderTop: "2px solid #eee",
-                  fontWeight: 900,
-                  background: "#fdfdfd",
-                }}
-              >
-                <td
-                  colSpan={2}
-                  style={{
-                    padding: "12px",
-                    textAlign: "left",
-                    fontSize: "12px",
-                  }}
-                >
-                  {t("bills.details.totals") || "TOTALS"}
-                </td>
-                <td
-                  style={{
-                    padding: "12px",
-                    textAlign: "right",
-                    fontSize: "14px",
-                  }}
-                >
-                  {totalUnits}
-                </td>
-                <td
-                  style={{
-                    padding: "12px",
-                    textAlign: "right",
-                    fontSize: "14px",
-                  }}
-                >
-                  {totalWeight.toFixed(2)}
-                </td>
-                <td style={{ padding: "12px", textAlign: "right" }}>-</td>
-                <td
-                  style={{
-                    padding: "12px",
-                    textAlign: "right",
-                    fontSize: "16px",
-                    color: "#000",
-                  }}
-                >
-                  ₹
-                  {itemsSubtotal.toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                  })}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+              </tfoot>
+            </table>
+          </div>
 
-        {/* --- Charges & Summary Section --- */}
-        <div className="summary-grid">
-          {isPurchase ? (
-            <div className="charges-section">
-              <p className="section-label">
-                {t("bills.details.chargesSection") || "Charges & Adjustments"}
-              </p>
-              <div className="charges-list">
-                {/* Farmer Specific Charges */}
-                <div className="charge-item">
-                  <span>{t("bills.details.labour") || "Labour / Hamali"}</span>
-                  <span>- ₹{Number(bill.labourCharges).toFixed(2)}</span>
-                </div>
-                <div className="charge-item">
-                  <span>
-                    {t("bills.details.freight") || "Freight / Vehicle"}
-                  </span>
-                  <span>- ₹{Number(bill.freightCharges).toFixed(2)}</span>
-                </div>
-                <div className="charge-item deduction">
-                  <span>
-                    {t("bills.details.advance") || "Advance Adjusted"}
-                  </span>
-                  <span>- ₹{Number(bill.advanceDeduction).toFixed(2)}</span>
-                </div>
-                <div className="charge-item">
-                  <span>
-                    {t("bills.details.others") || "Others"} (
-                    {bill.othersNote || "Adjustment"})
-                  </span>
-                  <span>- ₹{Number(bill.othersAmount).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div />
-          )}
-
-          <div className="final-summary">
-            <div className="summary-box">
-              <div className="summary-row">
-                <span>{t("bills.details.grossTotal") || "Gross Total"}</span>
-                <span>
-                  ₹
-                  {Number(
-                    !isPurchase
-                      ? itemsSubtotal
-                      : bill.grossTotal || itemsSubtotal,
-                  ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-
-              {isPurchase && totalExpenses > 0 && (
-                <div className="summary-row" style={{ color: "#dc2626" }}>
-                  <span>
-                    {t("bills.details.totalExpenses") || "Total Expenses"}
-                  </span>
-                  <span>- ₹{totalExpenses.toFixed(2)}</span>
-                </div>
-              )}
-
-              {!isPurchase && (
-                <>
-                  <div className="summary-row">
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>
-                      {t("bills.details.tax") || "Market Fee / Tax"}
+          {/* --- Charges & Summary Section --- */}
+          <div className="summary-grid">
+            {isPurchase ? (
+              <div className="charges-section">
+                <p className="section-label">
+                  {t("bills.details.chargesSection") || "Charges & Adjustments"}
+                </p>
+                <div className="charges-list">
+                  {/* Farmer Specific Charges */}
+                  <div className="charge-item">
+                    <span>
+                      {t("bills.details.labour") || "Labour / Hamali"}
                     </span>
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>
-                      + ₹{Number(bill.taxAmount).toFixed(2)}
-                    </span>
+                    <span>- ₹{Number(bill.labourCharges).toFixed(2)}</span>
                   </div>
-                  <div className="summary-row">
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>
-                      {t("bills.details.commission") || "Commission"}
+                  <div className="charge-item">
+                    <span>
+                      {t("bills.details.freight") || "Freight / Vehicle"}
                     </span>
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>
-                      + ₹{Number(bill.serviceChargeAmount).toFixed(2)}
-                    </span>
+                    <span>- ₹{Number(bill.freightCharges).toFixed(2)}</span>
                   </div>
-                </>
-              )}
-              <div
-                className="summary-row"
-                style={{ fontWeight: 800, color: "var(--primary-main)" }}
-              >
-                <span>
-                  {t("bills.details.currentBillTotal") || "Current Bill Total"}
-                </span>
-                <span>
-                  ₹
-                  {Number(bill.netTotal).toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-
-              <div
-                className="summary-row"
-                style={{
-                  color: "#64748b",
-                  borderTop: "1px dashed #e2e8f0",
-                  paddingTop: "8px",
-                  marginTop: "8px",
-                }}
-              >
-                <span>
-                  {t("bills.details.previousBalance") || "Previous Balance"}
-                </span>
-                <span>
-                  ₹
-                  {Number(bill.previousBalance).toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-
-              <div className="summary-row main-total">
-                <span>{t("bills.details.finalAmount") || "FINAL AMOUNT"}</span>
-                <span>
-                  ₹
-                  {Number(bill.finalAmount || bill.netTotal).toLocaleString(
-                    "en-IN",
-                    { minimumFractionDigits: 2 },
-                  )}
-                </span>
-              </div>
-            </div>
-
-            {!isPurchase && upiString && (
-              <div className="upi-section">
-                <div className="upi-qr">
-                  <QRCodeSVG value={upiString} size={100} level="M" />
-                </div>
-                <div className="upi-info">
-                  <p className="upi-label">
-                    {t("bills.details.scanToPay") || "Scan to Pay via UPI"}
-                  </p>
-                  <p className="upi-id">{config.upiId}</p>
+                  <div className="charge-item deduction">
+                    <span>
+                      {t("bills.details.advance") || "Advance Adjusted"}
+                    </span>
+                    <span>- ₹{Number(bill.advanceDeduction).toFixed(2)}</span>
+                  </div>
+                  <div className="charge-item">
+                    <span>
+                      {t("bills.details.others") || "Others"} (
+                      {bill.othersNote || "Adjustment"})
+                    </span>
+                    <span>- ₹{Number(bill.othersAmount).toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
+            ) : (
+              <div />
             )}
-          </div>
-        </div>
 
-        {/* --- Footer Section --- */}
-        <div className="bill-footer">
-          <div className="footer-terms">
-            <p>
-              {t("bills.details.footerTerms2", {
-                city: config?.city || "Latur",
-              })}
-            </p>
+            <div className="final-summary">
+              <div className="summary-box">
+                <div className="summary-row">
+                  <span>{t("bills.details.grossTotal") || "Gross Total"}</span>
+                  <span>
+                    ₹
+                    {Number(
+                      !isPurchase
+                        ? itemsSubtotal
+                        : bill.grossTotal || itemsSubtotal,
+                    ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {isPurchase && totalExpenses > 0 && (
+                  <div className="summary-row" style={{ color: "#dc2626" }}>
+                    <span>
+                      {t("bills.details.totalExpenses") || "Total Expenses"}
+                    </span>
+                    <span>- ₹{totalExpenses.toFixed(2)}</span>
+                  </div>
+                )}
+
+                {!isPurchase && (
+                  <>
+                    <div className="summary-row">
+                      <span style={{ fontSize: "12px", color: "#64748b" }}>
+                        {t("bills.details.tax") || "Market Fee / Tax"}
+                      </span>
+                      <span style={{ fontSize: "12px", color: "#64748b" }}>
+                        + ₹{Number(bill.taxAmount).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="summary-row">
+                      <span style={{ fontSize: "12px", color: "#64748b" }}>
+                        {t("bills.details.commission") || "Commission"}
+                      </span>
+                      <span style={{ fontSize: "12px", color: "#64748b" }}>
+                        + ₹{Number(bill.serviceChargeAmount).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
+                <div
+                  className="summary-row"
+                  style={{ fontWeight: 800, color: "var(--primary-main)" }}
+                >
+                  <span>
+                    {t("bills.details.currentBillTotal") ||
+                      "Current Bill Total"}
+                  </span>
+                  <span>
+                    ₹
+                    {Number(bill.netTotal).toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+
+                <div
+                  className="summary-row"
+                  style={{
+                    color: "#64748b",
+                    borderTop: "1px dashed #e2e8f0",
+                    paddingTop: "8px",
+                    marginTop: "8px",
+                  }}
+                >
+                  <span>
+                    {t("bills.details.previousBalance") || "Previous Balance"}
+                  </span>
+                  <span>
+                    ₹
+                    {Number(bill.previousBalance).toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+
+                <div className="summary-row main-total">
+                  <span>
+                    {t("bills.details.finalAmount") || "FINAL AMOUNT"}
+                  </span>
+                  <span>
+                    ₹
+                    {Number(bill.finalAmount || bill.netTotal).toLocaleString(
+                      "en-IN",
+                      { minimumFractionDigits: 2 },
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {!isPurchase && upiString && (
+                <div className="upi-section">
+                  <div className="upi-qr">
+                    <QRCodeSVG value={upiString} size={100} level="M" />
+                  </div>
+                  <div className="upi-info">
+                    <p className="upi-label">
+                      {t("bills.details.scanToPay") || "Scan to Pay via UPI"}
+                    </p>
+                    <p className="upi-id">{config.upiId}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="footer-page">
-            {t("bills.details.page") || "Page"} 1 of 1
+
+          {/* --- Footer Section --- */}
+          <div className="bill-footer">
+            <div className="footer-terms">
+              <p>
+                {t("bills.details.footerTerms2", {
+                  city: config?.city || "Latur",
+                })}
+              </p>
+            </div>
+            <div className="footer-page">
+              {t("bills.details.page") || "Page"} 1 of 1
+            </div>
           </div>
         </div>
       </div>
@@ -752,64 +809,17 @@ export default function BillDetailPage() {
           margin-bottom: 2rem;
         }
 
-        .back-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          color: var(--text-muted);
-          font-size: 13px;
-          font-weight: 800;
-          text-decoration: none;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-        }
-
-        .page-selector {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: #fff;
-          padding: 8px 12px;
-          border-radius: 12px;
-          border: 1.5px solid var(--border-main);
-          color: var(--text-muted);
-        }
-
-        .page-select {
-          border: none;
-          background: none;
-          font-size: 12px;
-          font-weight: 800;
-          color: var(--text-main);
-          outline: none;
-          cursor: pointer;
-        }
-
-        .print-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 24px;
-          background-color: var(--primary-main);
-          color: #fff;
-          border-radius: 12px;
-          border: none;
-          fontweight: 900;
-          fontsize: 13px;
-          cursor: pointer;
-          box-shadow: 0 10px 15px -3px rgba(21, 128, 61, 0.2);
-        }
-
         /* --- Bill Document Styles --- */
         .bill-document {
           background-color: #fff;
           padding: 40px;
           border-radius: 0; /* Traditional for bills */
           border: 1px solid #e2e8f0;
-          width: 210mm; /* A4 width */
+          width: 800px; /* Fixed width to maintain layout */
           min-height: 297mm;
           color: #000;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.05);
+          margin: 0 auto;
         }
 
         .bill-header {

@@ -61,6 +61,8 @@
     "noStock": "स्टॉक नाही"
   },
   "details": {
+    "farmerName": "शेतकरी",
+    "customerName": "नाव",
     "back": "इतिहास (History) वर परत जा",
     "print": "बिल प्रिंट करा",
     "pageSize": "पेज आकार",
