@@ -107,9 +107,19 @@ export default function BillDetailPage() {
     (acc: any, item: any) => ({
       units: acc.units + Number(item.quantityUnits),
       weight: acc.weight + Number(item.quantityKg),
+      itemSubtotal: acc.itemSubtotal + Number(item.total),
     }),
-    { units: 0, weight: 0 },
+    { units: 0, weight: 0, itemSubtotal: 0 },
   );
+
+  const itemsSubtotal = totals.itemSubtotal;
+
+  const totalExpenses = isPurchase
+    ? Number(bill.labourCharges || 0) +
+      Number(bill.freightCharges || 0) +
+      Number(bill.advanceDeduction || 0) +
+      Number(bill.othersAmount || 0)
+    : 0;
 
   const totalUnits = totals.units.toFixed(1);
   const totalWeight = totals.weight;
@@ -545,7 +555,7 @@ export default function BillDetailPage() {
                   }}
                 >
                   ₹
-                  {bill.subtotal.toLocaleString("en-IN", {
+                  {itemsSubtotal.toLocaleString("en-IN", {
                     minimumFractionDigits: 2,
                   })}
                 </td>
@@ -556,59 +566,41 @@ export default function BillDetailPage() {
 
         {/* --- Charges & Summary Section --- */}
         <div className="summary-grid">
-          <div className="charges-section">
-            <p className="section-label">
-              {t("bills.details.chargesSection") || "Charges & Adjustments"}
-            </p>
-            <div className="charges-list">
-              {/* Customer Specific Charges */}
-              {!isPurchase && (
-                <>
-                  <div className="charge-item">
-                    <span>{t("bills.details.tax") || "Market Fee / Tax"}</span>
-                    <span>+ ₹{Number(bill.taxAmount).toFixed(2)}</span>
-                  </div>
-                  <div className="charge-item">
-                    <span>{t("bills.details.commission") || "Commission"}</span>
-                    <span>
-                      + ₹{Number(bill.serviceChargeAmount).toFixed(2)}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              {/* Farmer Specific Charges */}
-              {isPurchase && (
-                <>
-                  <div className="charge-item">
-                    <span>
-                      {t("bills.details.labour") || "Labour / Hamali"}
-                    </span>
-                    <span>- ₹{Number(bill.labourCharges).toFixed(2)}</span>
-                  </div>
-                  <div className="charge-item">
-                    <span>
-                      {t("bills.details.freight") || "Freight / Vehicle"}
-                    </span>
-                    <span>- ₹{Number(bill.freightCharges).toFixed(2)}</span>
-                  </div>
-                  <div className="charge-item deduction">
-                    <span>
-                      {t("bills.details.advance") || "Advance Adjusted"}
-                    </span>
-                    <span>- ₹{Number(bill.advanceDeduction).toFixed(2)}</span>
-                  </div>
-                  <div className="charge-item">
-                    <span>
-                      {t("bills.details.others") || "Others"} (
-                      {bill.othersNote || "Adjustment"})
-                    </span>
-                    <span>- ₹{Number(bill.othersAmount).toFixed(2)}</span>
-                  </div>
-                </>
-              )}
+          {isPurchase ? (
+            <div className="charges-section">
+              <p className="section-label">
+                {t("bills.details.chargesSection") || "Charges & Adjustments"}
+              </p>
+              <div className="charges-list">
+                {/* Farmer Specific Charges */}
+                <div className="charge-item">
+                  <span>{t("bills.details.labour") || "Labour / Hamali"}</span>
+                  <span>- ₹{Number(bill.labourCharges).toFixed(2)}</span>
+                </div>
+                <div className="charge-item">
+                  <span>
+                    {t("bills.details.freight") || "Freight / Vehicle"}
+                  </span>
+                  <span>- ₹{Number(bill.freightCharges).toFixed(2)}</span>
+                </div>
+                <div className="charge-item deduction">
+                  <span>
+                    {t("bills.details.advance") || "Advance Adjusted"}
+                  </span>
+                  <span>- ₹{Number(bill.advanceDeduction).toFixed(2)}</span>
+                </div>
+                <div className="charge-item">
+                  <span>
+                    {t("bills.details.others") || "Others"} (
+                    {bill.othersNote || "Adjustment"})
+                  </span>
+                  <span>- ₹{Number(bill.othersAmount).toFixed(2)}</span>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div />
+          )}
 
           <div className="final-summary">
             <div className="summary-box">
@@ -616,12 +608,43 @@ export default function BillDetailPage() {
                 <span>{t("bills.details.grossTotal") || "Gross Total"}</span>
                 <span>
                   ₹
-                  {Number(bill.grossTotal || bill.subtotal).toLocaleString(
-                    "en-IN",
-                    { minimumFractionDigits: 2 },
-                  )}
+                  {Number(
+                    !isPurchase
+                      ? itemsSubtotal
+                      : bill.grossTotal || itemsSubtotal,
+                  ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </span>
               </div>
+
+              {isPurchase && totalExpenses > 0 && (
+                <div className="summary-row" style={{ color: "#dc2626" }}>
+                  <span>
+                    {t("bills.details.totalExpenses") || "Total Expenses"}
+                  </span>
+                  <span>- ₹{totalExpenses.toFixed(2)}</span>
+                </div>
+              )}
+
+              {!isPurchase && (
+                <>
+                  <div className="summary-row">
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>
+                      {t("bills.details.tax") || "Market Fee / Tax"}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>
+                      + ₹{Number(bill.taxAmount).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="summary-row">
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>
+                      {t("bills.details.commission") || "Commission"}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>
+                      + ₹{Number(bill.serviceChargeAmount).toFixed(2)}
+                    </span>
+                  </div>
+                </>
+              )}
               <div
                 className="summary-row"
                 style={{ fontWeight: 800, color: "var(--primary-main)" }}

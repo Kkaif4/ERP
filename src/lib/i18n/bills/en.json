@@ -87,6 +87,7 @@
     "tax": "Market Fee / Tax",
     "commission": "Commission",
     "advance": "Advance Adjusted",
+    "totalExpenses": "Total Expenses",
     "others": "Others",
     "grossTotal": "Gross Total",
     "netPayable": "NET PAYABLE",
