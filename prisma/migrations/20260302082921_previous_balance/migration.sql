@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Bill" ADD COLUMN     "finalAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "previousBalance" DECIMAL(12,2) NOT NULL DEFAULT 0;

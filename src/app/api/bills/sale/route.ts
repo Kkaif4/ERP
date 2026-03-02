@@ -30,6 +30,7 @@ export async function POST(req: Request) {
         { status: 404 },
       );
     }
+    const previousBalance = Number(customer.balance);
 
     // Fetch Business Config
     const config = await prisma.businessConfig.findUnique({
@@ -39,16 +40,23 @@ export async function POST(req: Request) {
     // Stock Validation
     if (config?.enableStockRestriction) {
       const { getBatchAvailableStock } = await import("@/lib/inventory");
-      const requestedItemIds = Array.from(new Set(items.map((i: any) => i.itemId)));
+      const requestedItemIds = Array.from(
+        new Set(items.map((i: any) => i.itemId)),
+      );
       const [stockMap, dbItems] = await Promise.all([
         getBatchAvailableStock(requestedItemIds, session.organizationId!),
         prisma.item.findMany({
-          where: { id: { in: requestedItemIds }, organizationId: session.organizationId },
-          select: { id: true, name: true }
-        })
+          where: {
+            id: { in: requestedItemIds },
+            organizationId: session.organizationId,
+          },
+          select: { id: true, name: true },
+        }),
       ]);
 
-      const itemNamesMap = Object.fromEntries(dbItems.map(i => [i.id, i.name]));
+      const itemNamesMap = Object.fromEntries(
+        dbItems.map((i) => [i.id, i.name]),
+      );
 
       for (const item of items) {
         const stock = stockMap[item.itemId];
@@ -59,14 +67,18 @@ export async function POST(req: Request) {
 
         if (item.quantityKg > availKg) {
           return NextResponse.json(
-            { error: `Insufficient stock for ${itemName}. Available: ${availKg} KG, Requested: ${item.quantityKg} KG` },
-            { status: 400 }
+            {
+              error: `Insufficient stock for ${itemName}. Available: ${availKg} KG, Requested: ${item.quantityKg} KG`,
+            },
+            { status: 400 },
           );
         }
         if (item.quantityUnits > availUnits) {
           return NextResponse.json(
-            { error: `Insufficient stock for ${itemName}. Available: ${availUnits} Units, Requested: ${item.quantityUnits} Units` },
-            { status: 400 }
+            {
+              error: `Insufficient stock for ${itemName}. Available: ${availUnits} Units, Requested: ${item.quantityUnits} Units`,
+            },
+            { status: 400 },
           );
         }
       }
@@ -114,6 +126,7 @@ export async function POST(req: Request) {
     // 3. Totals
     const grossTotal = subtotal + taxAmount + serviceChargeAmount;
     const netTotal = grossTotal;
+    const finalAmount = netTotal + previousBalance;
 
     // 5. Generate Bill Number
     const lastBill = await prisma.bill.findFirst({
@@ -146,6 +159,8 @@ export async function POST(req: Request) {
           grossTotal,
           advanceDeduction: 0,
           netTotal,
+          previousBalance,
+          finalAmount,
           createdById: session.userId,
           items: {
             create: lineItems,
@@ -182,8 +197,8 @@ export async function POST(req: Request) {
     const { syncItemStock } = await import("@/lib/inventory");
     await Promise.all(
       uniqueItemIds.map((itemId: any) =>
-        syncItemStock(itemId, session.organizationId!)
-      )
+        syncItemStock(itemId, session.organizationId!),
+      ),
     );
 
     return NextResponse.json(result);

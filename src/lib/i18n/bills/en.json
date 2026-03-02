@@ -91,6 +91,8 @@
     "grossTotal": "Gross Total",
     "netPayable": "NET PAYABLE",
     "finalAmount": "FINAL AMOUNT",
+    "currentBillTotal": "Current Bill Total",
+    "previousBalance": "Previous Balance",
     "scanToPay": "Scan to Pay via UPI",
     "footerTerms2": "Subject to {{city}} jurisdiction only.",
     "page": "Page"

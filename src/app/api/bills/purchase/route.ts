@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     if (!farmer) {
       return NextResponse.json({ error: "Farmer not found" }, { status: 404 });
     }
+    const previousBalance = Number(farmer.balance);
 
     // Fetch Business Config
     const config = await prisma.businessConfig.findUnique({
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
 
     const grossTotal = subtotal; // No tax/service on purchase
     const netTotal = subtotal - lc - fc - ad - oa;
+    const finalAmount = netTotal + previousBalance;
 
     // 3. Generate Bill Number
     const lastBill = await prisma.bill.findFirst({
@@ -107,6 +109,8 @@ export async function POST(req: Request) {
           othersNote,
           advanceDeduction: Number(advanceDeduction),
           netTotal,
+          previousBalance,
+          finalAmount,
           createdById: session.userId,
           items: {
             create: lineItems,
@@ -143,8 +147,8 @@ export async function POST(req: Request) {
     const { syncItemStock } = await import("@/lib/inventory");
     await Promise.all(
       uniqueItemIds.map((itemId: any) =>
-        syncItemStock(itemId, session.organizationId!)
-      )
+        syncItemStock(itemId, session.organizationId!),
+      ),
     );
 
     return NextResponse.json(result);

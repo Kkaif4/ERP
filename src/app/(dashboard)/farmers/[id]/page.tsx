@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
 import {
   ArrowLeft,
@@ -615,7 +616,12 @@ export default function FarmerLedgerPage() {
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              color: entry.type === "BILL" ? GREEN : entry.type === "OPENING" ? "#64748b" : "#0ea5e9",
+                              color:
+                                entry.type === "BILL"
+                                  ? GREEN
+                                  : entry.type === "OPENING"
+                                    ? "#64748b"
+                                    : "#0ea5e9",
                             }}
                           >
                             {entry.type === "BILL" ? (
@@ -635,11 +641,42 @@ export default function FarmerLedgerPage() {
                                 color: "var(--text-main)",
                               }}
                             >
-                              {entry.description.includes(".")
-                                ? entry.description.includes("|")
-                                  ? t(entry.description.split("|")[0], { mode: entry.description.split("|")[1] })
-                                  : t(entry.description)
-                                : entry.description}
+                              {entry.type === "BILL" ? (
+                                <Link
+                                  href={`/bills/${entry.id}`}
+                                  style={{
+                                    color: GREEN,
+                                    textDecoration: "none",
+                                    fontWeight: 900,
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.textDecoration =
+                                      "underline";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.textDecoration =
+                                      "none";
+                                  }}
+                                >
+                                  {entry.description.includes(".")
+                                    ? entry.description.includes("|")
+                                      ? t(entry.description.split("|")[0], {
+                                          mode: entry.description.split("|")[1],
+                                        })
+                                      : t(entry.description)
+                                    : entry.description}
+                                </Link>
+                              ) : entry.description.includes(".") ? (
+                                entry.description.includes("|") ? (
+                                  t(entry.description.split("|")[0], {
+                                    mode: entry.description.split("|")[1],
+                                  })
+                                ) : (
+                                  t(entry.description)
+                                )
+                              ) : (
+                                entry.description
+                              )}
                             </p>
                             {entry.meta && (
                               <p
@@ -752,7 +789,12 @@ export default function FarmerLedgerPage() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: entry.type === "BILL" ? GREEN : entry.type === "OPENING" ? "#64748b" : "#0ea5e9",
+                          color:
+                            entry.type === "BILL"
+                              ? GREEN
+                              : entry.type === "OPENING"
+                                ? "#64748b"
+                                : "#0ea5e9",
                         }}
                       >
                         {entry.type === "BILL" ? (
@@ -772,11 +814,34 @@ export default function FarmerLedgerPage() {
                             color: "var(--text-main)",
                           }}
                         >
-                          {entry.description.includes(".")
-                            ? entry.description.includes("|")
-                              ? t(entry.description.split("|")[0], { mode: entry.description.split("|")[1] })
-                              : t(entry.description)
-                            : entry.description}
+                          {entry.type === "BILL" ? (
+                            <Link
+                              href={`/bills/${entry.id}`}
+                              style={{
+                                color: GREEN,
+                                textDecoration: "none",
+                                fontWeight: 900,
+                              }}
+                            >
+                              {entry.description.includes(".")
+                                ? entry.description.includes("|")
+                                  ? t(entry.description.split("|")[0], {
+                                      mode: entry.description.split("|")[1],
+                                    })
+                                  : t(entry.description)
+                                : entry.description}
+                            </Link>
+                          ) : entry.description.includes(".") ? (
+                            entry.description.includes("|") ? (
+                              t(entry.description.split("|")[0], {
+                                mode: entry.description.split("|")[1],
+                              })
+                            ) : (
+                              t(entry.description)
+                            )
+                          ) : (
+                            entry.description
+                          )}
                         </p>
                         <p
                           style={{
@@ -1077,8 +1142,8 @@ export default function FarmerLedgerPage() {
                         {roundOff
                           ? "0.00"
                           : remainingDue.toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
+                              minimumFractionDigits: 2,
+                            })}
                       </p>
                     </div>
                   </div>

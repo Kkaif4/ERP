@@ -91,6 +91,8 @@
     "grossTotal": "एकूण रक्कम",
     "netPayable": "निव्वळ देय",
     "finalAmount": "अंतिम रक्कम",
+    "currentBillTotal": "चालू बिल एकूण",
+    "previousBalance": "मागील शिल्लक",
     "scanToPay": "UPI द्वारे पेमेंट करण्यासाठी स्कॅन करा",
     "footerTerms2": "केवळ {{city}} न्यायक्षेत्राच्या अधीन.",
     "page": "पेज"
