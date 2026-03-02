@@ -11,7 +11,6 @@ import Link from "next/link";
 import ReportStats from "@/components/reports/ReportStats";
 import ReportTable from "@/components/reports/ReportTable";
 import { toast } from "sonner";
-import { openPrintWindow } from "@/lib/print";
 
 export default function FinancialReportsPage() {
     const { t } = useTranslation();
@@ -104,7 +103,6 @@ export default function FinancialReportsPage() {
         });
         html += '</tbody></table>';
 
-        openPrintWindow(reportLabel, html);
     };
 
     return (

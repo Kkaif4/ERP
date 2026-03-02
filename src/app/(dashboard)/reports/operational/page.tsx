@@ -2,20 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/lib/i18n";
+import { downloadPDF, printPDF } from "@/lib/print";
 import {
     FileText, Download, Loader2,
     BarChart3, RefreshCcw,
-    TrendingUp, User, ShoppingCart, CreditCard, ArrowLeft
+    TrendingUp, User, ShoppingCart, CreditCard, ArrowLeft, Printer
 } from "lucide-react";
 import Link from "next/link";
 import DateRangePicker from "@/components/reports/DateRangePicker";
 import ReportStats from "@/components/reports/ReportStats";
 import ReportTable from "@/components/reports/ReportTable";
 import { toast } from "sonner";
-import { openPrintWindow } from "@/lib/print";
 
 export default function OperationalReportsPage() {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const [reportType, setReportType] = useState("FARMER_PURCHASE");
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
@@ -112,65 +112,17 @@ export default function OperationalReportsPage() {
 
     const handleDownloadPDF = () => {
         if (!summary) return;
-
         const reportLabel = reportTypes.find(r => r.id === reportType)?.label || "Report";
-        let html = "";
+        downloadPDF(
+            `/api/reports/operational/pdf?type=${reportType}&startDate=${startDate}&endDate=${endDate}`,
+            `${reportLabel}_${startDate}_to_${endDate}.pdf`,
+            { lang: language }
+        );
+    };
 
-        // Summary Stats HTML
-        html += '<div class="stats-grid">';
-        stats.forEach(s => {
-            html += '<div class="stat-box">' +
-                '<div class="stat-label">' + s.label + '</div>' +
-                '<div class="stat-value">' + (typeof s.value === 'number' ? '₹ ' + (s.value || 0).toLocaleString("en-IN") : s.value) + '</div>' +
-                '</div>';
-        });
-        html += '</div>';
-
-        if (reportType === "DAILY_SUMMARY") {
-            html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 30px;">' +
-                '<div class="stat-box">' +
-                '<h3 style="margin-top:0">' + t("reports.dailySummary.tradeSummary") + '</h3>' +
-                '<p>' + t("reports.dailySummary.totalSales") + ': <strong>₹ ' + (summary.saleTotal || 0).toLocaleString("en-IN") + '</strong></p>' +
-                '<p>' + t("reports.dailySummary.totalPurchases") + ': <strong>₹ ' + (summary.purchaseTotal || 0).toLocaleString("en-IN") + '</strong></p>' +
-                '<p>' + t("reports.dailySummary.totalOthers") + ': <strong>₹ ' + (summary.othersTotal || 0).toLocaleString("en-IN") + '</strong></p>' +
-                '</div>' +
-                '<div class="stat-box">' +
-                '<h3 style="margin-top:0">' + t("reports.dailySummary.expensesAndCashFlow") + '</h3>' +
-                '<p>' + t("reports.dailySummary.paymentsReceived") + ': <strong>₹ ' + (summary.paymentsIn || 0).toLocaleString("en-IN") + '</strong></p>' +
-                '<p>' + t("reports.dailySummary.paymentsPaid") + ': <strong>₹ ' + (summary.paymentsOut || 0).toLocaleString("en-IN") + '</strong></p>' +
-                '<p>' + t("reports.dailySummary.businessExpenses") + ': <strong>₹ ' + (summary.expenseTotal || 0).toLocaleString("en-IN") + '</strong></p>' +
-                '</div>' +
-                '</div>';
-        } else {
-            // Table HTML
-            const columns = getColumns();
-            html += '<table><thead><tr>';
-            columns.forEach(col => {
-                html += '<th>' + col.label + '</th>';
-            });
-            html += '</tr></thead><tbody>';
-
-            data.forEach(item => {
-                html += '<tr>';
-                columns.forEach(col => {
-                    let value = "";
-                    if (col.pdfValue) {
-                        value = (col.pdfValue as any)(item[col.key], item);
-                    } else if (typeof col.render === 'function') {
-                        // Cast to any to avoid TS error on argument count
-                        const rendered = (col.render as any)(item[col.key], item);
-                        value = (typeof rendered === 'string' || typeof rendered === 'number') ? String(rendered) : String(item[col.key] || "");
-                    } else {
-                        value = String(item[col.key] || "");
-                    }
-                    html += '<td class="' + (col.align === 'right' ? 'text-right' : '') + '">' + value + '</td>';
-                });
-                html += '</tr>';
-            });
-            html += '</tbody></table>';
-        }
-
-        openPrintWindow(reportLabel + " (" + startDate + " to " + endDate + ")", html);
+    const handlePrintPDF = () => {
+        if (!summary) return;
+        printPDF(`/api/reports/operational/pdf?type=${reportType}&startDate=${startDate}&endDate=${endDate}`, { lang: language });
     };
 
     return (
@@ -218,9 +170,16 @@ export default function OperationalReportsPage() {
                         <RefreshCcw size={18} className={loading ? "animate-spin" : ""} />
                     </button>
                     <button
+                        onClick={handlePrintPDF}
+                        disabled={loading || !summary}
+                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "white", color: "black", borderRadius: "12px", border: "1.5px solid black", fontWeight: 800, fontSize: "12px", cursor: "pointer", opacity: (loading || !summary) ? 0.5 : 1 }}
+                    >
+                        <Printer size={16} /> {t("common.print") || "PRINT"}
+                    </button>
+                    <button
                         onClick={handleDownloadPDF}
                         disabled={loading || !summary}
-                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "var(--primary-main)", color: "#fff", borderRadius: "12px", border: "none", fontWeight: 800, fontSize: "12px", cursor: "pointer", opacity: (loading || !summary) ? 0.5 : 1 }}
+                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "black", color: "#fff", borderRadius: "12px", border: "none", fontWeight: 800, fontSize: "12px", cursor: "pointer", opacity: (loading || !summary) ? 0.5 : 1 }}
                     >
                         <Download size={16} /> {t("common.downloadPdf") || "DOWNLOAD PDF"}
                     </button>
@@ -303,14 +262,14 @@ export default function OperationalReportsPage() {
             {reportType === "DAILY_SUMMARY" && summary && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
                     <div className="premium-card" style={{ padding: "2rem" }}>
-                        <h3 style={{ margin: "0 0 1.5rem", fontSize: "1.125rem", fontWeight: 900 }}>Sales vs Purchases</h3>
+                        <h3 style={{ margin: "0 0 1.5rem", fontSize: "1.125rem", fontWeight: 900 }}>{t("reports.dailySummary.salesVsPurchases")}</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ fontWeight: 700, color: "#64748b" }}>Total Sales</span>
+                                <span style={{ fontWeight: 700, color: "#64748b" }}>{t("reports.dailySummary.totalSales")}</span>
                                 <span style={{ fontWeight: 900, color: "#0369a1" }}>₹ {summary.saleTotal?.toLocaleString("en-IN") || '0'}</span>
                             </div>
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ fontWeight: 700, color: "#64748b" }}>Total Purchases</span>
+                                <span style={{ fontWeight: 700, color: "#64748b" }}>{t("reports.dailySummary.totalPurchases")}</span>
                                 <span style={{ fontWeight: 900, color: "#15803d" }}>₹ {summary.purchaseTotal?.toLocaleString("en-IN") || '0'}</span>
                             </div>
                             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.5rem", borderTop: "1px solid #f1f5f9" }}>
@@ -320,18 +279,18 @@ export default function OperationalReportsPage() {
                         </div>
                     </div>
                     <div className="premium-card" style={{ padding: "2rem" }}>
-                        <h3 style={{ margin: "0 0 1.5rem", fontSize: "1.125rem", fontWeight: 900 }}>Cash Flow & Expenses</h3>
+                        <h3 style={{ margin: "0 0 1.5rem", fontSize: "1.125rem", fontWeight: 900 }}>{t("reports.dailySummary.expensesAndCashFlow")}</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ fontWeight: 700, color: "#64748b" }}>Payments Received</span>
+                                <span style={{ fontWeight: 700, color: "#64748b" }}>{t("reports.dailySummary.paymentsReceived")}</span>
                                 <span style={{ fontWeight: 900, color: "#7c3aed" }}>₹ {summary.paymentsIn?.toLocaleString("en-IN") || '0'}</span>
                             </div>
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ fontWeight: 700, color: "#64748b" }}>Payments Paid</span>
+                                <span style={{ fontWeight: 700, color: "#64748b" }}>{t("reports.dailySummary.paymentsPaid")}</span>
                                 <span style={{ fontWeight: 900, color: "#ea580c" }}>₹ {summary.paymentsOut?.toLocaleString("en-IN") || '0'}</span>
                             </div>
                             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.5rem", borderTop: "1px solid #f1f5f9" }}>
-                                <span style={{ fontWeight: 700, color: "#64748b" }}>Business Expenses</span>
+                                <span style={{ fontWeight: 700, color: "#64748b" }}>{t("reports.dailySummary.businessExpenses")}</span>
                                 <span style={{ fontWeight: 900, color: "#e11d48" }}>₹ {summary.expenseTotal?.toLocaleString("en-IN") || '0'}</span>
                             </div>
                         </div>

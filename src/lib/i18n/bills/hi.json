@@ -65,6 +65,7 @@
     "customerName": "नाम",
     "back": "वापस इतिहास (History) पर जाएं",
     "print": "बिल प्रिंट करें",
+    "downloadPdf": "पीडीएफ डाउनलोड करें",
     "pageSize": "पेज साइज",
     "billNo": "बिल नंबर",
     "date": "दिनांक",

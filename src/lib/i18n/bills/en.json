@@ -65,6 +65,7 @@
     "customerName": "Name",
     "back": "Back to History",
     "print": "Print Bill",
+    "downloadPdf": "Download PDF",
     "pageSize": "Page Size",
     "billNo": "Bill No",
     "date": "Date",

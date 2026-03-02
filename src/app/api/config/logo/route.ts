@@ -19,13 +19,13 @@ export async function POST(req: NextRequest) {
 
         const buffer = Buffer.from(await file.arrayBuffer());
 
-        // Process image with Sharp: Resize to max 400px width, convert to WebP
+        // Process image with Sharp: Resize to max 400px width, convert to JPEG
         const optimizedBuffer = await sharp(buffer)
             .resize({ width: 400, withoutEnlargement: true })
-            .webp({ quality: 80 })
+            .jpeg({ quality: 80 })
             .toBuffer();
 
-        const base64String = `data:image/webp;base64,${optimizedBuffer.toString("base64")}`;
+        const base64String = `data:image/jpeg;base64,${optimizedBuffer.toString("base64")}`;
 
         // Update the business config with the new logo
         await prisma.businessConfig.upsert({

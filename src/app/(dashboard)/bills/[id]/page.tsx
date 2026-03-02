@@ -8,18 +8,20 @@ import {
   Loader2,
   Phone,
   MapPin,
+  Download,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { DateTime } from "luxon";
+import { downloadPDF, printPDF } from "@/lib/print";
 
 type PageSize = "A4" | "A5" | "LEGAL" | "FOLIO";
 
 export default function BillDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [bill, setBill] = useState<any>(null);
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,7 @@ export default function BillDetailPage() {
   }, [bill, loading]);
 
   const handlePrint = () => {
-    window.print();
+    printPDF(`/api/bills/${id}/pdf`, { pageSize, lang: language });
   };
 
   if (loading) {
@@ -136,9 +138,9 @@ export default function BillDetailPage() {
 
   const totalExpenses = isPurchase
     ? Number(bill.labourCharges || 0) +
-      Number(bill.freightCharges || 0) +
-      Number(bill.advanceDeduction || 0) +
-      Number(bill.othersAmount || 0)
+    Number(bill.freightCharges || 0) +
+    Number(bill.advanceDeduction || 0) +
+    Number(bill.othersAmount || 0)
     : 0;
 
   const totalUnits = totals.units.toFixed(1);
@@ -172,41 +174,51 @@ export default function BillDetailPage() {
             marginRight: "16px",
           }}
         >
-          <ArrowLeft size={18} /> {t("bills.details.back") || "Back to History"}
+          <ArrowLeft size={18} /> {t("bills.details.back") || "Back"}
         </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span
-              style={{
-                fontSize: "12px",
-                fontWeight: 800,
-                color: "var(--text-muted)",
-              }}
-            >
-              {t("bills.details.pageSize") || "Page Size"}:
-            </span>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(e.target.value as PageSize)}
-              style={{
-                padding: "8px 12px",
-                borderRadius: "10px",
-                border: "1.5px solid var(--border-main)",
-                fontSize: "12px",
-                fontWeight: 700,
-                outline: "none",
-                cursor: "pointer",
-              }}
-            >
-              <option value="A4">A4</option>
-              <option value="A5">A5</option>
-              <option value="LEGAL">Legal</option>
-              <option value="FOLIO">Folio</option>
-            </select>
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-muted)" }}>{t("bills.details.pageSize") || "Page Size"}:</span>
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(e.target.value as PageSize)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "10px",
+              border: "1.5px solid var(--border-main)",
+              fontSize: "14px",
+              fontWeight: 700,
+              background: "#f8fafc",
+              cursor: "pointer",
+            }}
+          >
+            <option value="A4">A4</option>
+            <option value="A5">A5</option>
+            <option value="LEGAL">LEGAL</option>
+            <option value="FOLIO">FOLIO</option>
+          </select>
+        </div>
+
+        <div style={{ display: "flex", gap: "12px" }}>
           <button
-            onClick={() => window.print()}
+            onClick={handlePrint}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 20px",
+              border: "1.5px solid #000",
+              background: "transparent",
+              color: "black",
+              borderRadius: "12px",
+              fontWeight: 700,
+              fontSize: "14px",
+            }}
+          >
+            <Printer size={18} /> {t("bills.details.print") || "Print"}
+          </button>
+          <button
+            onClick={() => downloadPDF(`/api/bills/${id}/pdf`, `bill-${bill.billNumber}.pdf`, { pageSize, lang: language })}
             style={{
               display: "flex",
               alignItems: "center",
@@ -219,7 +231,7 @@ export default function BillDetailPage() {
               fontSize: "14px",
             }}
           >
-            <Printer size={18} /> {t("bills.details.print") || "Print Bill"}
+            <Download size={18} /> {t("bills.details.downloadPdf") || "Download PDF"}
           </button>
         </div>
       </div>
@@ -1178,6 +1190,6 @@ export default function BillDetailPage() {
           font-weight: 950 !important;
         }
       `}</style>
-    </div>
+    </div >
   );
 }

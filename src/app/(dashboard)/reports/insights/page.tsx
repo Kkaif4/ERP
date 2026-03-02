@@ -11,7 +11,6 @@ import Link from "next/link";
 import DateRangePicker from "@/components/reports/DateRangePicker";
 import ReportStats from "@/components/reports/ReportStats";
 import { toast } from "sonner";
-import { openPrintWindow } from "@/lib/print";
 
 export default function BusinessInsightsPage() {
     const { t } = useTranslation();
@@ -92,8 +91,6 @@ export default function BusinessInsightsPage() {
                 '</tr>';
         });
         html += '</tbody></table>';
-
-        openPrintWindow(t("reports.types.insights") + " (" + startDate + " to " + endDate + ")", html);
     };
 
     return (

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/lib/i18n";
-import { Plus, Search, Loader2, ReceiptText, Clock, Trash2, Edit2, Download, FileSpreadsheet, FileText, CreditCard } from "lucide-react";
+import { Plus, Search, Loader2, ReceiptText, Clock, Trash2, Edit2, Download, FileSpreadsheet, FileText, CreditCard, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { expenseSchema } from "@/lib/schemas";
-import { openPrintWindow } from "@/lib/print";
+import { downloadPDF, printPDF } from "@/lib/print";
 import { Modal } from "@/components/ui/Modal";
 
 interface Expense {
@@ -149,26 +149,15 @@ export default function ExpensesPage() {
     const totalAmount = filtered.reduce((s, e) => s + Number(e.amount), 0);
 
     const handleExportPDF = () => {
-        let html = `<div class="stat-box"><div class="stat-label">${t("expenses.totalLabel")}</div><div class="stat-value">${fmt(totalAmount)}</div></div>`;
-        html += `<table><thead><tr>
-            <th>${t("common.date")}</th>
-            <th>${t("expenses.table.category")}</th>
-            <th>${t("expenses.table.paymentMode")}</th>
-            <th>${t("expenses.table.description")}</th>
-            <th align="right">${t("common.amount")}</th>
-        </tr></thead><tbody>`;
+        downloadPDF(
+            `/api/reports/operational/pdf?type=EXPENSE_REPORT&startDate=${form.expenseDate}&endDate=${form.expenseDate}`,
+            `expenses_${new Date().toISOString().split("T")[0]}.pdf`,
+            { lang: language }
+        );
+    };
 
-        filtered.forEach(exp => {
-            html += `<tr>
-                <td>${fmtDate(exp.expenseDate)}</td>
-                <td>${exp.category || t("expenses.general")}</td>
-                <td>${t(`expenses.paymentModes.${exp.paymentMode}`)}</td>
-                <td>${exp.description || "-"}</td>
-                <td align="right">${fmt(exp.amount)}</td>
-            </tr>`;
-        });
-        html += '</tbody></table>';
-        openPrintWindow(t("expenses.title"), html);
+    const handlePrintPDF = () => {
+        printPDF(`/api/reports/operational/pdf?type=EXPENSE_REPORT&startDate=${form.expenseDate}&endDate=${form.expenseDate}`, { lang: language });
     };
 
     const handleExportExcel = () => {
@@ -237,6 +226,7 @@ export default function ExpensesPage() {
                         />
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
+                        <button onClick={handlePrintPDF} className="secondary-btn" title={t("common.print")}><Printer size={16} /></button>
                         <button onClick={handleExportPDF} className="secondary-btn" title={t("common.downloadPdf")}><FileText size={16} /></button>
                         <button onClick={handleExportExcel} className="secondary-btn" title={t("common.exportCsv")}><FileSpreadsheet size={16} /></button>
                     </div>
