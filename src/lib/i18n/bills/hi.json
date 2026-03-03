@@ -79,9 +79,9 @@
     "paid": "भुगतान किया गया",
     "srNo": "क्र.",
     "description": "आइटम विवरण",
-    "units": "इकाइयाँ (Units)",
+    "units": "इकाइयाँ",
     "weight": "वजन (KG)",
-    "rate": "दर (Rate)",
+    "rate": "दर",
     "amount": "राशि",
     "totals": "कुल योग",
     "chargesSection": "शुल्क और समायोजन",
@@ -99,6 +99,9 @@
     "previousBalance": "पिछला शेष",
     "scanToPay": "UPI के माध्यम से भुगतान करने के लिए स्कैन करें",
     "footerTerms2": "केवल {{city}} क्षेत्राधिकार के अधीन।",
-    "page": "पेज"
+    "page": "पेज",
+    "item": "आइटम",
+    "price": "दर",
+    "kg": "किलो (KG)"
   }
 }

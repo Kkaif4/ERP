@@ -79,9 +79,9 @@
     "paid": "भरलेले",
     "srNo": "क्र.",
     "description": "वस्तूचे वर्णन",
-    "units": "नग (Units)",
+    "units": "नग",
     "weight": "वजन (KG)",
-    "rate": "दर (Rate)",
+    "rate": "दर",
     "amount": "रक्कम",
     "totals": "एकूण बेरीज",
     "chargesSection": "शुल्क आणि समायोजन",
@@ -99,6 +99,9 @@
     "previousBalance": "मागील शिल्लक",
     "scanToPay": "UPI द्वारे पेमेंट करण्यासाठी स्कॅन करा",
     "footerTerms2": "केवळ {{city}} न्यायक्षेत्राच्या अधीन.",
-    "page": "पेज"
+    "page": "पेज",
+    "item": "वस्तू",
+    "price": "दर",
+    "kg": "किलो (KG)"
   }
 }

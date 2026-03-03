@@ -239,7 +239,6 @@ export async function generateBillPDF(
 ): Promise<Buffer> {
   const pageSize = options.pageSize || config?.defaultPageSize || "A4";
   const lang = options.lang || "mr";
-  const isHindiOrMarathi = lang === "mr" || lang === "hi";
   const isThermal = pageSize.startsWith("THERMAL");
 
   return new Promise(async (resolve, reject) => {
@@ -247,24 +246,39 @@ export async function generateBillPDF(
       // Calculate dynamic exact height for thermal
       let docSize: any = PAGE_SIZES[pageSize] || "A4";
       if (isThermal) {
-        let exactHeight = 240; // Headings and party details
-        exactHeight += bill.items.length * 32; // Items table
-        exactHeight += 10 + 15; // Padding + Gross Total
+        // Precise dynamic height calculation
+        const tempDoc = new PDFDocument({
+          size: [PAGE_SIZES[pageSize], 2000],
+          margin: 10,
+        });
+        try {
+          if (fs.existsSync(FONTS.regular))
+            tempDoc.registerFont("Main", fs.readFileSync(FONTS.regular));
+          tempDoc
+            .font(fs.existsSync(FONTS.regular) ? "Main" : "Helvetica")
+            .fontSize(9);
+        } catch (e) {}
 
-        if (bill.type === "PURCHASE") {
-          const exp =
-            Number(bill.labourCharges || 0) +
-            Number(bill.freightCharges || 0) +
-            Number(bill.advanceDeduction || 0) +
-            Number(bill.othersAmount || 0);
-          if (exp > 0) exactHeight += 15;
-        } else {
-          if (Number(bill.taxAmount) > 0) exactHeight += 15;
-          if (Number(bill.serviceChargeAmount) > 0) exactHeight += 15;
-        }
-        exactHeight += 5 + 15; // Dash + Net Total
-        exactHeight += 10 + 10 + 12 + 20; // Footer + Bottom Margin
+        const is58 = pageSize === "THERMAL_58";
+        const cwItem = is58 ? 65 : 100;
 
+        let exactHeight = 110; // Header and business info
+        exactHeight += 40; // Party details
+
+        if (bill.type === "SALE" && config?.upiId) exactHeight += 110; // QR section
+
+        exactHeight += 30; // Table header
+
+        bill.items.forEach((item) => {
+          const itemName = item.item.name;
+          const titleHeight = tempDoc.heightOfString(itemName, {
+            width: cwItem,
+          });
+          exactHeight += Math.max(titleHeight, 10) + 8; // Item row height + padding
+        });
+
+        exactHeight += 120; // Totals section (increased for safety)
+        exactHeight += 60; // Footer
         docSize = [PAGE_SIZES[pageSize], exactHeight];
       }
 
@@ -344,13 +358,13 @@ export async function generateBillPDF(
           });
         doc
           .font(currentFont)
-          .fontSize(8)
+          .fontSize(9)
           .text("Vegetable Commission Agent", margin, 35, {
             align: "center",
             width: contentWidth,
           });
         doc
-          .fontSize(8)
+          .fontSize(9)
           .text(
             `${bill.organization.address || ""} | +91 ${bill.organization.phone || ""}`,
             margin,
@@ -369,7 +383,7 @@ export async function generateBillPDF(
 
         doc
           .font(currentBold)
-          .fontSize(10)
+          .fontSize(9)
           .text(
             bill.type === "PURCHASE"
               ? t("purchaseBill", lang)
@@ -380,13 +394,13 @@ export async function generateBillPDF(
           );
         doc
           .font(currentFont)
-          .fontSize(8)
+          .fontSize(9)
           .text(`${t("billNo", lang)}: #${bill.billNumber}`, margin, 80);
         const formattedBillDate = new Date(bill.billDate).toLocaleDateString(
           lang === "en" ? "en-IN" : lang === "mr" ? "mr-IN" : "hi-IN",
           { day: "2-digit", month: "short", year: "numeric" },
         );
-        doc.text(`${t("date", lang)}: ${formattedBillDate}`, margin, 90);
+        doc.text(`${t("date", lang)}: ${formattedBillDate}`, margin, 94);
 
         doc
           .moveTo(margin, 105)
@@ -471,49 +485,92 @@ export async function generateBillPDF(
       // 2. Party & Details Sections
       let currentY = 130;
 
-      // Background for section titles
-      doc.rect(margin, currentY, contentWidth, 20).fill("#f8fafc");
-      doc
-        .fillColor(COLORS.secondary)
-        .font(currentBold)
-        .fontSize(9)
-        .text(
-          bill.type === "PURCHASE"
-            ? t("farmerDetails", lang)
-            : t("customerDetails", lang),
-          margin + 10,
-          currentY + 6,
-        );
-
-      currentY += 30;
-      const party = bill.type === "PURCHASE" ? bill.farmer : bill.customer;
-      doc
-        .fillColor(COLORS.text)
-        .font(currentBold)
-        .fontSize(12)
-        .text(party?.name || "N/A", margin + 10, currentY);
-
-      if (party?.mobile) {
+      if (isThermal) {
+        // Single column layout for Thermal to save space
+        const party = bill.type === "PURCHASE" ? bill.farmer : bill.customer;
         doc
           .fillColor(COLORS.secondary)
-          .font(currentFont)
-          .fontSize(10)
+          .font(currentBold)
+          .fontSize(8)
           .text(
-            `${t("mobile", lang)}: +91 ${party.mobile}`,
-            margin + 10,
-            currentY + 15,
-          );
-      }
-      if ((party as any)?.village) {
-        doc
-          .fillColor(COLORS.secondary)
-          .font(currentFont)
-          .fontSize(10)
-          .text(
-            `${t("village", lang)}: ${(party as any).village}`,
-            margin + 200,
+            bill.type === "PURCHASE"
+              ? t("farmerDetails", lang)
+              : t("customerDetails", lang),
+            margin,
             currentY,
           );
+
+        currentY += 12;
+        doc
+          .fillColor(COLORS.text)
+          .font(currentBold)
+          .fontSize(9)
+          .text(party?.name || "N/A", margin, currentY);
+
+        currentY += 12;
+        doc.font(currentFont).fontSize(9).fillColor(COLORS.secondary);
+
+        if (party?.mobile) {
+          doc.text(
+            `${t("mobile", lang)}: +91 ${party.mobile}`,
+            margin,
+            currentY,
+          );
+          currentY += 12;
+        }
+        if ((party as any)?.village) {
+          doc.text(
+            `${t("village", lang)}: ${(party as any).village}`,
+            margin,
+            currentY,
+          );
+          currentY += 12;
+        }
+      } else {
+        // Background for section titles
+        doc.rect(margin, currentY, contentWidth, 20).fill("#f8fafc");
+        doc
+          .fillColor(COLORS.secondary)
+          .font(currentBold)
+          .fontSize(9)
+          .text(
+            bill.type === "PURCHASE"
+              ? t("farmerDetails", lang)
+              : t("customerDetails", lang),
+            margin + 10,
+            currentY + 6,
+          );
+
+        currentY += 30;
+        const party = bill.type === "PURCHASE" ? bill.farmer : bill.customer;
+        doc
+          .fillColor(COLORS.text)
+          .font(currentBold)
+          .fontSize(12)
+          .text(party?.name || "N/A", margin + 10, currentY);
+
+        if (party?.mobile) {
+          doc
+            .fillColor(COLORS.secondary)
+            .font(currentFont)
+            .fontSize(10)
+            .text(
+              `${t("mobile", lang)}: +91 ${party.mobile}`,
+              margin + 10,
+              currentY + 15,
+            );
+        }
+        if ((party as any)?.village) {
+          doc
+            .fillColor(COLORS.secondary)
+            .font(currentFont)
+            .fontSize(10)
+            .text(
+              `${t("village", lang)}: ${(party as any).village}`,
+              margin + (isThermal ? 10 : 200),
+              currentY + (isThermal ? 30 : 0),
+            );
+        }
       }
 
       // QR Code for Sales
@@ -525,19 +582,35 @@ export async function generateBillPDF(
             scale: 2,
           });
           const qrBuffer = Buffer.from(qrDataUrl.split(",")[1], "base64");
-          doc.image(qrBuffer, width - margin - 80, currentY - 20, {
-            width: 70,
-          });
-          doc
-            .fontSize(7)
-            .text(t("scanToPay", lang), width - margin - 80, currentY + 55, {
+
+          if (isThermal) {
+            // In thermal, we draw the QR centered and push Y down
+            currentY += 50;
+            doc.image(qrBuffer, (width - 70) / 2, currentY, { width: 70 });
+            doc
+              .font(currentFont)
+              .fontSize(8)
+              .text(t("scanToPay", lang), margin, currentY + 75, {
+                align: "center",
+                width: contentWidth,
+              });
+            currentY += 80;
+          } else {
+            doc.image(qrBuffer, width - margin - 80, currentY - 20, {
               width: 70,
-              align: "center",
             });
+            doc
+              .font(currentFont)
+              .fontSize(7)
+              .text(t("scanToPay", lang), width - margin - 80, currentY + 55, {
+                width: 70,
+                align: "center",
+              });
+          }
         } catch (e) {}
       }
 
-      currentY += 60;
+      currentY += isThermal ? 20 : 60;
 
       // 3. Items Table
       const tableTop = currentY;
@@ -545,15 +618,28 @@ export async function generateBillPDF(
       if (isThermal) {
         doc.fillColor(COLORS.secondary).font(currentBold).fontSize(8);
 
-        let xPos = margin;
-        doc.text("Item / Rate", xPos, tableTop);
-        doc.text("Qty", xPos + 100, tableTop, { align: "right", width: 40 });
-        doc.text("Total", width - margin - 50, tableTop, {
+        const is58 = pageSize === "THERMAL_58";
+        const cwItem = is58 ? 65 : 100;
+        const cwUnit = is58 ? 23 : 30;
+        const cwKg = is58 ? 23 : 30;
+        const cwPrice = is58 ? 33 : 46;
+
+        doc.font(currentBold).fontSize(9);
+        doc.text(t("item", lang), margin, tableTop, { width: cwItem });
+        doc.text(t("units", lang), margin + cwItem, tableTop, {
           align: "right",
-          width: 50,
+          width: cwUnit,
+        });
+        doc.text(t("kg", lang), margin + cwItem + cwUnit, tableTop, {
+          align: "right",
+          width: cwKg,
+        });
+        doc.text(t("price", lang), margin + cwItem + cwUnit + cwKg, tableTop, {
+          align: "right",
+          width: cwPrice,
         });
 
-        currentY = tableTop + 15;
+        currentY = tableTop + 25;
         doc
           .moveTo(margin, currentY)
           .lineTo(width - margin, currentY)
@@ -567,51 +653,67 @@ export async function generateBillPDF(
         doc.font(currentFont).fillColor(COLORS.text).fontSize(9);
 
         bill.items.forEach((item, i) => {
+          const is58 = pageSize === "THERMAL_58";
+          const cwItem = is58 ? 65 : 100;
+          const cwUnit = is58 ? 23 : 30;
+          const cwKg = is58 ? 23 : 30;
+          const cwPrice = is58 ? 33 : 46;
+
           if (currentY > doc.page.height - 100) {
             doc.addPage();
             currentY = 20;
           }
 
           const itemY = currentY;
-          doc
-            .font(currentBold)
-            .text(`${i + 1}. ${item.item.name}`, margin, itemY);
+          const itemName = `${i + 1}. ${item.item.name}`;
+          const titleHeight = doc.heightOfString(itemName, { width: cwItem });
 
-          currentY += 12;
-          doc.font(currentFont).fillColor(COLORS.secondary).fontSize(8);
-          doc.text(
-            `₹${Number(item.pricePerUnit).toLocaleString("en-IN")}`,
-            margin + 10,
-            currentY,
-          );
-
-          const qty =
-            Number(item.quantityUnits) > 0
-              ? Number(item.quantityUnits).toFixed(1) + "u"
-              : Number(item.quantityKg).toFixed(1) + "kg";
           doc
+            .font(currentFont)
+            .fontSize(is58 ? 8 : 9)
+            .text(itemName, margin, itemY, { width: cwItem });
+
+          doc
+            .fontSize(9)
             .fillColor(COLORS.text)
-            .text(qty, margin + 100, currentY, { align: "right", width: 40 });
+            .text(
+              Number(item.quantityUnits).toFixed(1),
+              margin + cwItem,
+              itemY,
+              {
+                align: "right",
+                width: cwUnit,
+              },
+            );
+
+          doc.text(
+            Number(item.quantityKg).toFixed(1),
+            margin + cwItem + cwUnit,
+            itemY,
+            {
+              align: "right",
+              width: cwKg,
+            },
+          );
 
           doc
             .font(currentBold)
             .text(
-              `₹${Number(item.total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-              width - margin - 50,
-              currentY,
-              { align: "right", width: 50 },
+              Number(item.pricePerUnit).toLocaleString("en-IN"),
+              margin + cwItem + cwUnit + cwKg,
+              itemY,
+              { align: "right", width: cwPrice },
             );
 
-          currentY += 15;
+          currentY += Math.max(titleHeight, 10) + 8;
           doc
-            .moveTo(margin, currentY)
-            .lineTo(width - margin, currentY)
+            .moveTo(margin, currentY - 4)
+            .lineTo(width - margin, currentY - 4)
             .strokeColor("#f1f5f9")
             .dash(1, { space: 2 })
             .lineWidth(0.5)
             .stroke();
           doc.undash();
-          currentY += 5;
         });
       } else {
         doc
@@ -622,36 +724,30 @@ export async function generateBillPDF(
 
         const cols = {
           sr: 30,
-          desc: 180,
+          desc: 260,
           units: 60,
           weight: 80,
           rate: 70,
-          total: 80,
         };
 
         let xPos = margin + 10;
         doc.text(t("sr", lang), xPos, tableTop + 8);
         xPos += cols.sr;
-        doc.text(t("itemDescription", lang), xPos, tableTop + 8);
+        doc.text(t("item", lang), xPos, tableTop + 8);
         xPos += cols.desc;
         doc.text(t("units", lang), xPos, tableTop + 8, {
           align: "right",
           width: cols.units,
         });
         xPos += cols.units + 10;
-        doc.text(t("weight", lang), xPos, tableTop + 8, {
+        doc.text(t("kg", lang), xPos, tableTop + 8, {
           align: "right",
           width: cols.weight,
         });
         xPos += cols.weight + 10;
-        doc.text(t("rate", lang), xPos, tableTop + 8, {
+        doc.text(t("price", lang), xPos, tableTop + 8, {
           align: "right",
           width: cols.rate,
-        });
-        xPos += cols.rate + 10;
-        doc.text(t("total", lang), xPos, tableTop + 8, {
-          align: "right",
-          width: cols.total,
         });
 
         currentY = tableTop + 30;
@@ -670,26 +766,21 @@ export async function generateBillPDF(
             let hX = margin + 10;
             doc.text(t("sr", lang), hX, currentY - 2);
             hX += cols.sr;
-            doc.text(t("itemDescription", lang), hX, currentY - 2);
+            doc.text(t("item", lang), hX, currentY - 2);
             hX += cols.desc;
             doc.text(t("units", lang), hX, currentY - 2, {
               align: "right",
               width: cols.units,
             });
             hX += cols.units + 10;
-            doc.text(t("weight", lang), hX, currentY - 2, {
+            doc.text(t("kg", lang), hX, currentY - 2, {
               align: "right",
               width: cols.weight,
             });
             hX += cols.weight + 10;
-            doc.text(t("rate", lang), hX, currentY - 2, {
+            doc.text(t("price", lang), hX, currentY - 2, {
               align: "right",
               width: cols.rate,
-            });
-            hX += cols.rate + 10;
-            doc.text(t("total", lang), hX, currentY - 2, {
-              align: "right",
-              width: cols.total,
             });
             currentY += 25;
             doc.font(currentFont).fillColor(COLORS.text).fontSize(10);
@@ -699,30 +790,23 @@ export async function generateBillPDF(
           let curX = margin + 10;
           doc.text(`${i + 1}`, curX, itemY);
           curX += cols.sr;
-          doc.text(item.item.name, curX, itemY);
+          doc.text(item.item.name, curX, itemY, { width: cols.desc });
           curX += cols.desc;
           doc.text(Number(item.quantityUnits).toFixed(1), curX, itemY, {
             align: "right",
             width: cols.units,
           });
           curX += cols.units + 10;
-          doc.text(Number(item.quantityKg).toFixed(2), curX, itemY, {
+          doc.text(Number(item.quantityKg).toFixed(1), curX, itemY, {
             align: "right",
             width: cols.weight,
           });
           curX += cols.weight + 10;
           doc.text(
-            `₹${Number(item.pricePerUnit).toLocaleString("en-IN")}`,
+            Number(item.pricePerUnit).toLocaleString("en-IN"),
             curX,
             itemY,
             { align: "right", width: cols.rate },
-          );
-          curX += cols.rate + 10;
-          doc.text(
-            `₹${Number(item.total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-            curX,
-            itemY,
-            { align: "right", width: cols.total },
           );
 
           currentY += 25;
@@ -737,29 +821,46 @@ export async function generateBillPDF(
 
       // 4. Totals
       currentY += 10;
-      const summaryX = isThermal ? margin : width - margin - 220;
+      const summaryStartX = isThermal ? margin : width - margin - 220;
       const summaryWidth = isThermal ? contentWidth : 220;
+      const boxStartTop = currentY;
+
+      const itemsSubtotal = bill.items.reduce(
+        (acc, item) => acc + Number(item.total),
+        0,
+      );
 
       const drawSummaryRow = (
         label: string,
         value: string,
         isTotal = false,
       ) => {
+        const rowColor = isThermal
+          ? COLORS.text
+          : isTotal
+            ? COLORS.primary
+            : COLORS.secondary;
         doc
-          .fillColor(isTotal ? COLORS.primary : COLORS.secondary)
+          .fillColor(rowColor)
           .font(isTotal ? currentBold : currentFont)
           .fontSize(isTotal ? (isThermal ? 10 : 12) : isThermal ? 9 : 10);
-        doc.text(label, summaryX, currentY);
-        doc.text(value, summaryX + (isThermal ? 50 : 100), currentY, {
+
+        // Let's use exact widths for summary parts too.
+        const labelWidth = isThermal ? contentWidth * 0.5 : 120;
+        const valWidth = isThermal ? contentWidth * 0.5 : 100;
+        const valX = summaryStartX + labelWidth;
+
+        doc.text(label, summaryStartX, currentY, { width: labelWidth });
+        doc.text(value, valX, currentY, {
           align: "right",
-          width: isThermal ? contentWidth - 50 : 100,
+          width: valWidth,
         });
         currentY += isThermal ? 15 : 20;
       };
 
       drawSummaryRow(
         t("grossTotal", lang),
-        `₹${Number(bill.grossTotal || bill.netTotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        `₹${Number(bill.grossTotal || itemsSubtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
       );
 
       if (bill.type === "PURCHASE") {
@@ -806,10 +907,16 @@ export async function generateBillPDF(
       );
 
       if (!isThermal) {
+        const boxHeight = currentY - boxStartTop + 10;
         doc
-          .rect(summaryX - 10, currentY - 75, summaryWidth + 10, 85)
+          .rect(
+            summaryStartX - 10,
+            boxStartTop - 5,
+            summaryWidth + 10,
+            boxHeight,
+          )
           .strokeColor(COLORS.border)
-          .lineWidth(1)
+          .lineWidth(0.5)
           .stroke();
       }
 
@@ -835,28 +942,6 @@ export async function generateBillPDF(
             width: contentWidth,
           });
         currentY += 12;
-        doc.fontSize(7).text(t("generatedBy", lang), margin, currentY, {
-          align: "center",
-          width: contentWidth,
-        });
-      } else {
-        const city = config?.city || "Latur";
-        doc
-          .font(currentFont)
-          .fontSize(8)
-          .fillColor(COLORS.muted)
-          .text(
-            t("jurisdiction", lang, { city }),
-            margin,
-            doc.page.height - 60,
-            {
-              align: "left",
-            },
-          )
-          .text(t("generatedBy", lang), 0, doc.page.height - 60, {
-            align: "right",
-            width: contentWidth + margin,
-          });
       }
 
       doc.end();

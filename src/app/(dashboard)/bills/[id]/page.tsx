@@ -268,10 +268,19 @@ export default function BillDetailPage() {
           className={`bill-document premium-card ${pageSize.startsWith("THERMAL") ? "thermal-receipt" : ""}`}
           ref={billRef}
           style={{
-            transform: scale < 1 ? `scale(${scale})` : "none",
+            transform:
+              scale < 1 && !pageSize.startsWith("THERMAL")
+                ? `scale(${scale})`
+                : "none",
             transformOrigin: "top center",
             width:
-              scale < 1 && !pageSize.startsWith("THERMAL") ? "800px" : "100%", // Use fixed width when scaling to preserve layout
+              scale < 1 && !pageSize.startsWith("THERMAL")
+                ? "800px"
+                : pageSize === "THERMAL_80"
+                  ? "226pt"
+                  : pageSize === "THERMAL_58"
+                    ? "164pt"
+                    : "100%",
             maxWidth:
               pageSize === "THERMAL_80"
                 ? "302px"
@@ -279,6 +288,11 @@ export default function BillDetailPage() {
                   ? "219px"
                   : "210mm",
             margin: "0 auto",
+            boxShadow: pageSize.startsWith("THERMAL") ? "none" : undefined,
+            border: pageSize.startsWith("THERMAL")
+              ? "1px solid #eee"
+              : undefined,
+            borderRadius: pageSize.startsWith("THERMAL") ? "0" : "16px",
           }}
         >
           {/* --- Business Header Section (Centered) --- */}
@@ -329,11 +343,6 @@ export default function BillDetailPage() {
                     : "N/A"}
                 </span>
               </div>
-              <div className="meta-jurisdiction">
-                {t("bills.details.jurisdiction", {
-                  city: config?.city || "Latur",
-                })}
-              </div>
             </div>
           </div>
 
@@ -342,13 +351,18 @@ export default function BillDetailPage() {
           {/* --- Party Information Section --- */}
           <div
             style={{
-              marginBottom: "2rem",
-              display: "grid",
+              marginBottom: "1.5rem",
+              display: pageSize.startsWith("THERMAL") ? "block" : "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: "2rem",
-              border: "1.5px solid #eee",
-              borderRadius: "12px",
-              padding: "1.5rem",
+              border: pageSize.startsWith("THERMAL")
+                ? "none"
+                : "1.5px solid #eee",
+              borderBottom: pageSize.startsWith("THERMAL")
+                ? "1px dashed #eee"
+                : "1.5px solid #eee",
+              borderRadius: pageSize.startsWith("THERMAL") ? "0" : "12px",
+              padding: pageSize.startsWith("THERMAL") ? "0.5rem 0" : "1.5rem",
             }}
           >
             <div>
@@ -361,7 +375,7 @@ export default function BillDetailPage() {
                   letterSpacing: "0.15em",
                   borderBottom: "1px solid #eee",
                   paddingBottom: "6px",
-                  fontWeight: 700,
+                  fontWeight: pageSize.startsWith("THERMAL") ? 600 : 700,
                 }}
               >
                 {isPurchase
@@ -369,7 +383,11 @@ export default function BillDetailPage() {
                   : t("bills.details.customerDetails") || "Customer Details"}
               </h4>
               <span
-                style={{ color: "#94a3b8", fontWeight: 700, fontSize: "13px" }}
+                style={{
+                  color: "#94a3b8",
+                  fontWeight: 700,
+                  fontSize: pageSize.startsWith("THERMAL") ? "11px" : "13px",
+                }}
               >
                 {isPurchase ? (
                   <span style={{ color: "#94a3b8", fontWeight: 700 }}>
@@ -381,12 +399,34 @@ export default function BillDetailPage() {
                   </span>
                 )}
               </span>{" "}
-              {partyName}
+              <span
+                style={{
+                  fontSize: pageSize.startsWith("THERMAL") ? "11px" : "11px",
+                  fontWeight: 600,
+                }}
+              >
+                {partyName}
+                {partyMobile && (
+                  <p
+                    style={{
+                      margin: "2px 0 0",
+                      fontSize: "11px",
+                      color: "#475569",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                      {t("bills.details.mobile") || "Mobile"}:
+                    </span>{" "}
+                    {partyMobile}
+                  </p>
+                )}
+              </span>
               {isPurchase && bill.farmer?.village && (
                 <p
                   style={{
-                    margin: "4px 0 0",
-                    fontSize: "13px",
+                    margin: "2px 0 0",
+                    fontSize: "11px",
                     color: "#475569",
                     fontWeight: 600,
                   }}
@@ -397,25 +437,9 @@ export default function BillDetailPage() {
                   {bill.farmer.village}
                 </p>
               )}
-              {partyMobile && (
-                <p
-                  style={{
-                    margin: "4px 0 0",
-                    fontSize: "13px",
-                    color: "#475569",
-                    fontWeight: 600,
-                  }}
-                >
-                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                    {t("bills.details.mobile") || "Mobile"}:
-                  </span>{" "}
-                  {partyMobile}
-                </p>
-              )}
             </div>
           </div>
 
-          {/* --- Item Details Table --- */}
           <div
             className="items-container"
             style={{
@@ -424,222 +448,323 @@ export default function BillDetailPage() {
               WebkitOverflowScrolling: "touch",
             }}
           >
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                marginBottom: "2rem",
-                minWidth: "650px",
-              }}
-            >
-              <thead>
-                <tr
-                  style={{
-                    background: "#f8fafc",
-                    borderBottom: "2px solid #eee",
-                  }}
-                >
-                  <th
+            {pageSize.startsWith("THERMAL") ? (
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  marginBottom: "2rem",
+                  fontSize: "12px",
+                }}
+              >
+                <thead>
+                  <tr
                     style={{
-                      padding: "12px",
-                      textAlign: "left",
-                      fontSize: "11px",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      fontWeight: 800,
+                      borderBottom: "1px dashed #ccc",
                     }}
                   >
-                    {t("bills.details.srNo") || "Sr."}
-                  </th>
-                  <th
-                    style={{
-                      padding: "12px",
-                      textAlign: "left",
-                      fontSize: "11px",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {t("bills.details.description") || "Item Description"}
-                  </th>
-                  <th
-                    style={{
-                      padding: "12px",
-                      textAlign: "right",
-                      fontSize: "11px",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {t("bills.details.units") || "Units"}
-                  </th>
-                  <th
-                    style={{
-                      padding: "12px",
-                      textAlign: "right",
-                      fontSize: "11px",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {t("bills.details.weight") || "Weight (KG)"}
-                  </th>
-                  <th
-                    style={{
-                      padding: "12px",
-                      textAlign: "right",
-                      fontSize: "11px",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {t("bills.details.rate") || "Rate"}
-                  </th>
-                  <th
-                    style={{
-                      padding: "12px",
-                      textAlign: "right",
-                      fontSize: "11px",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {t("bills.details.amount") || "Amount"}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {bill.items.map((item: any, idx: number) => (
-                  <tr key={item.id}>
-                    <td
+                    <th
                       style={{
-                        padding: "12px",
-                        borderBottom: "1px solid #eee",
-                        fontSize: "13px",
-                        color: "#475569",
-                      }}
-                    >
-                      {idx + 1}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        borderBottom: "1px solid #eee",
-                        fontSize: "13px",
-                        color: "#475569",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600 }}>{item.item.name}</div>
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        borderBottom: "1px solid #eee",
-                        textAlign: "right",
-                        fontSize: "13px",
-                        color: "#475569",
-                      }}
-                    >
-                      {Number(item.quantityUnits).toFixed(1)}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        borderBottom: "1px solid #eee",
-                        textAlign: "right",
-                        fontSize: "13px",
-                        color: "#475569",
-                      }}
-                    >
-                      {Number(item.quantityKg).toFixed(2)}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        borderBottom: "1px solid #eee",
-                        textAlign: "right",
-                        fontSize: "13px",
-                        color: "#475569",
-                      }}
-                    >
-                      ₹{Number(item.pricePerUnit).toLocaleString("en-IN")}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        borderBottom: "1px solid #eee",
-                        textAlign: "right",
-                        fontSize: "14px",
+                        padding: "8px 0",
+                        textAlign: "left",
+                        color: "#64748b",
                         fontWeight: 700,
-                        color: "#000",
                       }}
                     >
-                      ₹
-                      {Number(item.total).toLocaleString("en-IN", {
+                      {t("bills.details.item") || "Item"}
+                    </th>
+                    <th
+                      style={{
+                        padding: "8px 0",
+                        textAlign: "right",
+                        color: "#64748b",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {t("bills.details.units") || "Unit"}
+                    </th>
+                    <th
+                      style={{
+                        padding: "8px 0",
+                        textAlign: "right",
+                        color: "#64748b",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {t("bills.details.weight") || "KG"}
+                    </th>
+                    <th
+                      style={{
+                        padding: "8px 0",
+                        textAlign: "right",
+                        color: "#64748b",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {t("bills.details.price") || "Price"}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bill.items.map((item: any, idx: number) => (
+                    <tr key={item.id}>
+                      <td
+                        style={{
+                          padding: "6px 0",
+                          borderBottom: "1px dashed #eee",
+                          fontSize: "11px",
+                        }}
+                      >
+                        {idx + 1}. {item.item.name}
+                      </td>
+                      <td
+                        style={{
+                          padding: "6px 0",
+                          borderBottom: "1px dashed #eee",
+                          textAlign: "right",
+                          fontSize: "11px",
+                        }}
+                      >
+                        {Number(item.quantityUnits).toFixed(1)}
+                      </td>
+                      <td
+                        style={{
+                          padding: "6px 0",
+                          borderBottom: "1px dashed #eee",
+                          textAlign: "right",
+                          fontSize: "11px",
+                        }}
+                      >
+                        {Number(item.quantityKg).toFixed(1)}
+                      </td>
+                      <td
+                        style={{
+                          padding: "6px 0",
+                          borderBottom: "1px dashed #eee",
+                          textAlign: "right",
+                          fontWeight: 600,
+                          fontSize: "11px",
+                        }}
+                      >
+                        {Number(item.pricePerUnit).toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: "1px dashed #ccc", fontWeight: 700 }}>
+                    <td style={{ padding: "8px 0", fontSize: "10px" }}>
+                      {t("bills.details.totals") || "TOTALS"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        textAlign: "right",
+                        fontSize: "11px",
+                      }}
+                    >
+                      {totalUnits}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        textAlign: "right",
+                        fontSize: "11px",
+                      }}
+                    >
+                      {totalWeight.toFixed(1)}
+                    </td>
+                    <td style={{ padding: "8px 0", textAlign: "right" }}>
+                      {Number(itemsSubtotal).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                       })}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr
-                  style={{
-                    borderTop: "2px solid #eee",
-                    fontWeight: 900,
-                    background: "#fdfdfd",
-                  }}
-                >
-                  <td
-                    colSpan={2}
+                </tfoot>
+              </table>
+            ) : (
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  marginBottom: "2rem",
+                  minWidth: "650px",
+                }}
+              >
+                <thead>
+                  <tr
                     style={{
-                      padding: "12px",
-                      textAlign: "left",
-                      fontSize: "12px",
+                      background: "#f8fafc",
+                      borderBottom: "2px solid #eee",
                     }}
                   >
-                    {t("bills.details.totals") || "TOTALS"}
-                  </td>
-                  <td
+                    <th
+                      style={{
+                        padding: "12px",
+                        textAlign: "left",
+                        fontSize: "11px",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {t("bills.details.srNo") || "Sr."}
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        textAlign: "left",
+                        fontSize: "11px",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {t("bills.details.item") || "Item"}
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        textAlign: "right",
+                        fontSize: "11px",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {t("bills.details.units") || "Unit"}
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        textAlign: "right",
+                        fontSize: "11px",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {t("bills.details.weight") || "Weight"}
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        textAlign: "right",
+                        fontSize: "11px",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {t("bills.details.price") || "Price"}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bill.items.map((item: any, idx: number) => (
+                    <tr key={item.id}>
+                      <td
+                        style={{
+                          padding: "12px",
+                          borderBottom: "1px solid #eee",
+                          fontSize: "13px",
+                          color: "#475569",
+                        }}
+                      >
+                        {idx + 1}
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          borderBottom: "1px solid #eee",
+                          fontSize: "13px",
+                          color: "#475569",
+                        }}
+                      >
+                        <div style={{ fontWeight: 600 }}>{item.item.name}</div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          borderBottom: "1px solid #eee",
+                          textAlign: "right",
+                          fontSize: "13px",
+                          color: "#475569",
+                        }}
+                      >
+                        {Number(item.quantityUnits).toFixed(1)}
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          borderBottom: "1px solid #eee",
+                          textAlign: "right",
+                          fontSize: "13px",
+                          color: "#475569",
+                        }}
+                      >
+                        {Number(item.quantityKg).toFixed(1)}
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          borderBottom: "1px solid #eee",
+                          textAlign: "right",
+                          fontSize: "13px",
+                          color: "#475569",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {Number(item.pricePerUnit).toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr
                     style={{
-                      padding: "12px",
-                      textAlign: "right",
-                      fontSize: "14px",
+                      borderTop: "2px solid #eee",
+                      fontWeight: 900,
+                      background: "#fdfdfd",
                     }}
                   >
-                    {totalUnits}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px",
-                      textAlign: "right",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {totalWeight.toFixed(2)}
-                  </td>
-                  <td style={{ padding: "12px", textAlign: "right" }}>-</td>
-                  <td
-                    style={{
-                      padding: "12px",
-                      textAlign: "right",
-                      fontSize: "16px",
-                      color: "#000",
-                    }}
-                  >
-                    ₹
-                    {itemsSubtotal.toLocaleString("en-IN", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+                    <td
+                      colSpan={2}
+                      style={{
+                        padding: "12px",
+                        textAlign: "left",
+                        fontSize: "12px",
+                      }}
+                    >
+                      {t("bills.details.totals") || "TOTALS"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px",
+                        textAlign: "right",
+                        fontSize: "14px",
+                      }}
+                    >
+                      {totalUnits}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px",
+                        textAlign: "right",
+                        fontSize: "14px",
+                      }}
+                    >
+                      {totalWeight.toFixed(2)}
+                    </td>
+                    <td style={{ padding: "12px", textAlign: "right" }}>
+                      {Number(itemsSubtotal).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
           </div>
 
           {/* --- Charges & Summary Section --- */}
@@ -1225,16 +1350,12 @@ export default function BillDetailPage() {
 
         /* Thermal Web Preview Styles */
         .bill-document.thermal-receipt {
-          font-family:
-            monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-            "Liberation Mono", "Courier New", monospace !important;
-          padding: 1.5rem 1rem !important;
+          font-family: "Mukta", sans-serif !important;
+          padding: 10px !important;
           border-radius: 0 !important;
           margin-top: 1rem !important;
-          border: 1px dashed var(--border-main) !important;
-          box-shadow:
-            0 4px 6px -1px rgb(0 0 0 / 0.1),
-            0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+          border: 1px dashed #ccc !important;
+          box-shadow: none !important;
           background: #fff;
           min-height: auto;
         }
@@ -1258,12 +1379,12 @@ export default function BillDetailPage() {
         }
 
         .thermal-mode .business-desc {
-          font-size: 10px;
+          font-size: 11px;
           margin: 0 0 4px;
         }
 
         .thermal-mode .business-meta .info-item {
-          font-size: 9px;
+          font-size: 11px;
           justify-content: center;
         }
 
@@ -1279,7 +1400,7 @@ export default function BillDetailPage() {
 
         .thermal-mode .meta-field {
           justify-content: space-between;
-          font-size: 10px;
+          font-size: 11px;
           padding: 0 10px;
         }
 
@@ -1310,14 +1431,14 @@ export default function BillDetailPage() {
 
         .thermal-mode .party-name,
         .thermal-mode .party-info-row {
-          font-size: 14px !important;
-          text-align: center;
-          justify-content: center;
+          font-size: 11px !important;
+          text-align: left;
+          justify-content: flex-start;
         }
 
         .thermal-mode p {
-          font-size: 10px !important;
-          text-align: center;
+          font-size: 11px !important;
+          text-align: left;
         }
 
         /* Table Thermal */

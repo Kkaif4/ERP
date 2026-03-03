@@ -80,7 +80,7 @@
     "srNo": "Sr.",
     "description": "Item Description",
     "units": "Units",
-    "weight": "Weight (KG)",
+    "weight": "Weight",
     "rate": "Rate",
     "amount": "Amount",
     "totals": "TOTALS",
@@ -99,6 +99,9 @@
     "previousBalance": "Previous Balance",
     "scanToPay": "Scan to Pay via UPI",
     "footerTerms2": "Subject to {{city}} jurisdiction only.",
-    "page": "Page"
+    "page": "Page",
+    "item": "Item",
+    "price": "Price",
+    "kg": "KG"
   }
 }
