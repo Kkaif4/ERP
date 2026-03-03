@@ -1,9 +1,15 @@
 {
-    "login": "लॉगिन",
-    "username": "वापरकर्ता नाव",
-    "password": "पासवर्ड",
-    "pin": "४-अंकी पिन",
-    "signIn": "साइन इन करा",
-    "forgotPassword": "पासवर्ड विसरलात?",
-    "staffLogin": "स्टाफ पिन लॉगिन"
+  "login": "लॉगिन",
+  "username": "वापरकर्ता नाव",
+  "password": "पासवर्ड",
+  "pin": "४-अंकी पिन",
+  "signIn": "साइन इन करा",
+  "forgotPassword": "पासवर्ड विसरलात?",
+  "staffLogin": "स्टाफ पिन लॉगिन",
+  "createAdmin": "प्रशासक खाते तयार करा",
+  "startManaging": "तुमचा मंडी व्यवसाय आजच व्यवस्थापित करा",
+  "fullName": "पूर्ण नाव",
+  "organizationName": "संस्थेचे नाव",
+  "emailAddress": "ईमेल पत्ता",
+  "alreadyHaveAccount": "आधीच खाते आहे का?"
 }

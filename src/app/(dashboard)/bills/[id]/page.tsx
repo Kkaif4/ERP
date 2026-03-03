@@ -16,7 +16,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { DateTime } from "luxon";
 import { downloadPDF, printPDF } from "@/lib/print";
 
-type PageSize = "A4" | "A5" | "LEGAL" | "FOLIO";
+type PageSize = "A4" | "A5" | "LEGAL" | "FOLIO" | "THERMAL_80" | "THERMAL_58";
 
 export default function BillDetailPage() {
   const { id } = useParams();
@@ -138,16 +138,18 @@ export default function BillDetailPage() {
 
   const totalExpenses = isPurchase
     ? Number(bill.labourCharges || 0) +
-    Number(bill.freightCharges || 0) +
-    Number(bill.advanceDeduction || 0) +
-    Number(bill.othersAmount || 0)
+      Number(bill.freightCharges || 0) +
+      Number(bill.advanceDeduction || 0) +
+      Number(bill.othersAmount || 0)
     : 0;
 
   const totalUnits = totals.units.toFixed(1);
   const totalWeight = totals.weight;
 
   return (
-    <div className={`bill-view-container page-${pageSize.toLowerCase()}`}>
+    <div
+      className={`bill-view-container page-${pageSize.toLowerCase()} ${pageSize.startsWith("THERMAL") ? "thermal-mode" : ""}`}
+    >
       {/* --- Action Header (Hidden during print) --- */}
       <div
         className="no-print action-header"
@@ -178,7 +180,15 @@ export default function BillDetailPage() {
         </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-muted)" }}>{t("bills.details.pageSize") || "Page Size"}:</span>
+          <span
+            style={{
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "var(--text-muted)",
+            }}
+          >
+            {t("bills.details.pageSize") || "Page Size"}:
+          </span>
           <select
             value={pageSize}
             onChange={(e) => setPageSize(e.target.value as PageSize)}
@@ -196,6 +206,8 @@ export default function BillDetailPage() {
             <option value="A5">A5</option>
             <option value="LEGAL">LEGAL</option>
             <option value="FOLIO">FOLIO</option>
+            <option value="THERMAL_80">Thermal (80mm)</option>
+            <option value="THERMAL_58">Thermal (58mm)</option>
           </select>
         </div>
 
@@ -218,7 +230,13 @@ export default function BillDetailPage() {
             <Printer size={18} /> {t("bills.details.print") || "Print"}
           </button>
           <button
-            onClick={() => downloadPDF(`/api/bills/${id}/pdf`, `bill-${bill.billNumber}.pdf`, { pageSize, lang: language })}
+            onClick={() =>
+              downloadPDF(
+                `/api/bills/${id}/pdf`,
+                `bill-${bill.billNumber}.pdf`,
+                { pageSize, lang: language },
+              )
+            }
             style={{
               display: "flex",
               alignItems: "center",
@@ -231,7 +249,8 @@ export default function BillDetailPage() {
               fontSize: "14px",
             }}
           >
-            <Download size={18} /> {t("bills.details.downloadPdf") || "Download PDF"}
+            <Download size={18} />{" "}
+            {t("bills.details.downloadPdf") || "Download PDF"}
           </button>
         </div>
       </div>
@@ -246,13 +265,19 @@ export default function BillDetailPage() {
         }}
       >
         <div
-          className="bill-document premium-card"
+          className={`bill-document premium-card ${pageSize.startsWith("THERMAL") ? "thermal-receipt" : ""}`}
           ref={billRef}
           style={{
             transform: scale < 1 ? `scale(${scale})` : "none",
             transformOrigin: "top center",
-            width: scale < 1 ? "800px" : "100%", // Use fixed width when scaling to preserve layout
-            maxWidth: "210mm",
+            width:
+              scale < 1 && !pageSize.startsWith("THERMAL") ? "800px" : "100%", // Use fixed width when scaling to preserve layout
+            maxWidth:
+              pageSize === "THERMAL_80"
+                ? "302px"
+                : pageSize === "THERMAL_58"
+                  ? "219px"
+                  : "210mm",
             margin: "0 auto",
           }}
         >
@@ -510,16 +535,6 @@ export default function BillDetailPage() {
                       }}
                     >
                       <div style={{ fontWeight: 600 }}>{item.item.name}</div>
-                      <div
-                        style={{
-                          fontSize: "10px",
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          marginTop: "4px",
-                        }}
-                      >
-                        {item.pricingMode.replace("_", " ")}
-                      </div>
                     </td>
                     <td
                       style={{
@@ -1171,6 +1186,24 @@ export default function BillDetailPage() {
             display: none !important;
           }
 
+          /* Thermal printing adjustments */
+          .page-thermal_80 .bill-document {
+            width: 302px !important;
+            max-width: 302px !important;
+            margin: 0 !important;
+            padding: 0 10px !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          .page-thermal_58 .bill-document {
+            width: 219px !important;
+            max-width: 219px !important;
+            margin: 0 !important;
+            padding: 0 5px !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+
           @page {
             margin: 15mm;
             size: auto;
@@ -1189,7 +1222,169 @@ export default function BillDetailPage() {
         .font-black {
           font-weight: 950 !important;
         }
+
+        /* Thermal Web Preview Styles */
+        .bill-document.thermal-receipt {
+          font-family:
+            monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace !important;
+          padding: 1.5rem 1rem !important;
+          border-radius: 0 !important;
+          margin-top: 1rem !important;
+          border: 1px dashed var(--border-main) !important;
+          box-shadow:
+            0 4px 6px -1px rgb(0 0 0 / 0.1),
+            0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+          background: #fff;
+          min-height: auto;
+        }
+
+        .thermal-mode .bill-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: 8px;
+        }
+
+        .thermal-mode .business-logo {
+          width: 50px;
+          height: 50px;
+        }
+
+        .thermal-mode .business-name {
+          font-size: 16px;
+          margin-bottom: 2px;
+        }
+
+        .thermal-mode .business-desc {
+          font-size: 10px;
+          margin: 0 0 4px;
+        }
+
+        .thermal-mode .business-meta .info-item {
+          font-size: 9px;
+          justify-content: center;
+        }
+
+        .thermal-mode .bill-meta-block {
+          width: 100%;
+          text-align: center;
+          border: none;
+          border-bottom: 1px dashed #e2e8f0;
+          border-radius: 0;
+          padding: 8px 0;
+          margin-top: 8px;
+        }
+
+        .thermal-mode .meta-field {
+          justify-content: space-between;
+          font-size: 10px;
+          padding: 0 10px;
+        }
+
+        .thermal-mode .divider {
+          display: none;
+        }
+
+        /* Party Grid Thermal */
+        .thermal-mode .party-grid,
+        .thermal-mode > div:nth-child(3) {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 10px !important;
+          padding: 10px 0 !important;
+          border: none !important;
+          border-bottom: 1px dashed #e2e8f0 !important;
+          border-radius: 0 !important;
+          margin-bottom: 1rem !important;
+        }
+
+        .thermal-mode h4 {
+          font-size: 10px !important;
+          border-bottom: none !important;
+          padding-bottom: 0 !important;
+          margin-bottom: 4px !important;
+          text-align: center;
+        }
+
+        .thermal-mode .party-name,
+        .thermal-mode .party-info-row {
+          font-size: 14px !important;
+          text-align: center;
+          justify-content: center;
+        }
+
+        .thermal-mode p {
+          font-size: 10px !important;
+          text-align: center;
+        }
+
+        /* Table Thermal */
+        .thermal-mode .items-container {
+          overflow: hidden;
+        }
+
+        .thermal-mode table {
+          min-width: 100% !important;
+          font-size: 10px;
+        }
+
+        .thermal-mode th {
+          padding: 6px 4px !important;
+          font-size: 9px !important;
+          border-bottom: 1px dashed #e2e8f0 !important;
+          background: transparent !important;
+        }
+
+        .thermal-mode td {
+          padding: 6px 4px !important;
+          font-size: 10px !important;
+          border: none !important;
+          border-bottom: 1px dashed #f1f5f9 !important;
+        }
+
+        .thermal-mode .summary-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          margin-top: 15px;
+        }
+
+        .thermal-mode .summary-box {
+          background: transparent;
+          border: none;
+          padding: 0;
+        }
+
+        .thermal-mode .summary-row {
+          font-size: 11px;
+          padding: 2px 0;
+        }
+
+        .thermal-mode .main-total {
+          font-size: 14px;
+          border-top: 1px dashed #000;
+          padding-top: 8px;
+          margin-top: 8px;
+        }
+
+        .thermal-mode .upi-section {
+          flex-direction: column;
+          text-align: center;
+          border: none;
+          padding: 0;
+          margin-top: 15px;
+        }
+
+        .thermal-mode .bill-footer {
+          padding-top: 20px;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+          text-align: center;
+        }
       `}</style>
-    </div >
+    </div>
   );
 }

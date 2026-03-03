@@ -1,9 +1,15 @@
 {
-    "login": "Login",
-    "username": "Username",
-    "password": "Password",
-    "pin": "4-Digit PIN",
-    "signIn": "Sign In",
-    "forgotPassword": "Forgot Password?",
-    "staffLogin": "Staff PIN Login"
+  "login": "Login",
+  "username": "Username",
+  "password": "Password",
+  "pin": "4-Digit PIN",
+  "signIn": "Sign In",
+  "forgotPassword": "Forgot Password?",
+  "staffLogin": "Staff PIN Login",
+  "createAdmin": "Create Admin Account",
+  "startManaging": "Start managing your Mandi business today",
+  "fullName": "Full Name",
+  "organizationName": "Organization Name",
+  "emailAddress": "Email Address",
+  "alreadyHaveAccount": "Already have an account?"
 }

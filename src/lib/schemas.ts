@@ -31,13 +31,23 @@ export const paymentSchema = z
   .object({
     farmerId: z.string().optional(),
     customerId: z.string().optional(),
-    amount: z.number().positive("Amount must be greater than 0").max(1000000000, "Amount too large").transform(v => Number(v.toFixed(2))),
+    amount: z
+      .number()
+      .positive("Amount must be greater than 0")
+      .max(1000000000, "Amount too large")
+      .transform((v) => Number(v.toFixed(2))),
     mode: z.enum(["CASH", "BANK_TRANSFER", "OTHER"]),
     notes: z.string().optional(),
     paymentDate: z.string(),
     billId: z.string().optional(),
     roundOff: z.boolean().optional().default(false),
-    roundOffAmount: z.number().nonnegative().max(1000000, "Amount too large").optional().default(0).transform(v => Number(v.toFixed(2))),
+    roundOffAmount: z
+      .number()
+      .nonnegative()
+      .max(1000000, "Amount too large")
+      .optional()
+      .default(0)
+      .transform((v) => Number(v.toFixed(2))),
   })
   .refine((data) => data.farmerId || data.customerId, {
     message: "Select either a farmer or a customer",
@@ -58,19 +68,54 @@ export const paymentSchema = z
 export const billItemSchema = z.object({
   itemId: z.string(),
   pricingMode: z.enum(["WEIGHT", "WEIGHT_KG", "UNIT"]),
-  quantity: z.number().positive("Quantity must be positive").max(1000000, "Quantity too large").transform(v => Number(v.toFixed(2))),
-  pricePerUnit: z.number().nonnegative("Price cannot be negative").max(1000000000, "Price too large").transform(v => Number(v.toFixed(2))),
-  quantityKg: z.number().nonnegative("KG quantity is required").max(1000000, "Quantity too large").transform(v => Number(v.toFixed(2))),
-  quantityUnits: z.number().nonnegative("Units quantity is required").max(1000000, "Quantity too large").transform(v => Number(v.toFixed(2))),
+  quantity: z
+    .number()
+    .positive("Quantity must be positive")
+    .max(1000000, "Quantity too large")
+    .transform((v) => Number(v.toFixed(2))),
+  pricePerUnit: z
+    .number()
+    .nonnegative("Price cannot be negative")
+    .max(1000000000, "Price too large")
+    .transform((v) => Number(v.toFixed(2))),
+  quantityKg: z
+    .number()
+    .nonnegative("KG quantity is required")
+    .max(1000000, "Quantity too large")
+    .transform((v) => Number(v.toFixed(2))),
+  quantityUnits: z
+    .number()
+    .nonnegative("Units quantity is required")
+    .max(1000000, "Quantity too large")
+    .transform((v) => Number(v.toFixed(2))),
 });
 
 export const purchaseBillSchema = z.object({
   farmerId: z.string().min(1, "Select a farmer"),
   items: z.array(billItemSchema).min(1, "Add at least one item"),
-  labourCharges: z.number().nonnegative().max(1000000, "Charge too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
-  freightCharges: z.number().nonnegative().max(1000000, "Charge too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
-  advanceDeduction: z.number().nonnegative().max(1000000, "Deduction too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
-  othersAmount: z.number().max(1000000, "Amount too large").optional().transform(v => v ? Number(v.toFixed(2)) : undefined),
+  labourCharges: z
+    .number()
+    .nonnegative()
+    .max(1000000, "Charge too large")
+    .optional()
+    .transform((v) => (v ? Number(v.toFixed(2)) : undefined)),
+  freightCharges: z
+    .number()
+    .nonnegative()
+    .max(1000000, "Charge too large")
+    .optional()
+    .transform((v) => (v ? Number(v.toFixed(2)) : undefined)),
+  advanceDeduction: z
+    .number()
+    .nonnegative()
+    .max(1000000, "Deduction too large")
+    .optional()
+    .transform((v) => (v ? Number(v.toFixed(2)) : undefined)),
+  othersAmount: z
+    .number()
+    .max(1000000, "Amount too large")
+    .optional()
+    .transform((v) => (v ? Number(v.toFixed(2)) : undefined)),
   othersNote: z.string().optional(),
 });
 
@@ -82,12 +127,23 @@ export const saleBillSchema = z.object({
 export const businessConfigSchema = z
   .object({
     taxType: z.enum(["PERCENTAGE", "FIXED"]),
-    taxValue: z.number().nonnegative().max(1000000, "Value too large").transform(v => Number(v.toFixed(2))),
+    taxValue: z
+      .number()
+      .nonnegative()
+      .max(1000000, "Value too large")
+      .transform((v) => Number(v.toFixed(2))),
     serviceChargeType: z.enum(["PERCENTAGE", "FIXED"]),
-    serviceChargeValue: z.number().nonnegative().max(1000000, "Value too large").transform(v => Number(v.toFixed(2))),
+    serviceChargeValue: z
+      .number()
+      .nonnegative()
+      .max(1000000, "Value too large")
+      .transform((v) => Number(v.toFixed(2))),
     upiId: z.string().optional().or(z.literal("")),
     logoBase64: z.string().optional().or(z.literal("")),
-    defaultPageSize: z.enum(["A4", "A5", "LEGAL", "FOLIO"]).optional().default("A4"),
+    defaultPageSize: z
+      .enum(["A4", "A5", "LEGAL", "FOLIO"])
+      .optional()
+      .default("A4"),
     city: z.string().optional().or(z.literal("")),
     enableStockRestriction: z.boolean().optional().default(false),
   })
@@ -107,47 +163,50 @@ export const businessConfigSchema = z
     },
   );
 
-export const loginSchema = z
-  .object({
-    username: z.string().min(1, "Username is required"),
-    password: z.string().optional(),
-    pin: z.string().optional(),
-  })
-  .refine((data) => data.password || data.pin, {
-    message: "Password or PIN is required",
-    path: ["password"],
-  });
+export const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export const itemPatchSchema = z.object({
   id: z.string().uuid(),
   isActive: z.boolean(),
 });
 
-export const staffSchema = z
-  .object({
-    name: z.string().min(1, "Name is required"),
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    password: z
-      .string()
-      .min(6, "Password must be at least 6 characters")
-      .optional()
-      .or(z.literal("")),
-    pin: z
-      .string()
-      .length(4, "PIN must be 4 digits")
-      .regex(/^\d+$/, "PIN must contain only digits")
-      .optional()
-      .or(z.literal("")),
-    isActive: z.boolean().default(true),
-  })
-  .refine((data) => data.password || data.pin, {
-    message: "Either Password or PIN must be provided",
-    path: ["password"],
-  });
+export const staffSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  isActive: z.boolean().default(true),
+});
 export const expenseSchema = z.object({
   expenseDate: z.string().transform((val) => new Date(val)),
   amount: z.number().positive("Expense amount must be greater than zero"),
   paymentMode: z.enum(["CASH", "BANK_TRANSFER", "OTHER"]),
   category: z.string().optional(),
   description: z.string().optional(),
+});
+
+export const registrationSchema = z.discriminatedUnion("role", [
+  z.object({
+    role: z.literal("ORG_ADMIN"),
+    organizationName: z.string().min(1, "Organization name is required"),
+    name: z.string().min(1, "Name is required"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+  }),
+  z.object({
+    role: z.literal("ORG_STAFF"),
+    organizationId: z.string().uuid("Invalid organization ID"),
+    name: z.string().min(1, "Name is required"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+  }),
+]);
+
+export const publicRegistrationSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  username: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  organizationName: z.string().min(1, "Organization name is required"),
 });

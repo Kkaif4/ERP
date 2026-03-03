@@ -138,7 +138,6 @@ model User {
   id             String        @id @default(uuid(7)) @db.Uuid
   username       String        @unique // globally unique for platform login
   password       String        // bcrypt hashed
-  pin            String?       // optional 4-digit PIN for staff
   name           String
   role           SystemRole    @default(ORG_STAFF)
   isActive       Boolean       @default(true)

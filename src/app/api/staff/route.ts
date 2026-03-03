@@ -57,7 +57,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
         }
 
-        const { name, username, password, pin, isActive } = result.data;
+        const { name, username, password, isActive } = result.data;
 
         // Check if username is taken
         const existing = await prisma.user.findUnique({ where: { username } });
@@ -72,7 +72,6 @@ export async function POST(req: Request) {
                 name,
                 username,
                 password: hashedPassword,
-                pin: pin || null,
                 isActive,
                 role: "ORG_STAFF",
                 organizationId: session.organizationId,

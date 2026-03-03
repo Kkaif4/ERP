@@ -1,9 +1,15 @@
 {
-    "login": "लॉगिन",
-    "username": "यूजरनेम",
-    "password": "पासवर्ड",
-    "pin": "४-अंकी पिन",
-    "signIn": "साइन इन करें",
-    "forgotPassword": "पासवर्ड भूल गए?",
-    "staffLogin": "स्टाफ पिन लॉगिन"
+  "login": "लॉगिन",
+  "username": "यूजरनेम",
+  "password": "पासवर्ड",
+  "pin": "४-अंकी पिन",
+  "signIn": "साइन इन करें",
+  "forgotPassword": "पासवर्ड भूल गए?",
+  "staffLogin": "स्टाफ पिन लॉगिन",
+  "createAdmin": "व्यवस्थापक खाता बनाएँ",
+  "startManaging": "आज ही अपना मंडी व्यवसाय प्रबंधित करना शुरू करें",
+  "fullName": "पूरा नाम",
+  "organizationName": "संस्था का नाम",
+  "emailAddress": "ईमेल पता",
+  "alreadyHaveAccount": "क्या आपके पास पहले से खाता है?"
 }
