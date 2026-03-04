@@ -62,32 +62,48 @@ export default function BillDetailPage() {
 
   useEffect(() => {
     const updateScale = () => {
-      if (typeof window !== "undefined") {
+      if (typeof window !== "undefined" && billRef.current) {
         const width = window.innerWidth;
-        if (width < 840) {
-          // 800 is the target width of the bill document
-          const newScale = (width - 40) / 800;
+        const isMobile = width < 640;
+        const containerPadding = isMobile ? 32 : width < 1024 ? 48 : 80;
+        const availableWidth = width - containerPadding;
+
+        let targetWidth = 800; // Default for A4/Legal/Folio
+        if (pageSize === "A5") targetWidth = 560;
+        if (pageSize === "THERMAL_80") targetWidth = 302;
+        if (pageSize === "THERMAL_58") targetWidth = 219;
+
+        // On mobile for A4/A5, we prefer reflow over scaling.
+        // We only scale if really needed, but mostly we let CSS handle it.
+        const isStandardSize = !pageSize.startsWith("THERMAL");
+
+        if (isMobile && isStandardSize) {
+          setScale(1); // Disable scaling on mobile for standard sizes, use reflow
+        } else if (availableWidth < targetWidth) {
+          const newScale = availableWidth / targetWidth;
           setScale(newScale);
         } else {
           setScale(1);
         }
 
-        if (billRef.current) {
-          setDocHeight(billRef.current.offsetHeight);
-        }
+        // Capture height after a short delay to ensure layout is stable
+        setTimeout(() => {
+          if (billRef.current) {
+            setDocHeight(billRef.current.offsetHeight);
+          }
+        }, 150);
       }
     };
 
     updateScale();
     window.addEventListener("resize", updateScale);
-    // Intersection observer or timeout to capture initial height after content render
     const timer = setTimeout(updateScale, 500);
 
     return () => {
       window.removeEventListener("resize", updateScale);
       clearTimeout(timer);
     };
-  }, [bill, loading]);
+  }, [bill, loading, pageSize]);
 
   const handlePrint = () => {
     printPDF(`/api/bills/${id}/pdf`, { pageSize, lang: language });
@@ -151,82 +167,33 @@ export default function BillDetailPage() {
       className={`bill-view-container page-${pageSize.toLowerCase()} ${pageSize.startsWith("THERMAL") ? "thermal-mode" : ""}`}
     >
       {/* --- Action Header (Hidden during print) --- */}
-      <div
-        className="no-print action-header"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "2rem",
-          padding: "12px 20px",
-          background: "white",
-          borderRadius: "16px",
-          border: "1.5px solid var(--border-main)",
-        }}
-      >
-        <button
-          onClick={() => router.back()}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            fontWeight: 700,
-            color: "var(--text-muted)",
-            fontSize: "14px",
-            marginRight: "16px",
-          }}
-        >
-          <ArrowLeft size={18} /> {t("bills.details.back") || "Back"}
-        </button>
+      <div className="no-print action-header">
+        <div className="action-header-left">
+          <button onClick={() => router.back()} className="back-button">
+            <ArrowLeft size={18} /> {t("bills.details.back") || "Back"}
+          </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span
-            style={{
-              fontSize: "12px",
-              fontWeight: 700,
-              color: "var(--text-muted)",
-            }}
-          >
-            {t("bills.details.pageSize") || "Page Size"}:
-          </span>
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(e.target.value as PageSize)}
-            style={{
-              padding: "8px 12px",
-              borderRadius: "10px",
-              border: "1.5px solid var(--border-main)",
-              fontSize: "14px",
-              fontWeight: 700,
-              background: "#f8fafc",
-              cursor: "pointer",
-            }}
-          >
-            <option value="A4">A4</option>
-            <option value="A5">A5</option>
-            <option value="LEGAL">LEGAL</option>
-            <option value="FOLIO">FOLIO</option>
-            <option value="THERMAL_80">Thermal (80mm)</option>
-            <option value="THERMAL_58">Thermal (58mm)</option>
-          </select>
+          <div className="page-size-selector">
+            <span className="selector-label">
+              {t("bills.details.pageSize") || "Page Size"}:
+            </span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(e.target.value as PageSize)}
+              className="size-select"
+            >
+              <option value="A4">A4</option>
+              <option value="A5">A5</option>
+              <option value="LEGAL">LEGAL</option>
+              <option value="FOLIO">FOLIO</option>
+              <option value="THERMAL_80">Thermal (80mm)</option>
+              <option value="THERMAL_58">Thermal (58mm)</option>
+            </select>
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: "12px" }}>
-          <button
-            onClick={handlePrint}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 20px",
-              border: "1.5px solid #000",
-              background: "transparent",
-              color: "black",
-              borderRadius: "12px",
-              fontWeight: 700,
-              fontSize: "14px",
-            }}
-          >
+        <div className="action-header-right">
+          <button onClick={handlePrint} className="print-button">
             <Printer size={18} /> {t("bills.details.print") || "Print"}
           </button>
           <button
@@ -237,17 +204,7 @@ export default function BillDetailPage() {
                 { pageSize, lang: language },
               )
             }
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 20px",
-              background: "black",
-              color: "white",
-              borderRadius: "12px",
-              fontWeight: 700,
-              fontSize: "14px",
-            }}
+            className="download-button"
           >
             <Download size={18} />{" "}
             {t("bills.details.downloadPdf") || "Download PDF"}
@@ -269,13 +226,20 @@ export default function BillDetailPage() {
           ref={billRef}
           style={{
             transform:
-              scale < 1 && !pageSize.startsWith("THERMAL")
+              scale < 1 &&
+              pageSize !== "THERMAL_80" &&
+              pageSize !== "THERMAL_58"
                 ? `scale(${scale})`
                 : "none",
             transformOrigin: "top center",
+            transition: "transform 0.2s ease-out",
             width:
-              scale < 1 && !pageSize.startsWith("THERMAL")
-                ? "800px"
+              scale < 1 &&
+              pageSize !== "THERMAL_80" &&
+              pageSize !== "THERMAL_58"
+                ? pageSize === "A5"
+                  ? "560px"
+                  : "800px"
                 : pageSize === "THERMAL_80"
                   ? "226pt"
                   : pageSize === "THERMAL_58"
@@ -349,23 +313,8 @@ export default function BillDetailPage() {
           <div className="divider" />
 
           {/* --- Party Information Section --- */}
-          <div
-            style={{
-              marginBottom: "1.5rem",
-              display: pageSize.startsWith("THERMAL") ? "block" : "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "2rem",
-              border: pageSize.startsWith("THERMAL")
-                ? "none"
-                : "1.5px solid #eee",
-              borderBottom: pageSize.startsWith("THERMAL")
-                ? "1px dashed #eee"
-                : "1.5px solid #eee",
-              borderRadius: pageSize.startsWith("THERMAL") ? "0" : "12px",
-              padding: pageSize.startsWith("THERMAL") ? "0.5rem 0" : "1.5rem",
-            }}
-          >
-            <div>
+          <div className="party-details-section">
+            <div className="party-card">
               <h4
                 style={{
                   margin: "0 0 10px",
@@ -939,6 +888,7 @@ export default function BillDetailPage() {
           display: flex;
           flex-direction: column;
           align-items: center;
+          width: 100%;
         }
 
         @keyframes fadeIn {
@@ -954,11 +904,198 @@ export default function BillDetailPage() {
 
         .action-header {
           width: 100%;
-          max-width: 800px;
+          max-width: 900px;
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 2rem;
+          padding: 16px 20px;
+          background: white;
+          border-radius: 16px;
+          border: 1.5px solid var(--border-main);
+          gap: 16px;
+          flex-wrap: wrap;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .action-header-left,
+        .action-header-right {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .back-button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 700;
+          color: var(--text-muted);
+          font-size: 14px;
+          margin-right: 8px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+        }
+
+        .page-size-selector {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          white-space: nowrap;
+        }
+
+        .selector-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-muted);
+        }
+
+        .size-select {
+          padding: 8px 12px;
+          border-radius: 10px;
+          border: 1.5px solid var(--border-main);
+          font-size: 13px;
+          font-weight: 700;
+          background: #f8fafc;
+          cursor: pointer;
+        }
+
+        .print-button,
+        .download-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 10px 16px;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 13px;
+          white-space: nowrap;
+          cursor: pointer;
+          border: none;
+        }
+
+        .print-button {
+          border: 1.5px solid #000;
+          background: transparent;
+          color: black;
+        }
+
+        .download-button {
+          background: black;
+          color: white;
+        }
+
+        @media (max-width: 768px) {
+          .action-header {
+            margin-left: 16px;
+            margin-right: 16px;
+            max-width: calc(100% - 32px);
+            padding: 12px 16px;
+            gap: 12px;
+          }
+
+          .action-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            width: 100%;
+          }
+
+          .page-size-selector {
+            gap: 6px;
+          }
+
+          .selector-label {
+            display: none;
+          }
+
+          .size-select {
+            padding: 6px 10px;
+            font-size: 12px;
+          }
+
+          .action-header-right {
+            width: 100%;
+            display: flex;
+            gap: 10px;
+          }
+
+          .print-button,
+          .download-button {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 12px;
+            gap: 6px;
+          }
+
+          .print-button svg,
+          .download-button svg {
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .action-header {
+            margin-left: 12px;
+            margin-right: 12px;
+            max-width: calc(100% - 24px);
+            flex-direction: column;
+            align-items: stretch;
+            padding: 12px;
+            gap: 10px;
+          }
+
+          .action-header-left {
+            flex-direction: column;
+            width: 100%;
+            gap: 10px;
+          }
+
+          .back-button {
+            font-size: 13px;
+            margin-right: 0;
+          }
+
+          .page-size-selector {
+            width: 100%;
+            gap: 8px;
+          }
+
+          .selector-label {
+            display: inline;
+            font-size: 11px;
+          }
+
+          .size-select {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 11px;
+          }
+
+          .action-header-right {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+
+          .print-button,
+          .download-button {
+            padding: 9px 10px;
+            font-size: 11px;
+          }
+
+          .print-button svg,
+          .download-button svg {
+            width: 14px;
+            height: 14px;
+          }
         }
 
         /* --- Bill Document Styles --- */
@@ -979,6 +1116,384 @@ export default function BillDetailPage() {
           grid-template-columns: 100px 1fr 180px;
           gap: 20px;
           align-items: start;
+        }
+
+        .party-details-section {
+          margin-bottom: 1.5rem;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2rem;
+          border: 1.5px solid #eee;
+          border-radius: 12px;
+          padding: 1.5rem;
+        }
+
+        .thermal-mode .party-details-section {
+          display: block;
+          border: none;
+          border-bottom: 1px dashed #eee;
+          border-radius: 0;
+          padding: 0.5rem 0;
+        }
+
+        @media screen and (max-width: 1024px) {
+          .bill-document {
+            width: 100%;
+            padding: 32px 24px;
+            max-width: 900px;
+          }
+
+          .bill-header {
+            grid-template-columns: 80px 1fr 150px;
+            gap: 16px;
+          }
+
+          .business-logo {
+            width: 70px;
+            height: 70px;
+          }
+
+          .business-name {
+            font-size: 20px;
+          }
+
+          .business-desc {
+            font-size: 11px;
+          }
+
+          .bill-meta-block {
+            padding: 10px;
+          }
+
+          .party-details-section {
+            gap: 1.5rem;
+            padding: 1.2rem;
+          }
+        }
+
+        @media screen and (max-width: 768px) {
+          .bill-view-container {
+            padding-left: 12px;
+            padding-right: 12px;
+            padding-bottom: 4rem;
+          }
+
+          .bill-document {
+            width: calc(100% - 24px);
+            padding: 24px 16px;
+            border-radius: 8px;
+            min-height: auto;
+            transform: none !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+          }
+
+          .bill-header {
+            display: grid;
+            grid-template-columns: 70px 1fr;
+            gap: 12px;
+            align-items: start;
+          }
+
+          .business-logo {
+            width: 60px;
+            height: 60px;
+            grid-column: 1;
+            grid-row: 1;
+          }
+
+          .business-info {
+            grid-column: 2;
+            grid-row: 1;
+          }
+
+          .business-name {
+            font-size: 18px;
+            margin-bottom: 2px;
+          }
+
+          .business-desc {
+            font-size: 10px;
+            margin-bottom: 8px;
+          }
+
+          .business-meta {
+            gap: 2px;
+          }
+
+          .info-item {
+            font-size: 10px;
+          }
+
+          .bill-meta-block {
+            grid-column: 1 / -1;
+            text-align: left;
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+          }
+
+          .meta-field {
+            font-size: 11px;
+            margin-bottom: 2px;
+          }
+
+          .meta-label {
+            margin-right: 4px;
+          }
+
+          .meta-value {
+            font-size: 11px;
+          }
+
+          .party-details-section {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+          }
+
+          .party-card h4 {
+            font-size: 10px;
+          }
+
+          .party-card span {
+            font-size: 11px;
+          }
+
+          .items-container {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+          }
+
+          .items-container table {
+            font-size: 12px !important;
+            width: 100%;
+            min-width: 500px;
+          }
+
+          .items-container th {
+            padding: 10px 6px !important;
+            font-size: 10px !important;
+            white-space: nowrap;
+          }
+
+          .items-container td {
+            padding: 8px 6px !important;
+            font-size: 11px !important;
+          }
+
+          .summary-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+            margin-top: 1.5rem;
+          }
+
+          .charges-section {
+            order: 2;
+          }
+
+          .final-summary {
+            width: 100%;
+            order: 1;
+          }
+
+          .summary-box {
+            padding: 12px;
+            border-radius: 6px;
+          }
+
+          .summary-row {
+            font-size: 12px;
+            margin-bottom: 6px;
+          }
+
+          .main-total {
+            font-size: 16px;
+            margin-top: 10px;
+            padding-top: 10px;
+          }
+
+          .upi-section {
+            margin-top: 12px;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 8px;
+          }
+
+          .bill-footer {
+            padding-top: 20px;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 8px;
+          }
+
+          .footer-terms p {
+            font-size: 9px;
+          }
+
+          .footer-page {
+            font-size: 9px;
+          }
+        }
+
+        @media screen and (max-width: 480px) {
+          .bill-view-container {
+            padding-left: 8px;
+            padding-right: 8px;
+            padding-bottom: 3rem;
+          }
+
+          .bill-document {
+            width: calc(100% - 16px);
+            padding: 16px 12px;
+            border-radius: 6px;
+          }
+
+          .bill-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 10px;
+          }
+
+          .business-logo {
+            width: 50px;
+            height: 50px;
+          }
+
+          .business-name {
+            font-size: 16px;
+          }
+
+          .business-desc {
+            font-size: 9px;
+          }
+
+          .business-meta {
+            gap: 0;
+          }
+
+          .info-item {
+            font-size: 9px;
+            justify-content: center;
+          }
+
+          .bill-meta-block {
+            width: 100%;
+            text-align: center;
+            padding: 6px;
+          }
+
+          .meta-field {
+            font-size: 10px;
+            margin-bottom: 1px;
+          }
+
+          .divider {
+            margin: 12px 0;
+          }
+
+          .party-details-section {
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+          }
+
+          .party-card h4 {
+            font-size: 9px;
+            margin-bottom: 6px;
+          }
+
+          .party-card span {
+            font-size: 10px;
+          }
+
+          .party-card p {
+            font-size: 10px;
+          }
+
+          .items-container table {
+            font-size: 11px !important;
+          }
+
+          .items-container th {
+            padding: 6px 4px !important;
+            font-size: 9px !important;
+            white-space: nowrap;
+          }
+
+          .items-container td {
+            padding: 5px 3px !important;
+            font-size: 10px !important;
+          }
+
+          .summary-box {
+            padding: 10px;
+          }
+
+          .summary-row {
+            font-size: 11px;
+            margin-bottom: 5px;
+          }
+
+          .main-total {
+            font-size: 14px;
+            margin-top: 8px;
+            padding-top: 8px;
+          }
+
+          .charge-item {
+            font-size: 11px;
+            margin-bottom: 6px;
+          }
+
+          .upi-section {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            margin-top: 10px;
+          }
+
+          .upi-label {
+            font-size: 9px;
+          }
+
+          .upi-id {
+            font-size: 10px;
+          }
+        }
+
+        @media screen and (max-width: 360px) {
+          .bill-document {
+            width: calc(100% - 16px);
+            padding: 12px;
+          }
+
+          .items-container {
+            margin-bottom: 1rem;
+          }
+
+          .items-container table {
+            font-size: 10px !important;
+            min-width: 450px;
+          }
+
+          .items-container th {
+            padding: 4px 2px !important;
+            font-size: 8px !important;
+          }
+
+          .items-container td {
+            padding: 4px 2px !important;
+            font-size: 9px !important;
+          }
         }
 
         .business-logo {
