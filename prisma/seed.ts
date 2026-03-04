@@ -69,7 +69,6 @@ async function main() {
             username: "staff",
             password: hashedPassword,
             name: "Mandi Staff",
-            pin: "1234",
             role: "ORG_STAFF",
             organizationId: sampleOrg.id,
         },
