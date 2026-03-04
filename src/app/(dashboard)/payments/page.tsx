@@ -1,23 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import {
-  Wallet,
+  ArrowRight,
+  Banknote,
+  ChevronDown,
+  Clock,
+  Edit2,
+  Loader2,
+  Phone,
   Plus,
   Search,
-  Loader2,
-  X,
-  Banknote,
-  ArrowRight,
+  Trash2,
+  Wallet,
   Users,
   UserSearch,
-  Clock,
-  ChevronDown,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { paymentSchema } from "@/lib/schemas";
+import { fmtDate } from "@/lib/dateUtils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface Payment {
   id: string;
@@ -52,6 +58,9 @@ export default function PaymentsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   // Modal state
   const [partyType, setPartyType] = useState<"FARMER" | "CUSTOMER">("FARMER");
@@ -226,15 +235,24 @@ export default function PaymentsPage() {
 
   const fmt = (n: number) =>
     `₹ ${Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString(
-      language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN",
-      { day: "numeric", month: "short", year: "numeric" },
-    );
 
-  const filtered = payments.filter((p) =>
-    tab === "ALL" ? true : tab === "FARMER" ? !!p.farmer : !!p.customer,
-  );
+  const filtered = useMemo(() => {
+    return payments
+      .filter((p) => {
+        const matchesTab = tab === "ALL" ? true : tab === "FARMER" ? !!p.farmer : !!p.customer;
+
+        const payTime = new Date(p.paymentDate).getTime();
+        const start = fromDate ? new Date(fromDate).getTime() : -Infinity;
+        const end = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : Infinity;
+
+        return matchesTab && payTime >= start && payTime <= end;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.paymentDate).getTime();
+        const dateB = new Date(b.paymentDate).getTime();
+        return dateSort === "desc" ? dateB - dateA : dateA - dateB;
+      });
+  }, [payments, tab, fromDate, toDate, dateSort]);
 
   const farmerTotal = payments
     .filter((p) => p.farmer)
@@ -426,36 +444,29 @@ export default function PaymentsPage() {
         })}
       </div>
 
-      {/* ── Tabs + List ── */}
-      <div className="premium-card" style={{ overflow: "hidden" }}>
-        <div
-          style={{
-            padding: "0.75rem 1.5rem",
-            borderBottom: "1px solid #f1f5f9",
-            display: "flex",
-            gap: "1rem",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", gap: "0.5rem" }}>
+      {/* ── Filters & Search Area ── */}
+      <div className="premium-card" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "1.5rem" }}>
+
+          {/* Filter Tabs */}
+          <div style={{ display: "flex", backgroundColor: "#f1f5f9", padding: "4px", borderRadius: "14px", gap: "4px" }}>
             {(["ALL", "FARMER", "CUSTOMER"] as const).map((t2) => (
               <button
                 key={t2}
                 onClick={() => setTab(t2)}
                 style={{
-                  padding: "7px 16px",
-                  borderRadius: "10px",
                   border: "none",
-                  cursor: "pointer",
+                  padding: "10px 20px",
+                  borderRadius: "10px",
                   fontSize: "11px",
-                  fontWeight: 900,
+                  fontWeight: 800,
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
-                  transition: "all 0.15s",
-                  backgroundColor: tab === t2 ? VIOLET : "transparent",
-                  color: tab === t2 ? "#fff" : "#94a3b8",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  backgroundColor: tab === t2 ? "#fff" : "transparent",
+                  color: tab === t2 ? "var(--text-main)" : "var(--text-muted)",
+                  boxShadow: tab === t2 ? "0 4px 6px -1px rgba(0,0,0,0.05)" : "none"
                 }}
               >
                 {t2 === "ALL"
@@ -466,46 +477,69 @@ export default function PaymentsPage() {
               </button>
             ))}
           </div>
-          <div style={{ position: "relative", minWidth: "240px" }}>
+
+          {/* Search Input */}
+          <div style={{ flex: 1, minWidth: "260px", position: "relative" }}>
             <Search
-              style={{
-                position: "absolute",
-                left: "14px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "#94a3b8",
-              }}
-              size={16}
+              style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}
+              size={18}
             />
             <input
               type="text"
-              placeholder={
-                t("payments.searchPlaceholder") || "Search by party or notes..."
-              }
+              placeholder={t("payments.searchPlaceholder") || "Search by party or notes..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
                 width: "100%",
-                padding: "10px 14px 10px 42px",
-                borderRadius: "12px",
-                border: "1.5px solid #e2e8f0",
-                outline: "none",
-                fontSize: "13px",
+                padding: "14px 14px 14px 56px",
+                backgroundColor: "#f8fafc",
+                border: "1px solid var(--border-main)",
+                borderRadius: "16px",
+                fontSize: "14px",
                 fontWeight: 700,
-                backgroundColor: "#f1f5f9",
-                transition: "all 0.2s",
+                color: "var(--text-main)",
+                outline: "none",
+                transition: "all 0.2s ease",
+                boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.02)"
               }}
-              onFocusCapture={(e) => {
-                e.currentTarget.style.borderColor = VIOLET;
-                e.currentTarget.style.backgroundColor = "#fff";
-              }}
-              onBlurCapture={(e) => {
-                e.currentTarget.style.borderColor = "#e2e8f0";
-                e.currentTarget.style.backgroundColor = "#f1f5f9";
-              }}
+              className="focus:ring-2 focus:ring-violet-500/10 focus:border-violet-500/50"
             />
           </div>
+
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "10px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase" }}>{t("common.from") || "From"}</span>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                style={{ padding: "8px", borderRadius: "10px", border: "1.5px solid var(--border-main)", fontSize: "12px", fontWeight: 700, outline: "none" }}
+              />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "10px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase" }}>{t("common.to") || "To"}</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                style={{ padding: "8px", borderRadius: "10px", border: "1.5px solid var(--border-main)", fontSize: "12px", fontWeight: 700, outline: "none" }}
+              />
+            </div>
+            {(fromDate || toDate) && (
+              <button
+                onClick={() => { setFromDate(""); setToDate(""); }}
+                style={{ padding: "8px", borderRadius: "10px", border: "none", backgroundColor: "#f1f5f9", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                title="Clear dates"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* ── Payments List ── */}
+      <div className="premium-card overflow-hidden">
 
         {loading ? (
           <div
@@ -541,185 +575,104 @@ export default function PaymentsPage() {
           </div>
         ) : (
           <>
-            {/* Desktop table */}
-            <div className="pay-table-wrap" style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#f8fafc" }}>
+            <div className="hidden lg:block border border-gray-200 rounded-none overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
                     {[
-                      "Date",
-                      "Party",
-                      "Mode",
-                      "Bill Ref",
-                      "Notes",
-                      "Amount",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: "10px 20px",
-                          textAlign: h === "Amount" ? "right" : "left",
-                          fontSize: "10px",
-                          fontWeight: 900,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          whiteSpace: "nowrap",
-                        }}
+                      t("common.date"),
+                      t("common.party"),
+                      t("common.paymentMode"),
+                      t("payments.table.billRef"),
+                      t("payments.table.notes"),
+                      t("common.amount"),
+                    ].map((h, idx) => (
+                      <TableHead
+                        key={idx}
+                        onClick={h === t("common.date") ? () => setDateSort(s => s === "asc" ? "desc" : "asc") : undefined}
+                        className={cn(
+                          "h-10 px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-600 border-r border-gray-200 last:border-r-0 whitespace-nowrap",
+                          h === t("common.amount") && "text-right",
+                          h === t("common.date") && "cursor-pointer select-none"
+                        )}
                       >
-                        {h}
-                      </th>
+                        <div className={cn(
+                          "flex items-center gap-1",
+                          h === t("common.amount") ? "justify-end" : "justify-start"
+                        )}>
+                          {h}
+                          {h === t("common.date") && (
+                            <span className={cn("text-xs", dateSort === "desc" ? "text-blue-600" : "text-gray-400")}>
+                              {dateSort === "desc" ? "↓" : "↑"}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((p) => {
-                    const party = p.farmer || p.customer;
-                    const isCustomer = !!p.customer;
-                    return (
-                      <tr
-                        key={p.id}
-                        style={{
-                          borderTop: "1px solid #f1f5f9",
-                          cursor: "pointer",
-                          transition: "background 0.1s",
-                        }}
-                        onClick={() =>
-                          party &&
-                          router.push(
-                            isCustomer
-                              ? `/customers/${party.id}`
-                              : `/farmers/${party.id}`,
-                          )
-                        }
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = "#fafafa")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            "transparent")
-                        }
-                      >
-                        <td
-                          style={{
-                            padding: "14px 20px",
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            color: "#64748b",
-                            whiteSpace: "nowrap",
-                          }}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-32 text-center text-gray-400 font-medium">
+                        {t("payments.noPayments") || "No payments found"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filtered.map((p) => {
+                      const party = p.farmer || p.customer;
+                      const isCustomer = !!p.customer;
+                      return (
+                        <TableRow
+                          key={p.id}
+                          className="even:bg-gray-50/50 odd:bg-white hover:bg-blue-50/30 transition-colors border-b border-gray-200 last:border-b-0 cursor-pointer"
+                          onClick={() =>
+                            party &&
+                            router.push(
+                              isCustomer
+                                ? `/customers/${party.id}`
+                                : `/farmers/${party.id}`,
+                            )
+                          }
                         >
-                          {fmtDate(p.paymentDate)}
-                        </td>
-                        <td style={{ padding: "14px 20px" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "10px",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: "32px",
-                                height: "32px",
-                                borderRadius: "8px",
-                                backgroundColor: isCustomer
-                                  ? "rgba(3,105,161,0.08)"
-                                  : "rgba(21,128,61,0.08)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: isCustomer ? "#0369a1" : "#15803d",
-                                fontWeight: 900,
-                                fontSize: "13px",
-                                flexShrink: 0,
-                              }}
-                            >
-                              {party?.name.charAt(0).toUpperCase()}
+                          <TableCell className="border-r border-gray-200 whitespace-nowrap">
+                            <span className="text-[14px] font-bold text-gray-500">{fmtDate(p.paymentDate)}</span>
+                          </TableCell>
+                          <TableCell className="border-r border-gray-200">
+                            <span className="text-[14px] font-bold text-gray-900">{party?.name || "—"}</span>
+                          </TableCell>
+                          <TableCell className="border-r border-gray-200">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase border tracking-wider",
+                              p.mode === "CASH" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                p.mode === "BANK" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                  "bg-gray-50 text-gray-700 border-gray-200"
+                            )}>
+                              {t(`expenses.paymentModes.${p.mode}`)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="border-r border-gray-200">
+                            <span className="text-[14px] font-medium text-gray-600">
+                              {p.bill?.billNumber || <span className="text-gray-300">—</span>}
+                            </span>
+                          </TableCell>
+                          <TableCell className="border-r border-gray-200 max-w-[200px] truncate">
+                            <span className="text-[14px] font-normal text-gray-500 italic">
+                              {p.notes || <span className="text-gray-300">—</span>}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right border-l border-gray-200 bg-gray-50/30">
+                            <div className="text-[14px] font-bold text-gray-900 tabular-nums">
+                              <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
+                              {p.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                             </div>
-                            <div>
-                              <p
-                                style={{
-                                  margin: 0,
-                                  fontSize: "13px",
-                                  fontWeight: 800,
-                                  color: "var(--text-main)",
-                                }}
-                              >
-                                {party?.name}
-                              </p>
-                              <span
-                                style={{
-                                  fontSize: "10px",
-                                  fontWeight: 900,
-                                  padding: "2px 7px",
-                                  borderRadius: "5px",
-                                  backgroundColor: isCustomer
-                                    ? "rgba(3,105,161,0.08)"
-                                    : "rgba(21,128,61,0.08)",
-                                  color: isCustomer ? "#0369a1" : "#15803d",
-                                }}
-                              >
-                                {isCustomer ? "Customer" : "Farmer"}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: "14px 20px" }}>
-                          <span
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 900,
-                              padding: "4px 10px",
-                              borderRadius: "7px",
-                              backgroundColor: "#f8fafc",
-                              color: "#64748b",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                            }}
-                          >
-                            {p.mode.replace("_", " ")}
-                          </span>
-                        </td>
-                        <td
-                          style={{
-                            padding: "14px 20px",
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            color: "#64748b",
-                          }}
-                        >
-                          {p.bill?.billNumber || "—"}
-                        </td>
-                        <td
-                          style={{
-                            padding: "14px 20px",
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            color: "#94a3b8",
-                            maxWidth: "200px",
-                          }}
-                        >
-                          {p.notes || "—"}
-                        </td>
-                        <td
-                          style={{
-                            padding: "14px 20px",
-                            textAlign: "right",
-                            fontSize: "14px",
-                            fontWeight: 900,
-                            color: VIOLET,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {fmt(p.amount)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
             </div>
 
             {/* Mobile cards */}
@@ -793,7 +746,7 @@ export default function PaymentsPage() {
                             color: "#94a3b8",
                           }}
                         >
-                          {fmtDate(p.paymentDate)} · {p.mode.replace("_", " ")}
+                          {fmtDate(p.paymentDate)} · {t(`expenses.paymentModes.${p.mode}`)}
                         </p>
                       </div>
                     </div>
@@ -803,97 +756,55 @@ export default function PaymentsPage() {
                           margin: 0,
                           fontSize: "15px",
                           fontWeight: 900,
-                          color: VIOLET,
+                          color: "#7c3aed",
+                          letterSpacing: "-0.01em",
                         }}
                       >
                         {fmt(p.amount)}
                       </p>
-                      <ArrowRight
-                        size={14}
-                        color="#cbd5e1"
-                        style={{ marginTop: "2px" }}
-                      />
+                      <ArrowRight size={14} color="#cbd5e1" style={{ marginTop: "4px" }} />
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* ── Pagination ── */}
+            {!loading && pagination.totalPages > 1 && (
+              <div
+                className="px-5 py-3.5 border-t border-[#f1f5f9] flex items-center justify-between bg-white"
+                style={{ padding: "1.25rem", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+              >
+                <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "var(--text-muted)" }}>
+                  {t("common.pagination.status", { page: pagination.page, total: pagination.totalPages, count: pagination.total })}
+                </p>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button
+                    onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
+                    disabled={pagination.page === 1}
+                    className={cn(
+                      "px-4 py-2 rounded-xl border border-[#e2e8f0] text-xs font-black uppercase tracking-wider transition-all",
+                      pagination.page === 1 ? "bg-[#f8fafc] text-[#cbd5e1] cursor-not-allowed" : "bg-white text-[#475569] hover:bg-[#f8fafc] hover:border-[#cbd5e1]"
+                    )}
+                  >
+                    {t("common.pagination.previous")}
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(Math.min(pagination.totalPages, pagination.page + 1))}
+                    disabled={pagination.page === pagination.totalPages}
+                    className={cn(
+                      "px-4 py-2 rounded-xl border border-[#e2e8f0] text-xs font-black uppercase tracking-wider transition-all",
+                      pagination.page === pagination.totalPages ? "bg-[#f8fafc] text-[#cbd5e1] cursor-not-allowed" : "bg-white text-[#475569] hover:bg-[#f8fafc] hover:border-[#cbd5e1]"
+                    )}
+                  >
+                    {t("common.pagination.next")}
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
-
-      {/* Pagination */}
-      {!loading && pagination.totalPages > 1 && (
-        <div
-          className="premium-card"
-          style={{
-            marginTop: "2rem",
-            padding: "1.25rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: "12px",
-              fontWeight: 700,
-              color: "var(--text-muted)",
-            }}
-          >
-            Page {pagination.page} of {pagination.totalPages} (
-            {pagination.total} total)
-          </p>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button
-              onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
-              disabled={pagination.page === 1}
-              style={{
-                padding: "8px 16px",
-                borderRadius: "10px",
-                border: "1px solid var(--border-main)",
-                backgroundColor: pagination.page === 1 ? "#f8fafc" : "#fff",
-                fontSize: "12px",
-                fontWeight: 800,
-                color: pagination.page === 1 ? "#cbd5e1" : "var(--text-main)",
-                cursor: pagination.page === 1 ? "not-allowed" : "pointer",
-              }}
-            >
-              Previous
-            </button>
-            <button
-              onClick={() =>
-                handlePageChange(
-                  Math.min(pagination.totalPages, pagination.page + 1),
-                )
-              }
-              disabled={pagination.page === pagination.totalPages}
-              style={{
-                padding: "8px 16px",
-                borderRadius: "10px",
-                border: "1px solid var(--border-main)",
-                backgroundColor:
-                  pagination.page === pagination.totalPages
-                    ? "#f8fafc"
-                    : "#fff",
-                fontSize: "12px",
-                fontWeight: 800,
-                color:
-                  pagination.page === pagination.totalPages
-                    ? "#cbd5e1"
-                    : "var(--text-main)",
-                cursor:
-                  pagination.page === pagination.totalPages
-                    ? "not-allowed"
-                    : "pointer",
-              }}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── Record Payment Modal ── */}
       {showModal && (
@@ -1252,12 +1163,12 @@ export default function PaymentsPage() {
                                 transition: "all 0.15s",
                               }}
                               onMouseEnter={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  VIOLET_BG)
+                              (e.currentTarget.style.backgroundColor =
+                                VIOLET_BG)
                               }
                               onMouseLeave={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  "transparent")
+                              (e.currentTarget.style.backgroundColor =
+                                "transparent")
                               }
                             >
                               <div>
@@ -1509,8 +1420,8 @@ export default function PaymentsPage() {
                         {roundOff
                           ? "0.00"
                           : remainingDue.toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
+                            minimumFractionDigits: 2,
+                          })}
                       </p>
                     </div>
                   </div>

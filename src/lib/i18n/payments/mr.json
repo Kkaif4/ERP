@@ -29,5 +29,9 @@
   "autoExpensed": "स्वयंचलित खर्च",
   "cash": "रोख",
   "bank": "बँक",
-  "other": "इतर"
+  "other": "इतर",
+  "table": {
+    "billRef": "बिल संदर्भ",
+    "notes": "टीप"
+  }
 }

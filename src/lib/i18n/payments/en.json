@@ -29,5 +29,9 @@
   "autoExpensed": "Auto-expensed",
   "cash": "Cash",
   "bank": "Bank",
-  "other": "Other"
+  "other": "Other",
+  "table": {
+    "billRef": "Bill Ref",
+    "notes": "Notes"
+  }
 }

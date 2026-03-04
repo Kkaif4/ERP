@@ -18,6 +18,7 @@ import {
     Hammer,
     Wallet,
     Info,
+    UserPlus,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
@@ -25,6 +26,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { purchaseBillSchema } from "@/lib/schemas";
 import Tooltip from "@/components/ui/Tooltip";
+import { AddPartyModal } from "@/components/modals/AddPartyModal";
+import { useUser } from "@/components/providers/UserContext";
 
 interface Farmer {
     id: string;
@@ -72,6 +75,9 @@ export default function NewPurchaseBillPage() {
     const [othersAmount, setOthersAmount] = useState("");
     const [othersNote, setOthersNote] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { user } = useUser();
+    const isAdmin = user?.role === "ORG_ADMIN" || user?.role === "SUPER_ADMIN";
+    const [isFarmerModalOpen, setIsFarmerModalOpen] = useState(false);
 
     const [farmerPage, setFarmerPage] = useState(1);
     const [hasMoreFarmers, setHasMoreFarmers] = useState(true);
@@ -518,46 +524,75 @@ export default function NewPurchaseBillPage() {
                         ) : (
                             <div
                                 ref={farmerSearchRef}
-                                style={{ position: "relative" }}
+                                style={{ position: "relative", display: "flex", gap: "10px" }}
                             >
-                                <Search
-                                    style={{
-                                        position: "absolute",
-                                        left: "16px",
-                                        top: "50%",
-                                        transform: "translateY(-50%)",
-                                        color: "#94a3b8",
-                                    }}
-                                    size={18}
-                                />
-                                <input
-                                    type="text"
-                                    placeholder={t("bills.purchase.farmerPlaceholder")}
-                                    value={farmerSearch}
-                                    onFocus={() => setIsFarmerDropdownOpen(true)}
-                                    onChange={(e) => setFarmerSearch(e.target.value)}
-                                    style={{
-                                        width: "100%",
-                                        boxSizing: "border-box",
-                                        padding: "14px 14px 14px 52px",
-                                        backgroundColor: "#f1f5f9",
-                                        border: "1.5px solid #e2e8f0",
-                                        borderRadius: "14px",
-                                        fontSize: "14px",
-                                        fontWeight: 700,
-                                        color: "var(--text-main)",
-                                        outline: "none",
-                                        transition: "all 0.2s",
-                                    }}
-                                    onFocusCapture={(e) => {
-                                        e.currentTarget.style.borderColor = "#15803d";
-                                        e.currentTarget.style.backgroundColor = "#fff";
-                                    }}
-                                    onBlurCapture={(e) => {
-                                        e.currentTarget.style.borderColor = "#e2e8f0";
-                                        e.currentTarget.style.backgroundColor = "#f1f5f9";
-                                    }}
-                                />
+                                <div style={{ position: "relative", flex: 1 }}>
+                                    <Search
+                                        style={{
+                                            position: "absolute",
+                                            left: "16px",
+                                            top: "50%",
+                                            transform: "translateY(-50%)",
+                                            color: "#94a3b8",
+                                        }}
+                                        size={18}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder={t("bills.purchase.farmerPlaceholder")}
+                                        value={farmerSearch}
+                                        onFocus={() => setIsFarmerDropdownOpen(true)}
+                                        onChange={(e) => setFarmerSearch(e.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            boxSizing: "border-box",
+                                            padding: "14px 14px 14px 52px",
+                                            backgroundColor: "#f1f5f9",
+                                            border: "1.5px solid #e2e8f0",
+                                            borderRadius: "14px",
+                                            fontSize: "14px",
+                                            fontWeight: 700,
+                                            color: "var(--text-main)",
+                                            outline: "none",
+                                            transition: "all 0.2s",
+                                        }}
+                                        onFocusCapture={(e) => {
+                                            e.currentTarget.style.borderColor = "#15803d";
+                                            e.currentTarget.style.backgroundColor = "#fff";
+                                        }}
+                                        onBlurCapture={(e) => {
+                                            e.currentTarget.style.borderColor = "#e2e8f0";
+                                            e.currentTarget.style.backgroundColor = "#f1f5f9";
+                                        }}
+                                    />
+                                </div>
+                                {isAdmin && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsFarmerModalOpen(true)}
+                                        style={{
+                                            padding: "0 16px",
+                                            backgroundColor: "rgba(21,128,61,0.08)",
+                                            border: "1.5px solid rgba(21,128,61,0.2)",
+                                            borderRadius: "14px",
+                                            color: "#15803d",
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            gap: "8px",
+                                            fontWeight: 800,
+                                            fontSize: "13px",
+                                            whiteSpace: "nowrap",
+                                            transition: "all 0.2s"
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(21,128,61,0.12)"}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(21,128,61,0.08)"}
+                                    >
+                                        <UserPlus size={18} />
+                                        {t("master.farmers.addFarmer")}
+                                    </button>
+                                )}
                                 {isFarmerDropdownOpen &&
                                     (debouncedFarmerSearch.length > 0 ||
                                         farmersList.length > 0) && (
@@ -1819,6 +1854,17 @@ export default function NewPurchaseBillPage() {
                     </div>
                 </div>
             </div>
+
+            <AddPartyModal
+                isOpen={isFarmerModalOpen}
+                onClose={() => setIsFarmerModalOpen(false)}
+                type="FARMER"
+                onSuccess={() => {
+                    setFarmerPage(1);
+                    setHasMoreFarmers(true);
+                    // The dropdown effect will trigger when re-opened
+                }}
+            />
 
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }

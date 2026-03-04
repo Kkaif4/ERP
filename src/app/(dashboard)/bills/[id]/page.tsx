@@ -15,6 +15,16 @@ import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { DateTime } from "luxon";
 import { downloadPDF, printPDF } from "@/lib/print";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 type PageSize = "A4" | "A5" | "LEGAL" | "FOLIO" | "THERMAL_80" | "THERMAL_58";
 
@@ -154,9 +164,9 @@ export default function BillDetailPage() {
 
   const totalExpenses = isPurchase
     ? Number(bill.labourCharges || 0) +
-      Number(bill.freightCharges || 0) +
-      Number(bill.advanceDeduction || 0) +
-      Number(bill.othersAmount || 0)
+    Number(bill.freightCharges || 0) +
+    Number(bill.advanceDeduction || 0) +
+    Number(bill.othersAmount || 0)
     : 0;
 
   const totalUnits = totals.units.toFixed(1);
@@ -398,321 +408,123 @@ export default function BillDetailPage() {
             }}
           >
             {pageSize.startsWith("THERMAL") ? (
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  marginBottom: "2rem",
-                  fontSize: "12px",
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      borderBottom: "1px dashed #ccc",
-                    }}
-                  >
-                    <th
-                      style={{
-                        padding: "8px 0",
-                        textAlign: "left",
-                        color: "#64748b",
-                        fontWeight: 700,
-                      }}
-                    >
+              <Table className="w-full mb-8 text-xs border-collapse">
+                <TableHeader>
+                  <TableRow className="border-b border-dashed border-[#ccc] hover:bg-transparent">
+                    <TableHead className="h-8 px-0 text-left font-bold text-[#64748b]">
                       {t("bills.details.item") || "Item"}
-                    </th>
-                    <th
-                      style={{
-                        padding: "8px 0",
-                        textAlign: "right",
-                        color: "#64748b",
-                        fontWeight: 700,
-                      }}
-                    >
+                    </TableHead>
+                    <TableHead className="h-8 px-0 text-right font-bold text-[#64748b]">
                       {t("bills.details.units") || "Unit"}
-                    </th>
-                    <th
-                      style={{
-                        padding: "8px 0",
-                        textAlign: "right",
-                        color: "#64748b",
-                        fontWeight: 700,
-                      }}
-                    >
+                    </TableHead>
+                    <TableHead className="h-8 px-0 text-right font-bold text-[#64748b]">
                       {t("bills.details.weight") || "KG"}
-                    </th>
-                    <th
-                      style={{
-                        padding: "8px 0",
-                        textAlign: "right",
-                        color: "#64748b",
-                        fontWeight: 700,
-                      }}
-                    >
+                    </TableHead>
+                    <TableHead className="h-8 px-0 text-right font-bold text-[#64748b]">
                       {t("bills.details.price") || "Price"}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {bill.items.map((item: any, idx: number) => (
-                    <tr key={item.id}>
-                      <td
-                        style={{
-                          padding: "6px 0",
-                          borderBottom: "1px dashed #eee",
-                          fontSize: "11px",
-                        }}
-                      >
+                    <TableRow key={item.id} className="border-b border-dashed border-[#eee] hover:bg-transparent">
+                      <TableCell className="py-1.5 px-0 text-[11px]">
                         {idx + 1}. {item.item.name}
-                      </td>
-                      <td
-                        style={{
-                          padding: "6px 0",
-                          borderBottom: "1px dashed #eee",
-                          textAlign: "right",
-                          fontSize: "11px",
-                        }}
-                      >
+                      </TableCell>
+                      <TableCell className="py-1.5 px-0 text-right text-[11px]">
                         {Number(item.quantityUnits).toFixed(1)}
-                      </td>
-                      <td
-                        style={{
-                          padding: "6px 0",
-                          borderBottom: "1px dashed #eee",
-                          textAlign: "right",
-                          fontSize: "11px",
-                        }}
-                      >
+                      </TableCell>
+                      <TableCell className="py-1.5 px-0 text-right text-[11px]">
                         {Number(item.quantityKg).toFixed(1)}
-                      </td>
-                      <td
-                        style={{
-                          padding: "6px 0",
-                          borderBottom: "1px dashed #eee",
-                          textAlign: "right",
-                          fontWeight: 600,
-                          fontSize: "11px",
-                        }}
-                      >
+                      </TableCell>
+                      <TableCell className="py-1.5 px-0 text-right font-semibold text-[11px]">
                         {Number(item.pricePerUnit).toLocaleString("en-IN")}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-                <tfoot>
-                  <tr style={{ borderTop: "1px dashed #ccc", fontWeight: 700 }}>
-                    <td style={{ padding: "8px 0", fontSize: "10px" }}>
+                </TableBody>
+                <TableFooter className="bg-transparent border-t border-dashed border-[#ccc] font-bold">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell className="py-2 px-0 text-[10px]">
                       {t("bills.details.totals") || "TOTALS"}
-                    </td>
-                    <td
-                      style={{
-                        padding: "8px 0",
-                        textAlign: "right",
-                        fontSize: "11px",
-                      }}
-                    >
+                    </TableCell>
+                    <TableCell className="py-2 px-0 text-right text-[11px]">
                       {totalUnits}
-                    </td>
-                    <td
-                      style={{
-                        padding: "8px 0",
-                        textAlign: "right",
-                        fontSize: "11px",
-                      }}
-                    >
+                    </TableCell>
+                    <TableCell className="py-2 px-0 text-right text-[11px]">
                       {totalWeight.toFixed(1)}
-                    </td>
-                    <td style={{ padding: "8px 0", textAlign: "right" }}>
+                    </TableCell>
+                    <TableCell className="py-2 px-0 text-right">
                       {Number(itemsSubtotal).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                       })}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
             ) : (
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  marginBottom: "2rem",
-                  minWidth: "650px",
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      background: "#f8fafc",
-                      borderBottom: "2px solid #eee",
-                    }}
-                  >
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontSize: "11px",
-                        color: "#64748b",
-                        textTransform: "uppercase",
-                        fontWeight: 800,
-                      }}
-                    >
+              <Table className="w-full mb-8 min-w-[650px] border-collapse">
+                <TableHeader>
+                  <TableRow className="bg-[#f8fafc] border-b-2 border-[#eee] hover:bg-[#f8fafc]">
+                    <TableHead className="h-14 pl-8 pr-4 text-left text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
                       {t("bills.details.srNo") || "Sr."}
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontSize: "11px",
-                        color: "#64748b",
-                        textTransform: "uppercase",
-                        fontWeight: 800,
-                      }}
-                    >
+                    </TableHead>
+                    <TableHead className="h-14 px-4 text-left text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
                       {t("bills.details.item") || "Item"}
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "right",
-                        fontSize: "11px",
-                        color: "#64748b",
-                        textTransform: "uppercase",
-                        fontWeight: 800,
-                      }}
-                    >
+                    </TableHead>
+                    <TableHead className="h-14 px-4 text-right text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
                       {t("bills.details.units") || "Unit"}
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "right",
-                        fontSize: "11px",
-                        color: "#64748b",
-                        textTransform: "uppercase",
-                        fontWeight: 800,
-                      }}
-                    >
+                    </TableHead>
+                    <TableHead className="h-14 px-4 text-right text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
                       {t("bills.details.weight") || "Weight"}
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "right",
-                        fontSize: "11px",
-                        color: "#64748b",
-                        textTransform: "uppercase",
-                        fontWeight: 800,
-                      }}
-                    >
+                    </TableHead>
+                    <TableHead className="h-14 pl-4 pr-8 text-right text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
                       {t("bills.details.price") || "Price"}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {bill.items.map((item: any, idx: number) => (
-                    <tr key={item.id}>
-                      <td
-                        style={{
-                          padding: "12px",
-                          borderBottom: "1px solid #eee",
-                          fontSize: "13px",
-                          color: "#475569",
-                        }}
-                      >
+                    <TableRow key={item.id} className="hover:bg-transparent">
+                      <TableCell className="pl-8 pr-4 py-5 border-b border-[#eee] text-[14px] text-[#475569] font-medium tabular-nums">
                         {idx + 1}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px",
-                          borderBottom: "1px solid #eee",
-                          fontSize: "13px",
-                          color: "#475569",
-                        }}
-                      >
-                        <div style={{ fontWeight: 600 }}>{item.item.name}</div>
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px",
-                          borderBottom: "1px solid #eee",
-                          textAlign: "right",
-                          fontSize: "13px",
-                          color: "#475569",
-                        }}
-                      >
+                      </TableCell>
+                      <TableCell className="px-4 py-5 border-b border-[#eee] text-[14px] text-[#1e293b]">
+                        <div className="font-bold">{item.item.name}</div>
+                      </TableCell>
+                      <TableCell className="px-4 py-5 border-b border-[#eee] text-right text-[14px] text-[#475569] font-medium tabular-nums">
                         {Number(item.quantityUnits).toFixed(1)}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px",
-                          borderBottom: "1px solid #eee",
-                          textAlign: "right",
-                          fontSize: "13px",
-                          color: "#475569",
-                        }}
-                      >
+                      </TableCell>
+                      <TableCell className="px-4 py-5 border-b border-[#eee] text-right text-[14px] text-[#475569] font-medium tabular-nums">
                         {Number(item.quantityKg).toFixed(1)}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px",
-                          borderBottom: "1px solid #eee",
-                          textAlign: "right",
-                          fontSize: "13px",
-                          color: "#475569",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {Number(item.pricePerUnit).toLocaleString("en-IN")}
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="pl-4 pr-8 py-5 border-b border-[#eee] text-right text-[14px] text-[#0f172a] font-bold tabular-nums">
+                        <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">₹</span>
+                        {Number(item.pricePerUnit).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-                <tfoot>
-                  <tr
-                    style={{
-                      borderTop: "2px solid #eee",
-                      fontWeight: 900,
-                      background: "#fdfdfd",
-                    }}
-                  >
-                    <td
-                      colSpan={2}
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontSize: "12px",
-                      }}
-                    >
+                </TableBody>
+                <TableFooter className="bg-[#fdfdfd] border-t-2 border-[#eee] font-black">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={2} className="p-3 pl-8 text-left text-[12px] font-black uppercase tracking-widest text-[#94a3b8]">
                       {t("bills.details.totals") || "TOTALS"}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        textAlign: "right",
-                        fontSize: "14px",
-                      }}
-                    >
+                    </TableCell>
+                    <TableCell className="p-3 text-right text-[14px] font-black text-[#1e293b] tabular-nums">
                       {totalUnits}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        textAlign: "right",
-                        fontSize: "14px",
-                      }}
-                    >
+                    </TableCell>
+                    <TableCell className="p-3 text-right text-[14px] font-black text-[#1e293b] tabular-nums">
                       {totalWeight.toFixed(2)}
-                    </td>
-                    <td style={{ padding: "12px", textAlign: "right" }}>
+                    </TableCell>
+                    <TableCell className="p-3 pr-8 text-right text-[16px] font-black text-[#0f172a] tabular-nums">
+                      <span className="text-[13px] font-semibold text-[#64748b]/70 mr-0.5">₹</span>
                       {Number(itemsSubtotal).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                       })}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
             )}
           </div>
 

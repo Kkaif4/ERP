@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "@/lib/i18n";
-import { Plus, Search, Loader2, ReceiptText, Clock, Trash2, Edit2, Download, FileSpreadsheet, FileText, CreditCard, Printer } from "lucide-react";
+import { ArrowDownUp, ChevronDown, Plus, Search, Loader2, ReceiptText, Clock, Trash2, Edit2, Download, FileSpreadsheet, FileText, CreditCard, Printer, ChevronRight, X } from "lucide-react";
 import { toast } from "sonner";
 import { expenseSchema } from "@/lib/schemas";
 import { downloadPDF, printPDF } from "@/lib/print";
 import { Modal } from "@/components/ui/Modal";
+import { fmtDate } from "@/lib/dateUtils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface Expense {
     id: string;
@@ -26,9 +29,12 @@ export default function ExpensesPage() {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
 
     const [form, setForm] = useState({
         amount: "",
@@ -139,12 +145,25 @@ export default function ExpensesPage() {
     };
 
     const fmt = (n: number) => `₹ ${Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-    const fmtDate = (d: string) => new Date(d).toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" });
 
-    const filtered = expenses.filter(e =>
-        (e.description?.toLowerCase() || "").includes(search.toLowerCase()) ||
-        (e.category?.toLowerCase() || "").includes(search.toLowerCase())
-    );
+    const filtered = useMemo(() => {
+        return expenses
+            .filter(e => {
+                const matchesSearch = (e.description?.toLowerCase() || "").includes(search.toLowerCase()) ||
+                    (e.category?.toLowerCase() || "").includes(search.toLowerCase());
+
+                const expTime = new Date(e.expenseDate).getTime();
+                const start = fromDate ? new Date(fromDate).getTime() : -Infinity;
+                const end = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : Infinity;
+
+                return matchesSearch && expTime >= start && expTime <= end;
+            })
+            .sort((a, b) => {
+                const dateA = new Date(a.expenseDate).getTime();
+                const dateB = new Date(b.expenseDate).getTime();
+                return dateSort === "desc" ? dateB - dateA : dateA - dateB;
+            });
+    }, [expenses, search, fromDate, toDate, dateSort]);
 
     const totalAmount = filtered.reduce((s, e) => s + Number(e.amount), 0);
 
@@ -212,26 +231,73 @@ export default function ExpensesPage() {
                 </div>
             </div>
 
-            {/* List */}
-            <div className="premium-card">
-                <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid #f1f5f9", display: "flex", gap: "1rem", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
-                    <div style={{ position: "relative", minWidth: "300px" }}>
-                        <Search style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} size={16} />
+            {/* ── Filters & Search Area ── */}
+            <div className="premium-card" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "1.5rem" }}>
+
+                    {/* Search Input */}
+                    <div style={{ flex: 1, minWidth: "260px", position: "relative" }}>
+                        <Search style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} size={18} />
                         <input
                             type="text"
                             placeholder={t("expenses.searchPlaceholder")}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            style={{ width: "100%", padding: "10px 14px 10px 42px", borderRadius: "12px", border: "1.5px solid #e2e8f0", outline: "none", fontSize: "13px", fontWeight: 700, backgroundColor: "#f1f5f9" }}
+                            style={{
+                                width: "100%",
+                                padding: "14px 14px 14px 56px",
+                                backgroundColor: "#f8fafc",
+                                border: "1px solid var(--border-main)",
+                                borderRadius: "16px",
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "var(--text-main)",
+                                outline: "none",
+                                transition: "all 0.2s ease",
+                                boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.02)"
+                            }}
+                            className="focus:ring-2 focus:ring-rose-500/10 focus:border-rose-500/50"
                         />
                     </div>
-                    <div style={{ display: "flex", gap: "8px" }}>
+
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span style={{ fontSize: "10px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase" }}>{t("common.from") || "From"}</span>
+                            <input
+                                type="date"
+                                value={fromDate}
+                                onChange={(e) => setFromDate(e.target.value)}
+                                style={{ padding: "8px", borderRadius: "10px", border: "1.5px solid var(--border-main)", fontSize: "12px", fontWeight: 700, outline: "none" }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span style={{ fontSize: "10px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase" }}>{t("common.to") || "To"}</span>
+                            <input
+                                type="date"
+                                value={toDate}
+                                onChange={(e) => setToDate(e.target.value)}
+                                style={{ padding: "8px", borderRadius: "10px", border: "1.5px solid var(--border-main)", fontSize: "12px", fontWeight: 700, outline: "none" }}
+                            />
+                        </div>
+                        {(fromDate || toDate) && (
+                            <button
+                                onClick={() => { setFromDate(""); setToDate(""); }}
+                                style={{ padding: "8px", borderRadius: "10px", border: "none", backgroundColor: "#f1f5f9", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                                title="Clear dates"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                        <div style={{ width: "1px", height: "24px", backgroundColor: "#e2e8f0", margin: "0 4px" }} />
                         <button onClick={handlePrintPDF} className="secondary-btn" title={t("common.print")}><Printer size={16} /></button>
                         <button onClick={handleExportPDF} className="secondary-btn" title={t("common.downloadPdf")}><FileText size={16} /></button>
                         <button onClick={handleExportExcel} className="secondary-btn" title={t("common.exportCsv")}><FileSpreadsheet size={16} /></button>
                     </div>
                 </div>
+            </div>
 
+            {/* ── Expenses List ── */}
+            <div className="premium-card overflow-hidden">
                 {loading ? (
                     <div style={{ padding: "3rem", display: "flex", justifyContent: "center" }}><Loader2 size={32} color={CRIMSON} className="animate-spin" /></div>
                 ) : filtered.length === 0 ? (
@@ -240,35 +306,77 @@ export default function ExpensesPage() {
                         <p style={{ fontWeight: 700, color: "#94a3b8", fontSize: "13px" }}>{t("expenses.noExpenses")}</p>
                     </div>
                 ) : (
-                    <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                            <thead>
-                                <tr style={{ backgroundColor: "#f8fafc" }}>
-                                    {[t("common.date"), t("expenses.table.category"), t("expenses.table.paymentMode"), t("expenses.table.description"), t("common.amount"), t("common.actions")].map(h => (
-                                        <th key={h} style={{ padding: "12px 20px", textAlign: h === t("common.amount") || h === t("common.actions") ? "right" : "left", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filtered.map(exp => (
-                                    <tr key={exp.id} style={{ borderTop: "1px solid #f1f5f9" }}>
-                                        <td style={{ padding: "14px 20px", fontSize: "12px", fontWeight: 700, color: "#64748b" }}>{fmtDate(exp.expenseDate)}</td>
-                                        <td style={{ padding: "14px 20px" }}>
-                                            <span style={{ fontSize: "11px", fontWeight: 800, padding: "4px 10px", borderRadius: "7px", backgroundColor: "#f1f5f9", color: "#475569" }}>{exp.category || "General"}</span>
-                                        </td>
-                                        <td style={{ padding: "14px 20px", fontSize: "12px", fontWeight: 600, color: "#64748b" }}>{t(`expenses.paymentModes.${exp.paymentMode}`)}</td>
-                                        <td style={{ padding: "14px 20px", fontSize: "12px", fontWeight: 500, color: "#94a3b8" }}>{exp.description || "—"}</td>
-                                        <td style={{ padding: "14px 20px", textAlign: "right", fontSize: "14px", fontWeight: 900, color: CRIMSON }}>{fmt(exp.amount)}</td>
-                                        <td style={{ padding: "14px 20px", textAlign: "right" }}>
-                                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                                                <button onClick={() => openEdit(exp)} style={{ padding: "6px", color: "#64748b" }} className="hover-icon"><Edit2 size={14} /></button>
-                                                <button onClick={() => handleDelete(exp.id)} style={{ padding: "6px", color: CRIMSON }} className="hover-icon"><Trash2 size={14} /></button>
+                    <div className="border border-gray-200 rounded-none overflow-hidden">
+                        <Table className="border-collapse">
+                            <TableHeader>
+                                <TableRow className="bg-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
+                                    {[
+                                        { label: t("common.date"), key: "date" },
+                                        { label: t("expenses.table.category"), key: "category" },
+                                        { label: t("expenses.table.paymentMode"), key: "mode" },
+                                        { label: t("expenses.table.description"), key: "desc" },
+                                        { label: t("common.amount"), key: "amount", align: "right" as const },
+                                        { label: t("common.actions"), key: "actions", align: "right" as const }
+                                    ].map((h, idx) => (
+                                        <TableHead
+                                            key={h.key}
+                                            onClick={h.key === "date" ? () => setDateSort(s => s === "asc" ? "desc" : "asc") : undefined}
+                                            className={cn(
+                                                "h-10 px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-600 border-r border-gray-200 last:border-r-0 whitespace-nowrap",
+                                                (h.align === "right") && "text-right",
+                                                h.key === "date" && "cursor-pointer select-none"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "flex items-center gap-1",
+                                                h.align === "right" ? "justify-end" : "justify-start"
+                                            )}>
+                                                {h.label}
+                                                {h.key === "date" && (
+                                                    <span className={cn("text-xs", dateSort === "desc" ? "text-blue-600" : "text-gray-400")}>
+                                                        {dateSort === "desc" ? "↓" : "↑"}
+                                                    </span>
+                                                )}
                                             </div>
-                                        </td>
-                                    </tr>
+                                        </TableHead>
+                                    ))}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filtered.map(exp => (
+                                    <TableRow key={exp.id} className="even:bg-gray-50/50 odd:bg-white hover:bg-blue-50/30 transition-colors border-b border-gray-200 last:border-b-0">
+                                        <TableCell className="border-r border-gray-200">
+                                            <span className="text-[14px] font-bold text-gray-500">{fmtDate(exp.expenseDate)}</span>
+                                        </TableCell>
+                                        <TableCell className="border-r border-gray-200">
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-600 uppercase tracking-wider">
+                                                {exp.category || t("expenses.general")}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-[14px] font-medium text-gray-600 border-r border-gray-200">
+                                            {t(`expenses.paymentModes.${exp.paymentMode}`)}
+                                        </TableCell>
+                                        <TableCell className="text-[14px] font-normal text-gray-400 italic border-r border-gray-200 max-w-[200px] truncate">
+                                            {exp.description || "—"}
+                                        </TableCell>
+                                        <TableCell className="text-right text-[14px] font-bold text-gray-900 tabular-nums border-l border-gray-200 bg-gray-50/30">
+                                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
+                                            {exp.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button onClick={() => openEdit(exp)} className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
+                                                    <Edit2 size={14} />
+                                                </button>
+                                                <button onClick={() => handleDelete(exp.id)} className="p-1 text-gray-400 hover:text-red-600 transition-colors">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
-                            </tbody>
-                        </table>
+                            </TableBody>
+                        </Table>
                     </div>
                 )}
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
@@ -19,6 +19,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { paymentSchema } from "@/lib/schemas";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface LedgerEntry {
   id: string;
@@ -58,6 +67,7 @@ export default function CustomerLedgerPage() {
     paymentDate: new Date().toISOString().split("T")[0],
   });
   const [roundOff, setRoundOff] = useState(false);
+  const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
 
   const fetchLedger = async () => {
     try {
@@ -136,6 +146,14 @@ export default function CustomerLedgerPage() {
       language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN",
       { day: "numeric", month: "short", year: "numeric" },
     );
+
+  const sortedLedger = useMemo(() => {
+    return [...ledger].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateSort === "desc" ? dateB - dateA : dateA - dateB;
+    });
+  }, [ledger, dateSort]);
 
   if (loading)
     return (
@@ -534,222 +552,136 @@ export default function CustomerLedgerPage() {
           </div>
         ) : (
           <>
-            <div className="ledger-table-wrap" style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#f8fafc" }}>
+            {/* Desktop table */}
+            <div className="hidden md:block border border-gray-200 rounded-none overflow-hidden">
+              <Table className="border-collapse">
+                <TableHeader>
+                  <TableRow className="bg-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
                     {[
-                      "Date",
-                      "Description",
-                      "Debit (Bill)",
-                      "Credit (Paid)",
-                      "Balance",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: "10px 20px",
-                          textAlign: h === "Description" ? "left" : "right",
-                          fontSize: "10px",
-                          fontWeight: 900,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...ledger].reverse().map((entry) => (
-                    <tr
-                      key={entry.id}
-                      style={{
-                        borderTop: "1px solid #f1f5f9",
-                        transition: "background 0.1s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#fafafa";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
-                    >
-                      <td
-                        style={{
-                          padding: "14px 20px",
-                          fontSize: "12px",
-                          fontWeight: 700,
-                          color: "#64748b",
-                          whiteSpace: "nowrap",
-                          textAlign: "right",
-                        }}
-                      >
-                        {fmtDate(entry.date)}
-                      </td>
-                      <td style={{ padding: "14px 20px", textAlign: "left" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "30px",
-                              height: "30px",
-                              borderRadius: "8px",
-                              flexShrink: 0,
-                              backgroundColor:
-                                entry.type === "BILL"
-                                  ? BLUE_BG
-                                  : entry.type === "OPENING"
-                                    ? "rgba(100, 116, 139, 0.08)"
-                                    : "rgba(21,128,61,0.08)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color:
-                                entry.type === "BILL"
-                                  ? BLUE
-                                  : entry.type === "OPENING"
-                                    ? "#64748b"
-                                    : "#15803d",
-                            }}
-                          >
-                            {entry.type === "BILL" ? (
-                              <ReceiptText size={14} />
-                            ) : entry.type === "OPENING" ? (
-                              <Wallet size={14} />
-                            ) : (
-                              <Banknote size={14} />
-                            )}
-                          </div>
-                          <div>
-                            <p
-                              style={{
-                                margin: 0,
-                                fontSize: "13px",
-                                fontWeight: 800,
-                                color: "var(--text-main)",
-                              }}
-                            >
-                              {entry.type === "BILL" ? (
-                                <Link
-                                  href={`/bills/${entry.id}`}
-                                  style={{
-                                    color: BLUE,
-                                    textDecoration: "none",
-                                    fontWeight: 900,
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.textDecoration =
-                                      "underline";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.textDecoration =
-                                      "none";
-                                  }}
-                                >
-                                  {entry.description.includes(".")
-                                    ? entry.description.includes("|")
-                                      ? t(entry.description.split("|")[0], {
-                                          mode: entry.description.split("|")[1],
-                                        })
-                                      : t(entry.description)
-                                    : entry.description}
-                                </Link>
-                              ) : entry.description.includes(".") ? (
-                                entry.description.includes("|") ? (
-                                  t(entry.description.split("|")[0], {
-                                    mode: entry.description.split("|")[1],
-                                  })
-                                ) : (
-                                  t(entry.description)
-                                )
-                              ) : (
-                                entry.description
-                              )}
-                            </p>
-                            {entry.meta && (
-                              <p
-                                style={{
-                                  margin: 0,
-                                  fontSize: "11px",
-                                  fontWeight: 600,
-                                  color: "#94a3b8",
-                                }}
-                              >
-                                {entry.meta}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 20px",
-                          textAlign: "right",
-                          fontSize: "13px",
-                          fontWeight: 800,
-                          color: entry.debit > 0 ? "#dc2626" : "#cbd5e1",
-                        }}
-                      >
-                        {entry.debit > 0 ? fmt(entry.debit) : "—"}
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 20px",
-                          textAlign: "right",
-                          fontSize: "13px",
-                          fontWeight: 800,
-                          color: entry.credit > 0 ? "#15803d" : "#cbd5e1",
-                        }}
-                      >
-                        {entry.credit > 0 ? fmt(entry.credit) : "—"}
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 20px",
-                          textAlign: "right",
-                          fontSize: "13px",
-                          fontWeight: 900,
-                          color:
-                            entry.runningBalance > 0 ? "#dc2626" : "#15803d",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {fmt(entry.runningBalance)}
-                        {entry.runningBalance > 0 ? (
-                          <TrendingUp
-                            size={12}
-                            style={{
-                              marginLeft: "4px",
-                              verticalAlign: "middle",
-                            }}
-                          />
-                        ) : (
-                          <TrendingDown
-                            size={12}
-                            style={{
-                              marginLeft: "4px",
-                              verticalAlign: "middle",
-                            }}
-                          />
+                      { key: "date", label: t("common.date"), align: "left" },
+                      { key: "billNo", label: t("ledger.billNo") || "Bill No", align: "left" },
+                      { key: "type", label: t("common.type"), align: "left" },
+                      { key: "amount", label: t("ledger.amount") || "Amount", align: "right" },
+                      { key: "payment", label: t("ledger.payment") || "Payment", align: "right" },
+                      { key: "balance", label: t("common.balance"), align: "right" },
+                    ].map((h, idx) => (
+                      <TableHead
+                        key={h.key}
+                        onClick={h.key === "date" ? () => setDateSort(s => s === "asc" ? "desc" : "asc") : undefined}
+                        className={cn(
+                          "h-10 px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-600 border-r border-gray-200 last:border-r-0 whitespace-nowrap",
+                          (h.align === "right") && "text-right",
+                          h.key === "date" && "cursor-pointer select-none"
                         )}
-                      </td>
-                    </tr>
+                      >
+                        <div className={cn(
+                          "flex items-center gap-1",
+                          h.align === "right" ? "justify-end" : "justify-start"
+                        )}>
+                          {h.label}
+                          {h.key === "date" && (
+                            <span className={cn("text-xs", dateSort === "desc" ? "text-blue-600" : "text-gray-400")}>
+                              {dateSort === "desc" ? "↓" : "↑"}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedLedger.map((entry) => (
+                    <TableRow
+                      key={entry.id}
+                      className="even:bg-gray-50/50 odd:bg-white hover:bg-blue-50/30 transition-colors border-b border-gray-200 last:border-b-0"
+                    >
+                      <TableCell className="px-4 py-3 text-[13px] font-bold text-gray-500 border-r border-gray-200">
+                        {fmtDate(entry.date)}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 border-r border-gray-200">
+                        <div>
+                          <p className="text-[13px] font-bold text-gray-900 leading-tight">
+                            {entry.type === "BILL" ? (
+                              <Link
+                                href={`/bills/${entry.id}`}
+                                className="text-blue-700 hover:underline decoration-1 underline-offset-4"
+                              >
+                                {entry.description.includes(".")
+                                  ? entry.description.includes("|")
+                                    ? t(entry.description.split("|")[0], {
+                                      mode: entry.description.split("|")[1],
+                                    })
+                                    : t(entry.description)
+                                  : entry.description}
+                              </Link>
+                            ) : entry.description.includes(".") ? (
+                              entry.description.includes("|") ? (
+                                t(entry.description.split("|")[0], {
+                                  mode: entry.description.split("|")[1],
+                                })
+                              ) : (
+                                t(entry.description)
+                              )
+                            ) : (
+                              entry.description
+                            )}
+                          </p>
+                          {entry.meta && (
+                            <p className="text-[10px] font-medium text-gray-400 mt-0.5 uppercase tracking-wider">
+                              {entry.meta}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 border-r border-gray-200">
+                        <span className={cn(
+                          "text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider",
+                          entry.type === "BILL" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                            entry.type === "OPENING" ? "bg-gray-50 text-gray-600 border-gray-200" :
+                              "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        )}>
+                          {entry.type}
+                        </span>
+                      </TableCell>
+                      <TableCell className={cn(
+                        "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200 bg-gray-50/30",
+                        entry.debit > 0 ? "text-red-700" : "text-gray-300"
+                      )}>
+                        {entry.debit > 0 ? (
+                          <>
+                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
+                            {entry.debit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className={cn(
+                        "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200",
+                        entry.credit > 0 ? "text-emerald-700" : "text-gray-300"
+                      )}>
+                        {entry.credit > 0 ? (
+                          <>
+                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
+                            {entry.credit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className={cn(
+                        "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200 bg-gray-50/50",
+                        entry.runningBalance > 0 ? "text-emerald-700" : "text-red-700"
+                      )}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
+                          {entry.runningBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             <div className="ledger-mobile">
-              {[...ledger].reverse().map((entry) => (
+              {sortedLedger.map((entry) => (
                 <div
                   key={entry.id}
                   style={{
@@ -823,8 +755,8 @@ export default function CustomerLedgerPage() {
                               {entry.description.includes(".")
                                 ? entry.description.includes("|")
                                   ? t(entry.description.split("|")[0], {
-                                      mode: entry.description.split("|")[1],
-                                    })
+                                    mode: entry.description.split("|")[1],
+                                  })
                                   : t(entry.description)
                                 : entry.description}
                             </Link>
@@ -894,151 +826,373 @@ export default function CustomerLedgerPage() {
               ))}
             </div>
           </>
-        )}
+        )
+        }
       </div>
 
       {/* ── Record Payment Modal ── */}
-      {showModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-          }}
-        >
+      {
+        showModal && (
           <div
             style={{
-              position: "absolute",
+              position: "fixed",
               inset: 0,
-              backgroundColor: "rgba(15,23,42,0.6)",
-              backdropFilter: "blur(8px)",
-            }}
-            onClick={() => !submitting && setShowModal(false)}
-          />
-          <div
-            style={{
-              position: "relative",
-              backgroundColor: "#fff",
-              width: "100%",
-              maxWidth: "440px",
-              borderRadius: "24px",
-              boxShadow: "0 25px 50px rgba(0,0,0,0.2)",
-              overflow: "hidden",
+              zIndex: 100,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "1rem",
             }}
           >
             <div
               style={{
-                height: "4px",
-                background: `linear-gradient(90deg, ${BLUE}, #38bdf8)`,
+                position: "absolute",
+                inset: 0,
+                backgroundColor: "rgba(15,23,42,0.6)",
+                backdropFilter: "blur(8px)",
               }}
+              onClick={() => !submitting && setShowModal(false)}
             />
             <div
               style={{
-                padding: "1.75rem 2rem 1rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                position: "relative",
+                backgroundColor: "#fff",
+                width: "100%",
+                maxWidth: "440px",
+                borderRadius: "24px",
+                boxShadow: "0 25px 50px rgba(0,0,0,0.2)",
+                overflow: "hidden",
               }}
             >
-              <div>
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: "1.25rem",
-                    fontWeight: 900,
-                    color: "var(--text-main)",
-                  }}
-                >
-                  {t("payments.record") || "Record Payment"}
-                </h2>
-                <p
-                  style={{
-                    margin: "2px 0 0",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "#94a3b8",
-                  }}
-                >
-                  from {customer.name}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowModal(false)}
+              <div
                 style={{
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  border: "none",
-                  backgroundColor: "#f1f5f9",
-                  cursor: "pointer",
+                  height: "4px",
+                  background: `linear-gradient(90deg, ${BLUE}, #38bdf8)`,
+                }}
+              />
+              <div
+                style={{
+                  padding: "1.75rem 2rem 1rem",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  color: "#64748b",
+                  justifyContent: "space-between",
                 }}
               >
-                <X size={18} />
-              </button>
-            </div>
-            <form
-              onSubmit={handlePayment}
-              style={{
-                padding: "1rem 2rem 2rem",
-                display: "flex",
-                flexDirection: "column",
-                gap: "1.25rem",
-              }}
-            >
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 8px",
-                    fontSize: "10px",
-                    fontWeight: 900,
-                    color: "#94a3b8",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                  }}
-                >
-                  {t("payments.amount") || "Amount"} *
-                </p>
-                <div style={{ position: "relative" }}>
-                  <span
+                <div>
+                  <h2
                     style={{
-                      position: "absolute",
-                      left: "14px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      fontSize: "14px",
+                      margin: 0,
+                      fontSize: "1.25rem",
                       fontWeight: 900,
+                      color: "var(--text-main)",
+                    }}
+                  >
+                    {t("payments.record") || "Record Payment"}
+                  </h2>
+                  <p
+                    style={{
+                      margin: "2px 0 0",
+                      fontSize: "12px",
+                      fontWeight: 700,
                       color: "#94a3b8",
                     }}
                   >
-                    ₹
-                  </span>
-                  <input
-                    required
-                    type="text"
-                    inputMode="decimal"
-                    value={form.amount}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "" || /^\d*\.?\d{0,2}$/.test(val))
-                        setForm({ ...form, amount: val });
+                    from {customer.name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    border: "none",
+                    backgroundColor: "#f1f5f9",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#64748b",
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <form
+                onSubmit={handlePayment}
+                style={{
+                  padding: "1rem 2rem 2rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1.25rem",
+                }}
+              >
+                <div>
+                  <p
+                    style={{
+                      margin: "0 0 8px",
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      color: "#94a3b8",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
                     }}
+                  >
+                    {t("payments.amount") || "Amount"} *
+                  </p>
+                  <div style={{ position: "relative" }}>
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: "14px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        fontSize: "14px",
+                        fontWeight: 900,
+                        color: "#94a3b8",
+                      }}
+                    >
+                      ₹
+                    </span>
+                    <input
+                      required
+                      type="text"
+                      inputMode="decimal"
+                      value={form.amount}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*\.?\d{0,2}$/.test(val))
+                          setForm({ ...form, amount: val });
+                      }}
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "13px 16px 13px 32px",
+                        backgroundColor: "#f8fafc",
+                        border: "1.5px solid var(--border-main)",
+                        borderRadius: "12px",
+                        fontSize: "16px",
+                        fontWeight: 800,
+                        color: "var(--text-main)",
+                        outline: "none",
+                        transition: "all 0.2s",
+                      }}
+                      onFocusCapture={(e) => {
+                        e.currentTarget.style.borderColor = BLUE;
+                        e.currentTarget.style.backgroundColor = "#fff";
+                      }}
+                      onBlurCapture={(e) => {
+                        e.currentTarget.style.borderColor = "var(--border-main)";
+                        e.currentTarget.style.backgroundColor = "#f8fafc";
+                      }}
+                    />
+                  </div>
+                  {paymentAmount > 0 && canRoundOff ? (
+                    <div
+                      style={{
+                        marginTop: "16px",
+                        padding: "16px 0 0",
+                        borderTop: "1px dashed #e2e8f0",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "12px",
+                          alignItems: "flex-start",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={roundOff}
+                          onChange={(e) => setRoundOff(e.target.checked)}
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            accentColor: "#3b82f6",
+                            cursor: "pointer",
+                            marginTop: "2px",
+                            borderRadius: "4px",
+                          }}
+                        />
+                        <div>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "15px",
+                              fontWeight: 600,
+                              color: "#1e293b",
+                            }}
+                          >
+                            {t("payments.roundOff") || "Write off rounding"}
+                          </p>
+                          <p
+                            style={{
+                              margin: "4px 0 0",
+                              fontSize: "13px",
+                              color: "#64748b",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {t("payments.autoExpensed") || "Auto-expensed"}:{" "}
+                            <span style={{ color: "#f97316" }}>
+                              ₹
+                              {remainingDue.toLocaleString("en-IN", {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: "right" }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: "#94a3b8",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          {t("payments.remainingDue") || "Balance Due"}
+                        </p>
+                        <p
+                          style={{
+                            margin: "2px 0 0",
+                            fontSize: "20px",
+                            fontWeight: 700,
+                            color: roundOff ? "#22c55e" : "#1e293b",
+                          }}
+                        >
+                          ₹
+                          {roundOff
+                            ? "0.00"
+                            : remainingDue.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                            })}
+                        </p>
+                      </div>
+                    </div>
+                  ) : paymentAmount > 0 ? (
+                    <div
+                      style={{
+                        marginTop: "16px",
+                        padding: "16px 0 0",
+                        borderTop: "1px dashed #e2e8f0",
+                        display: "flex",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <div style={{ textAlign: "right" }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: "#94a3b8",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          {t("payments.remainingDue") || "Balance Due"}
+                        </p>
+                        <p
+                          style={{
+                            margin: "2px 0 0",
+                            fontSize: "20px",
+                            fontWeight: 700,
+                            color: "#22c55e",
+                          }}
+                        >
+                          ₹
+                          {remainingDue.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+                <div>
+                  <p
+                    style={{
+                      margin: "0 0 10px",
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      color: "#94a3b8",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
+                    }}
+                  >
+                    {t("payments.mode") || "Payment Mode"} *
+                  </p>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    {[
+                      { v: "CASH", l: t("payments.cash") || "Cash" },
+                      { v: "BANK_TRANSFER", l: t("payments.bank") || "Bank" },
+                      { v: "OTHER", l: t("payments.other") || "Other" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => setForm({ ...form, mode: opt.v })}
+                        style={{
+                          padding: "10px 8px",
+                          borderRadius: "10px",
+                          border: `2px solid ${form.mode === opt.v ? BLUE : "var(--border-main)"}`,
+                          backgroundColor:
+                            form.mode === opt.v ? BLUE_BG : "#f8fafc",
+                          fontSize: "12px",
+                          fontWeight: 900,
+                          color: form.mode === opt.v ? BLUE : "#64748b",
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p
+                    style={{
+                      margin: "0 0 8px",
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      color: "#94a3b8",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
+                    }}
+                  >
+                    {t("payments.date") || "Date"}
+                  </p>
+                  <input
+                    type="date"
+                    value={form.paymentDate}
+                    onChange={(e) =>
+                      setForm({ ...form, paymentDate: e.target.value })
+                    }
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      padding: "13px 16px 13px 32px",
+                      padding: "12px 16px",
                       backgroundColor: "#f8fafc",
                       border: "1.5px solid var(--border-main)",
                       borderRadius: "12px",
-                      fontSize: "16px",
-                      fontWeight: 800,
+                      fontSize: "14px",
+                      fontWeight: 700,
                       color: "var(--text-main)",
                       outline: "none",
                       transition: "all 0.2s",
@@ -1053,322 +1207,103 @@ export default function CustomerLedgerPage() {
                     }}
                   />
                 </div>
-                {paymentAmount > 0 && canRoundOff ? (
-                  <div
+                <div>
+                  <p
                     style={{
-                      marginTop: "16px",
-                      padding: "16px 0 0",
-                      borderTop: "1px dashed #e2e8f0",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
+                      margin: "0 0 8px",
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      color: "#94a3b8",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "12px",
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={roundOff}
-                        onChange={(e) => setRoundOff(e.target.checked)}
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          accentColor: "#3b82f6",
-                          cursor: "pointer",
-                          marginTop: "2px",
-                          borderRadius: "4px",
-                        }}
-                      />
-                      <div>
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: "15px",
-                            fontWeight: 600,
-                            color: "#1e293b",
-                          }}
-                        >
-                          {t("payments.roundOff") || "Write off rounding"}
-                        </p>
-                        <p
-                          style={{
-                            margin: "4px 0 0",
-                            fontSize: "13px",
-                            color: "#64748b",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {t("payments.autoExpensed") || "Auto-expensed"}:{" "}
-                          <span style={{ color: "#f97316" }}>
-                            ₹
-                            {remainingDue.toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div style={{ textAlign: "right" }}>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                        }}
-                      >
-                        {t("payments.remainingDue") || "Balance Due"}
-                      </p>
-                      <p
-                        style={{
-                          margin: "2px 0 0",
-                          fontSize: "20px",
-                          fontWeight: 700,
-                          color: roundOff ? "#22c55e" : "#1e293b",
-                        }}
-                      >
-                        ₹
-                        {roundOff
-                          ? "0.00"
-                          : remainingDue.toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
-                      </p>
-                    </div>
-                  </div>
-                ) : paymentAmount > 0 ? (
-                  <div
+                    {t("payments.notes") || "Notes (optional)"}
+                  </p>
+                  <textarea
+                    rows={2}
+                    value={form.notes}
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                    placeholder="e.g. Against Bill #SAL-0001"
                     style={{
-                      marginTop: "16px",
-                      padding: "16px 0 0",
-                      borderTop: "1px dashed #e2e8f0",
-                      display: "flex",
-                      justifyContent: "flex-end",
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "12px 16px",
+                      backgroundColor: "#f8fafc",
+                      border: "1.5px solid var(--border-main)",
+                      borderRadius: "12px",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      color: "var(--text-main)",
+                      outline: "none",
+                      resize: "none",
+                      fontFamily: "inherit",
+                      transition: "all 0.2s",
                     }}
-                  >
-                    <div style={{ textAlign: "right" }}>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                        }}
-                      >
-                        {t("payments.remainingDue") || "Balance Due"}
-                      </p>
-                      <p
-                        style={{
-                          margin: "2px 0 0",
-                          fontSize: "20px",
-                          fontWeight: 700,
-                          color: "#22c55e",
-                        }}
-                      >
-                        ₹
-                        {remainingDue.toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 10px",
-                    fontSize: "10px",
-                    fontWeight: 900,
-                    color: "#94a3b8",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                  }}
-                >
-                  {t("payments.mode") || "Payment Mode"} *
-                </p>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gap: "0.5rem",
-                  }}
-                >
-                  {[
-                    { v: "CASH", l: t("payments.cash") || "Cash" },
-                    { v: "BANK_TRANSFER", l: t("payments.bank") || "Bank" },
-                    { v: "OTHER", l: t("payments.other") || "Other" },
-                  ].map((opt) => (
-                    <button
-                      key={opt.v}
-                      type="button"
-                      onClick={() => setForm({ ...form, mode: opt.v })}
-                      style={{
-                        padding: "10px 8px",
-                        borderRadius: "10px",
-                        border: `2px solid ${form.mode === opt.v ? BLUE : "var(--border-main)"}`,
-                        backgroundColor:
-                          form.mode === opt.v ? BLUE_BG : "#f8fafc",
-                        fontSize: "12px",
-                        fontWeight: 900,
-                        color: form.mode === opt.v ? BLUE : "#64748b",
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      {opt.l}
-                    </button>
-                  ))}
+                    onFocusCapture={(e) => {
+                      e.currentTarget.style.borderColor = BLUE;
+                      e.currentTarget.style.backgroundColor = "#fff";
+                    }}
+                    onBlurCapture={(e) => {
+                      e.currentTarget.style.borderColor = "var(--border-main)";
+                      e.currentTarget.style.backgroundColor = "#f8fafc";
+                    }}
+                  />
                 </div>
-              </div>
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 8px",
-                    fontSize: "10px",
-                    fontWeight: 900,
-                    color: "#94a3b8",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                  }}
-                >
-                  {t("payments.date") || "Date"}
-                </p>
-                <input
-                  type="date"
-                  value={form.paymentDate}
-                  onChange={(e) =>
-                    setForm({ ...form, paymentDate: e.target.value })
-                  }
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    padding: "12px 16px",
-                    backgroundColor: "#f8fafc",
-                    border: "1.5px solid var(--border-main)",
-                    borderRadius: "12px",
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "var(--text-main)",
-                    outline: "none",
-                    transition: "all 0.2s",
-                  }}
-                  onFocusCapture={(e) => {
-                    e.currentTarget.style.borderColor = BLUE;
-                    e.currentTarget.style.backgroundColor = "#fff";
-                  }}
-                  onBlurCapture={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border-main)";
-                    e.currentTarget.style.backgroundColor = "#f8fafc";
-                  }}
-                />
-              </div>
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 8px",
-                    fontSize: "10px",
-                    fontWeight: 900,
-                    color: "#94a3b8",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                  }}
-                >
-                  {t("payments.notes") || "Notes (optional)"}
-                </p>
-                <textarea
-                  rows={2}
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  placeholder="e.g. Against Bill #SAL-0001"
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    padding: "12px 16px",
-                    backgroundColor: "#f8fafc",
-                    border: "1.5px solid var(--border-main)",
-                    borderRadius: "12px",
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "var(--text-main)",
-                    outline: "none",
-                    resize: "none",
-                    fontFamily: "inherit",
-                    transition: "all 0.2s",
-                  }}
-                  onFocusCapture={(e) => {
-                    e.currentTarget.style.borderColor = BLUE;
-                    e.currentTarget.style.backgroundColor = "#fff";
-                  }}
-                  onBlurCapture={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border-main)";
-                    e.currentTarget.style.backgroundColor = "#f8fafc";
-                  }}
-                />
-              </div>
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  style={{
-                    flex: 1,
-                    padding: "12px",
-                    border: "none",
-                    backgroundColor: "#f1f5f9",
-                    borderRadius: "12px",
-                    fontWeight: 800,
-                    fontSize: "13px",
-                    color: "#64748b",
-                    cursor: "pointer",
-                  }}
-                >
-                  {t("master.actions.cancel")}
-                </button>
-                <button
-                  disabled={submitting}
-                  type="submit"
-                  style={{
-                    flex: 2,
-                    padding: "12px",
-                    border: "none",
-                    backgroundColor: BLUE,
-                    borderRadius: "12px",
-                    fontWeight: 900,
-                    fontSize: "13px",
-                    color: "#fff",
-                    cursor: submitting ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    boxShadow: "0 8px 16px rgba(3,105,161,0.2)",
-                    opacity: submitting ? 0.7 : 1,
-                  }}
-                >
-                  {submitting ? (
-                    <Loader2
-                      size={18}
-                      style={{ animation: "spin 0.6s linear infinite" }}
-                    />
-                  ) : (
-                    t("payments.confirm") || "Confirm Payment"
-                  )}
-                </button>
-              </div>
-            </form>
+                <div style={{ display: "flex", gap: "0.75rem" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    style={{
+                      flex: 1,
+                      padding: "12px",
+                      border: "none",
+                      backgroundColor: "#f1f5f9",
+                      borderRadius: "12px",
+                      fontWeight: 800,
+                      fontSize: "13px",
+                      color: "#64748b",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {t("master.actions.cancel")}
+                  </button>
+                  <button
+                    disabled={submitting}
+                    type="submit"
+                    style={{
+                      flex: 2,
+                      padding: "12px",
+                      border: "none",
+                      backgroundColor: BLUE,
+                      borderRadius: "12px",
+                      fontWeight: 900,
+                      fontSize: "13px",
+                      color: "#fff",
+                      cursor: submitting ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      boxShadow: "0 8px 16px rgba(3,105,161,0.2)",
+                      opacity: submitting ? 0.7 : 1,
+                    }}
+                  >
+                    {submitting ? (
+                      <Loader2
+                        size={18}
+                        style={{ animation: "spin 0.6s linear infinite" }}
+                      />
+                    ) : (
+                      t("payments.confirm") || "Confirm Payment"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <style>{`
                 .ledger-table-wrap { display: block; }
@@ -1379,6 +1314,6 @@ export default function CustomerLedgerPage() {
                 }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
-    </div>
+    </div >
   );
 }

@@ -189,17 +189,13 @@ export default function BusinessInsightsPage() {
                 textDecoration: "none",
                 textTransform: "uppercase",
                 letterSpacing: "0.1em",
-                transition: "all 0.2s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#0369a1")}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "var(--text-muted)")
-              }
             >
               <ArrowLeft size={16} />
               {t("common.back") || "BACK"}
             </Link>
           </div>
+
           <h1
             style={{
               fontSize: "clamp(1.5rem, 5vw, 1.875rem)",
@@ -211,44 +207,9 @@ export default function BusinessInsightsPage() {
           >
             {t("reports.types.insights")}
           </h1>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginTop: "6px",
-            }}
-          >
-            <div
-              style={{
-                height: "3px",
-                width: "24px",
-                backgroundColor: "#0369a1",
-                borderRadius: "2px",
-              }}
-            />
-            <p
-              style={{
-                margin: 0,
-                fontSize: "11px",
-                fontWeight: 800,
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.15em",
-              }}
-            >
-              {t("reports.desc.insights")}
-            </p>
-          </div>
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-          }}
-        >
+
+        <div style={{ display: "flex", gap: "10px" }}>
           <button
             onClick={fetchInsights}
             style={{
@@ -256,13 +217,12 @@ export default function BusinessInsightsPage() {
               backgroundColor: "#f8fafc",
               border: "1px solid var(--border-main)",
               borderRadius: "12px",
-              color: "var(--text-muted)",
               cursor: "pointer",
-              flexShrink: 0,
             }}
           >
             <RefreshCcw size={18} className={loading ? "animate-spin" : ""} />
           </button>
+
           <button
             onClick={handleDownloadPDF}
             disabled={loading || !insights}
@@ -270,19 +230,17 @@ export default function BusinessInsightsPage() {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              padding: "10px clamp(12px, 3vw, 20px)",
+              padding: "10px 16px",
               backgroundColor: "#0369a1",
               color: "#fff",
               borderRadius: "12px",
               border: "none",
               fontWeight: 800,
-              fontSize: "clamp(11px, 2vw, 12px)",
               cursor: "pointer",
               opacity: loading || !insights ? 0.5 : 1,
-              flexShrink: 0,
             }}
           >
-            <Download size={16} /> <span className="button-text-hide">PDF</span>
+            <Download size={16} /> PDF
           </button>
         </div>
       </div>
@@ -307,285 +265,99 @@ export default function BusinessInsightsPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
               gap: "1.5rem",
             }}
           >
             {/* Top Customers */}
             <div className="premium-card" style={{ padding: "1.5rem" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  marginBottom: "1.5rem",
-                }}
-              >
+              <h3 style={{ marginBottom: "1rem", fontWeight: 900 }}>
+                {t("reports.insights.topCustomers").toUpperCase()}
+              </h3>
+
+              {insights.customers.map((c: any, i: number) => (
                 <div
+                  key={i}
                   style={{
-                    width: "36px",
-                    height: "36px",
-                    backgroundColor: "rgba(3, 105, 161, 0.1)",
-                    borderRadius: "10px",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#0369a1",
+                    justifyContent: "space-between",
+                    padding: "10px",
+                    background: "#f8fafc",
+                    borderRadius: "8px",
+                    marginBottom: "8px",
                   }}
                 >
-                  <Trophy size={18} />
+                  <span>{c.name}</span>
+                  <strong>₹ {c.amount.toLocaleString("en-IN")}</strong>
                 </div>
-                <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 900 }}>
-                  {t("reports.insights.topCustomers").toUpperCase()}
-                </h3>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                }}
-              >
-                {insights.customers.map((c: any, i: number) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                      padding: "12px",
-                      backgroundColor: "#f8fafc",
-                      borderRadius: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        backgroundColor: "#e2e8f0",
-                        borderRadius: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {i + 1}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p
-                        style={{ margin: 0, fontSize: "13px", fontWeight: 800 }}
-                      >
-                        {c.name}
-                      </p>
-                    </div>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "14px",
-                        fontWeight: 900,
-                        color: "#0369a1",
-                      }}
-                    >
-                      ₹ {c.amount.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
 
             {/* Top Farmers */}
             <div className="premium-card" style={{ padding: "1.5rem" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  marginBottom: "1.5rem",
-                }}
-              >
+              <h3 style={{ marginBottom: "1rem", fontWeight: 900 }}>
+                {t("reports.insights.topFarmers").toUpperCase()}
+              </h3>
+
+              {insights.farmers.map((f: any, i: number) => (
                 <div
+                  key={i}
                   style={{
-                    width: "36px",
-                    height: "36px",
-                    backgroundColor: "rgba(21, 128, 61, 0.1)",
-                    borderRadius: "10px",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#15803d",
+                    justifyContent: "space-between",
+                    padding: "10px",
+                    background: "#f8fafc",
+                    borderRadius: "8px",
+                    marginBottom: "8px",
                   }}
                 >
-                  <Trophy size={18} />
+                  <span>{f.name}</span>
+                  <strong>₹ {f.amount.toLocaleString("en-IN")}</strong>
                 </div>
-                <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 900 }}>
-                  {t("reports.insights.topFarmers").toUpperCase()}
-                </h3>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                }}
-              >
-                {insights.farmers.map((f: any, i: number) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                      padding: "12px",
-                      backgroundColor: "#f8fafc",
-                      borderRadius: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        backgroundColor: "#e2e8f0",
-                        borderRadius: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {i + 1}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p
-                        style={{ margin: 0, fontSize: "13px", fontWeight: 800 }}
-                      >
-                        {f.name}
-                      </p>
-                    </div>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "14px",
-                        fontWeight: 900,
-                        color: "#15803d",
-                      }}
-                    >
-                      ₹ {f.amount.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
 
+          {/* Item Trends */}
           <div className="premium-card" style={{ padding: "1.5rem" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "1.5rem",
-              }}
-            >
-              <div
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  backgroundColor: "rgba(234, 88, 12, 0.1)",
-                  borderRadius: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#ea580c",
-                }}
-              >
-                <LineChart size={18} />
-              </div>
-              <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 900 }}>
-                {t("reports.insights.itemSalesTrends").toUpperCase()}
-              </h3>
-            </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr
-                    style={{
-                      textAlign: "left",
-                      fontSize: "10px",
-                      color: "#94a3b8",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    <th style={{ padding: "12px" }}>
-                      {t("reports.insights.item").toUpperCase()}
-                    </th>
-                    <th style={{ padding: "12px" }}>
-                      {t("reports.insights.qtySold").toUpperCase()}
-                    </th>
-                    <th style={{ padding: "12px", textAlign: "right" }}>
-                      {t("reports.insights.revenue").toUpperCase()}
-                    </th>
+            <h3 style={{ marginBottom: "1rem", fontWeight: 900 }}>
+              {t("reports.insights.itemSalesTrends").toUpperCase()}
+            </h3>
+
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "12px" }}>
+                    {t("reports.insights.item")}
+                  </th>
+                  <th style={{ textAlign: "left", padding: "12px" }}>
+                    {t("reports.insights.qtySold")}
+                  </th>
+                  <th style={{ textAlign: "right", padding: "12px" }}>
+                    {t("reports.insights.revenue")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {insights.items.map((item: any, i: number) => (
+                  <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "12px" }}>{item.name}</td>
+                    <td style={{ padding: "12px" }}>{item.quantity} units</td>
+                    <td style={{ padding: "12px", textAlign: "right" }}>
+                      ₹ {item.revenue.toLocaleString("en-IN")}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {insights.items.map((item: any, i: number) => (
-                    <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td
-                        style={{
-                          padding: "14px",
-                          fontSize: "14px",
-                          fontWeight: 800,
-                        }}
-                      >
-                        {item.name}
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px",
-                          fontSize: "14px",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {item.quantity} units
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px",
-                          fontSize: "14px",
-                          fontWeight: 900,
-                          textAlign: "right",
-                          color: "var(--text-main)",
-                        }}
-                      >
-                        ₹ {item.revenue.toLocaleString("en-IN")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </>
       )}
 
       <style>{`
-                .animate-spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-                .button-text-hide {
-                    display: inline;
-                }
-
-                @media (max-width: 640px) {
-                    .button-text-hide {
-                        display: none;
-                    }
-                }
-            `}</style>
+      .animate-spin { animation: spin 1s linear infinite; }
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    `}</style>
     </div>
   );
 }

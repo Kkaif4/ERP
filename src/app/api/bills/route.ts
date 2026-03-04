@@ -11,6 +11,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type") || "ALL";
     const search = searchParams.get("search") || "";
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const sort = searchParams.get("sort") || "desc";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
@@ -21,6 +24,16 @@ export async function GET(req: Request) {
 
     if (type === "PURCHASE") where.type = "PURCHASE";
     if (type === "SALE") where.type = "SALE";
+
+    if (startDate || endDate) {
+        where.billDate = {};
+        if (startDate) where.billDate.gte = new Date(startDate);
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            where.billDate.lte = end;
+        }
+    }
 
     if (search) {
         where.OR = [
@@ -46,7 +59,7 @@ export async function GET(req: Request) {
                 farmer: { select: { name: true } },
                 customer: { select: { name: true } },
             },
-            orderBy: { createdAt: "desc" },
+            orderBy: { billDate: sort as "asc" | "desc" },
             skip,
             take: limit,
         }),

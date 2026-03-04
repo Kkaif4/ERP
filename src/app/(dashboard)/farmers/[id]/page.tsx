@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
@@ -19,6 +19,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { paymentSchema } from "@/lib/schemas";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface LedgerEntry {
   id: string;
@@ -58,6 +67,7 @@ export default function FarmerLedgerPage() {
     paymentDate: new Date().toISOString().split("T")[0],
   });
   const [roundOff, setRoundOff] = useState(false);
+  const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
 
   const fetchLedger = async () => {
     try {
@@ -136,6 +146,14 @@ export default function FarmerLedgerPage() {
       language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN",
       { day: "numeric", month: "short", year: "numeric" },
     );
+
+  const sortedLedger = useMemo(() => {
+    return [...ledger].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateSort === "desc" ? dateB - dateA : dateA - dateB;
+    });
+  }, [ledger, dateSort]);
 
   if (loading)
     return (
@@ -537,217 +555,131 @@ export default function FarmerLedgerPage() {
         ) : (
           <>
             {/* Desktop table */}
-            <div className="ledger-table-wrap" style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#f8fafc" }}>
+            <div className="hidden md:block border border-gray-200 rounded-none overflow-hidden">
+              <Table className="border-collapse">
+                <TableHeader>
+                  <TableRow className="bg-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
                     {[
-                      "Date",
-                      "Description",
-                      "Debit (Paid)",
-                      "Credit (Bill)",
-                      "Balance",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: "10px 20px",
-                          textAlign: h === "Description" ? "left" : "right",
-                          fontSize: "10px",
-                          fontWeight: 900,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...ledger].reverse().map((entry, i) => (
-                    <tr
-                      key={entry.id}
-                      style={{
-                        borderTop: "1px solid #f1f5f9",
-                        transition: "background 0.1s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#fafafa";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
-                    >
-                      <td
-                        style={{
-                          padding: "14px 20px",
-                          fontSize: "12px",
-                          fontWeight: 700,
-                          color: "#64748b",
-                          whiteSpace: "nowrap",
-                          textAlign: "right",
-                        }}
-                      >
-                        {fmtDate(entry.date)}
-                      </td>
-                      <td style={{ padding: "14px 20px", textAlign: "left" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "30px",
-                              height: "30px",
-                              borderRadius: "8px",
-                              flexShrink: 0,
-                              backgroundColor:
-                                entry.type === "BILL"
-                                  ? GREEN_BG
-                                  : entry.type === "OPENING"
-                                    ? "rgba(100, 116, 139, 0.08)"
-                                    : "rgba(14,165,233,0.08)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color:
-                                entry.type === "BILL"
-                                  ? GREEN
-                                  : entry.type === "OPENING"
-                                    ? "#64748b"
-                                    : "#0ea5e9",
-                            }}
-                          >
-                            {entry.type === "BILL" ? (
-                              <ReceiptText size={14} />
-                            ) : entry.type === "OPENING" ? (
-                              <Wallet size={14} />
-                            ) : (
-                              <Banknote size={14} />
-                            )}
-                          </div>
-                          <div>
-                            <p
-                              style={{
-                                margin: 0,
-                                fontSize: "13px",
-                                fontWeight: 800,
-                                color: "var(--text-main)",
-                              }}
-                            >
-                              {entry.type === "BILL" ? (
-                                <Link
-                                  href={`/bills/${entry.id}`}
-                                  style={{
-                                    color: GREEN,
-                                    textDecoration: "none",
-                                    fontWeight: 900,
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.textDecoration =
-                                      "underline";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.textDecoration =
-                                      "none";
-                                  }}
-                                >
-                                  {entry.description.includes(".")
-                                    ? entry.description.includes("|")
-                                      ? t(entry.description.split("|")[0], {
-                                          mode: entry.description.split("|")[1],
-                                        })
-                                      : t(entry.description)
-                                    : entry.description}
-                                </Link>
-                              ) : entry.description.includes(".") ? (
-                                entry.description.includes("|") ? (
-                                  t(entry.description.split("|")[0], {
-                                    mode: entry.description.split("|")[1],
-                                  })
-                                ) : (
-                                  t(entry.description)
-                                )
-                              ) : (
-                                entry.description
-                              )}
-                            </p>
-                            {entry.meta && (
-                              <p
-                                style={{
-                                  margin: 0,
-                                  fontSize: "11px",
-                                  fontWeight: 600,
-                                  color: "#94a3b8",
-                                }}
-                              >
-                                {entry.meta}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 20px",
-                          textAlign: "right",
-                          fontSize: "13px",
-                          fontWeight: 800,
-                          color: entry.debit > 0 ? "#0ea5e9" : "#cbd5e1",
-                        }}
-                      >
-                        {entry.debit > 0 ? fmt(entry.debit) : "—"}
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 20px",
-                          textAlign: "right",
-                          fontSize: "13px",
-                          fontWeight: 800,
-                          color: entry.credit > 0 ? "#d97706" : "#cbd5e1",
-                        }}
-                      >
-                        {entry.credit > 0 ? fmt(entry.credit) : "—"}
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 20px",
-                          textAlign: "right",
-                          fontSize: "13px",
-                          fontWeight: 900,
-                          color: entry.runningBalance > 0 ? "#d97706" : GREEN,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {fmt(entry.runningBalance)}
-                        {entry.runningBalance > 0 ? (
-                          <TrendingUp
-                            size={12}
-                            style={{
-                              marginLeft: "4px",
-                              verticalAlign: "middle",
-                            }}
-                          />
-                        ) : (
-                          <TrendingDown
-                            size={12}
-                            style={{
-                              marginLeft: "4px",
-                              verticalAlign: "middle",
-                            }}
-                          />
+                      { key: "date", label: t("common.date"), align: "left" },
+                      { key: "billNo", label: t("ledger.billNo") || "Bill No.", align: "left" },
+                      { key: "type", label: t("common.type"), align: "left" },
+                      { key: "amount", label: t("ledger.amount") || "Amount", align: "right" },
+                      { key: "payment", label: t("ledger.payment") || "Payment", align: "right" },
+                      { key: "balance", label: t("common.balance"), align: "right" },
+                    ].map((h, idx) => (
+                      <TableHead
+                        key={h.key}
+                        onClick={h.key === "date" ? () => setDateSort(s => s === "asc" ? "desc" : "asc") : undefined}
+                        className={cn(
+                          "h-10 px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-600 border-r border-gray-200 last:border-r-0 whitespace-nowrap",
+                          (h.align === "right") && "text-right",
+                          h.key === "date" && "cursor-pointer select-none"
                         )}
-                      </td>
-                    </tr>
+                      >
+                        <div className={cn(
+                          "flex items-center gap-1",
+                          h.align === "right" ? "justify-end" : "justify-start"
+                        )}>
+                          {h.label}
+                          {h.key === "date" && (
+                            <span className={cn("text-xs", dateSort === "desc" ? "text-blue-600" : "text-gray-400")}>
+                              {dateSort === "desc" ? "↓" : "↑"}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedLedger.map((entry) => (
+                    <TableRow
+                      key={entry.id}
+                      className="even:bg-gray-50/50 odd:bg-white hover:bg-blue-50/30 transition-colors border-b border-gray-200 last:border-b-0"
+                    >
+                      <TableCell className="px-4 py-3 text-[13px] font-bold text-gray-500 border-r border-gray-200">
+                        {fmtDate(entry.date)}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 border-r border-gray-200">
+                        <div>
+                          <p className="text-[13px] font-bold text-gray-900 leading-tight">
+                            {entry.type === "BILL" ? (
+                              <Link
+                                href={`/bills/${entry.id}`}
+                                className="text-emerald-700 hover:underline decoration-1 underline-offset-4"
+                              >
+                                {entry.description.includes(".")
+                                  ? entry.description.includes("|")
+                                    ? t(entry.description.split("|")[0], {
+                                      mode: entry.description.split("|")[1],
+                                    })
+                                    : t(entry.description)
+                                  : entry.description}
+                              </Link>
+                            ) : entry.description.includes(".") ? (
+                              entry.description.includes("|") ? (
+                                t(entry.description.split("|")[0], {
+                                  mode: entry.description.split("|")[1],
+                                })
+                              ) : (
+                                t(entry.description)
+                              )
+                            ) : (
+                              entry.description
+                            )}
+                          </p>
+                          {entry.meta && (
+                            <p className="text-[10px] font-medium text-gray-400 mt-0.5 uppercase tracking-wider">
+                              {entry.meta}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 border-r border-gray-200">
+                        <span className={cn(
+                          "text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider",
+                          entry.type === "BILL" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            entry.type === "OPENING" ? "bg-gray-50 text-gray-600 border-gray-200" :
+                              "bg-blue-50 text-blue-700 border-blue-200"
+                        )}>
+                          {entry.type}
+                        </span>
+                      </TableCell>
+                      <TableCell className={cn(
+                        "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200 bg-gray-50/30",
+                        entry.debit > 0 ? "text-blue-700" : "text-gray-300"
+                      )}>
+                        {entry.debit > 0 ? (
+                          <>
+                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
+                            {entry.debit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className={cn(
+                        "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200",
+                        entry.credit > 0 ? "text-emerald-700" : "text-gray-300"
+                      )}>
+                        {entry.credit > 0 ? (
+                          <>
+                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
+                            {entry.credit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className={cn(
+                        "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200 bg-gray-50/50",
+                        entry.runningBalance > 0 ? "text-orange-700" : "text-emerald-700"
+                      )}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
+                          {entry.runningBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {/* Mobile cards */}
@@ -826,8 +758,8 @@ export default function FarmerLedgerPage() {
                               {entry.description.includes(".")
                                 ? entry.description.includes("|")
                                   ? t(entry.description.split("|")[0], {
-                                      mode: entry.description.split("|")[1],
-                                    })
+                                    mode: entry.description.split("|")[1],
+                                  })
                                   : t(entry.description)
                                 : entry.description}
                             </Link>
@@ -896,7 +828,8 @@ export default function FarmerLedgerPage() {
               ))}
             </div>
           </>
-        )}
+        )
+        }
       </div>
 
       {/* ── Record Payment Modal ── */}
@@ -1142,8 +1075,8 @@ export default function FarmerLedgerPage() {
                         {roundOff
                           ? "0.00"
                           : remainingDue.toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
+                            minimumFractionDigits: 2,
+                          })}
                       </p>
                     </div>
                   </div>

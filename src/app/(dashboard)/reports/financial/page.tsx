@@ -22,7 +22,7 @@ import { toast } from "sonner";
 export default function FinancialReportsPage() {
   const { t } = useTranslation();
   const [reportType, setReportType] = useState("OUTSTANDING_PAYABLES");
-  const [loading, setLoading] = useState(false);    
+  const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
 
@@ -75,7 +75,14 @@ export default function FinancialReportsPage() {
         key: "amount",
         label: t("reports.table.amount"),
         align: "right" as const,
-        render: (v: number) => `₹ ${v.toLocaleString("en-IN")}`,
+        render: (v: number) => (
+          <span className="text-[14px] font-bold text-[#1e293b] tabular-nums">
+            <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">
+              ₹
+            </span>
+            {(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </span>
+        ),
       },
     ];
   };

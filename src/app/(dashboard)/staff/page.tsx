@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { staffSchema } from "@/lib/schemas";
+import { fmtDate } from "@/lib/dateUtils";
 import { useUser } from "@/components/providers/UserContext";
 import { Modal } from "@/components/ui/Modal";
 
@@ -190,7 +191,7 @@ export default function StaffPage() {
 
                             <div style={{ paddingTop: "1rem", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text-muted)", fontSize: "11px", fontWeight: 700 }}>
-                                    <Clock size={14} /> {t("staff.joined")} {new Date(member.createdAt).toLocaleDateString()}
+                                    <Clock size={14} /> {t("staff.joined")} {fmtDate(member.createdAt)}
                                 </div>
                                 <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-400">
                                     <ChevronRight size={18} />

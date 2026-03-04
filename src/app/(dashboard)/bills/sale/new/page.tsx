@@ -16,6 +16,7 @@ import {
   Clock,
   Loader2,
   Info,
+  UserPlus,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
@@ -24,6 +25,8 @@ import Link from "next/link";
 
 import { saleBillSchema } from "@/lib/schemas";
 import Tooltip from "@/components/ui/Tooltip";
+import { AddPartyModal } from "@/components/modals/AddPartyModal";
+import { useUser } from "@/components/providers/UserContext";
 
 interface Customer {
   id: string;
@@ -73,6 +76,9 @@ export default function NewSaleBillPage() {
   const [itemsList, setItemsList] = useState<Item[]>([]);
   const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useUser();
+  const isAdmin = user?.role === "ORG_ADMIN" || user?.role === "SUPER_ADMIN";
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
   const [customerPage, setCustomerPage] = useState(1);
   const [hasMoreCustomers, setHasMoreCustomers] = useState(true);
@@ -538,46 +544,75 @@ export default function NewSaleBillPage() {
             ) : (
               <div
                 ref={customerSearchRef}
-                style={{ position: "relative" }}
+                style={{ position: "relative", display: "flex", gap: "10px" }}
               >
-                <Search
-                  style={{
-                    position: "absolute",
-                    left: "16px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#94a3b8",
-                  }}
-                  size={18}
-                />
-                <input
-                  type="text"
-                  placeholder={t("bills.sale.customerPlaceholder")}
-                  value={customerSearch}
-                  onFocus={() => setIsCustomerDropdownOpen(true)}
-                  onChange={(e) => setCustomerSearch(e.target.value)}
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    padding: "14px 14px 14px 52px",
-                    backgroundColor: "#f1f5f9",
-                    border: "1.5px solid #e2e8f0",
-                    borderRadius: "14px",
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "var(--text-main)",
-                    outline: "none",
-                    transition: "all 0.2s",
-                  }}
-                  onFocusCapture={(e) => {
-                    e.currentTarget.style.borderColor = "#0369a1";
-                    e.currentTarget.style.backgroundColor = "#fff";
-                  }}
-                  onBlurCapture={(e) => {
-                    e.currentTarget.style.borderColor = "#e2e8f0";
-                    e.currentTarget.style.backgroundColor = "#f1f5f9";
-                  }}
-                />
+                <div style={{ position: "relative", flex: 1 }}>
+                  <Search
+                    style={{
+                      position: "absolute",
+                      left: "14px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "#94a3b8",
+                    }}
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    placeholder={t("bills.sale.customerPlaceholder")}
+                    value={customerSearch}
+                    onFocus={() => setIsCustomerDropdownOpen(true)}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "14px 14px 14px 50px",
+                      backgroundColor: "#f1f5f9",
+                      border: "1.5px solid #e2e8f0",
+                      borderRadius: "14px",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      color: "var(--text-main)",
+                      outline: "none",
+                      transition: "all 0.2s",
+                    }}
+                    onFocusCapture={(e) => {
+                      e.currentTarget.style.borderColor = "#0369a1";
+                      e.currentTarget.style.backgroundColor = "#fff";
+                    }}
+                    onBlurCapture={(e) => {
+                      e.currentTarget.style.borderColor = "#e2e8f0";
+                      e.currentTarget.style.backgroundColor = "#f1f5f9";
+                    }}
+                  />
+                </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomerModalOpen(true)}
+                    style={{
+                      padding: "0 16px",
+                      backgroundColor: "rgba(3,105,161,0.08)",
+                      border: "1.5px solid rgba(3,105,161,0.2)",
+                      borderRadius: "14px",
+                      color: "#0369a1",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      fontWeight: 800,
+                      fontSize: "13px",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.12)"}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.08)"}
+                  >
+                    <UserPlus size={18} />
+                    {t("master.customers.addCustomer")}
+                  </button>
+                )}
                 {isCustomerDropdownOpen &&
                   (debouncedCustomerSearch.length > 0 ||
                     customersList.length > 0) && (
@@ -1758,6 +1793,15 @@ export default function NewSaleBillPage() {
                     .sale-bill-grid { grid-template-columns: 1fr 340px; }
                 }
             `}</style>
+      <AddPartyModal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+        type="CUSTOMER"
+        onSuccess={() => {
+          setCustomerPage(1);
+          setHasMoreCustomers(true);
+        }}
+      />
     </div>
   );
 }

@@ -21,6 +21,7 @@ import DateRangePicker from "@/components/reports/DateRangePicker";
 import ReportStats from "@/components/reports/ReportStats";
 import ReportTable from "@/components/reports/ReportTable";
 import { toast } from "sonner";
+import { fmtDate } from "@/lib/dateUtils";
 
 export default function OperationalReportsPage() {
   const { t, language } = useTranslation();
@@ -115,7 +116,7 @@ export default function OperationalReportsPage() {
           {
             key: "date",
             label: t("reports.table.date"),
-            render: (v: string) => new Date(v).toLocaleDateString(),
+            render: (v: string) => fmtDate(v),
           },
           { key: "party", label: t("reports.table.party") },
           {
@@ -135,9 +136,14 @@ export default function OperationalReportsPage() {
             label: t("reports.table.others"),
             align: "right" as const,
             render: (v: number, item: any) => (
-              <div>
-                <div style={{ fontWeight: 800 }}>
-                  ₹ {(v || 0).toLocaleString("en-IN")}
+              <div className="text-right">
+                <div className="text-[14px] font-bold text-[#475569] tabular-nums">
+                  <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">
+                    ₹
+                  </span>
+                  {(v || 0).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  })}
                 </div>
                 {item.othersNote && (
                   <div
@@ -159,7 +165,14 @@ export default function OperationalReportsPage() {
             key: "amount",
             label: t("reports.table.amount"),
             align: "right" as const,
-            render: (v: number) => `₹ ${(v || 0).toLocaleString("en-IN")}`,
+            render: (v: number) => (
+              <span className="text-[14px] font-bold text-[#1e293b] tabular-nums">
+                <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">
+                  ₹
+                </span>
+                {(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </span>
+            ),
           },
         ];
       case "PAYMENT_HISTORY":
@@ -167,14 +180,21 @@ export default function OperationalReportsPage() {
           {
             key: "date",
             label: t("reports.table.date"),
-            render: (v: string) => new Date(v).toLocaleDateString(),
+            render: (v: string) => fmtDate(v),
           },
           { key: "party", label: t("reports.table.party") },
           {
             key: "amount",
             label: t("reports.table.amount"),
             align: "right" as const,
-            render: (v: number) => `₹ ${(v || 0).toLocaleString("en-IN")}`,
+            render: (v: number) => (
+              <span className="text-[14px] font-bold text-[#1e293b] tabular-nums">
+                <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">
+                  ₹
+                </span>
+                {(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </span>
+            ),
           },
           { key: "mode", label: t("reports.table.mode") },
           { key: "type", label: t("reports.table.type") },
@@ -184,7 +204,7 @@ export default function OperationalReportsPage() {
           {
             key: "date",
             label: t("reports.table.date"),
-            render: (v: string) => new Date(v).toLocaleDateString(),
+            render: (v: string) => fmtDate(v),
           },
           { key: "category", label: t("reports.table.category") },
           {
@@ -288,7 +308,7 @@ export default function OperationalReportsPage() {
           </div>
           <h1
             style={{
-              fontSize: "clamp(1.5rem, 5vw, 1.875rem)",
+              fontSize: "1.875rem",
               fontWeight: 900,
               color: "var(--text-main)",
               letterSpacing: "-0.02em",
@@ -327,14 +347,7 @@ export default function OperationalReportsPage() {
             </p>
           </div>
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-          }}
-        >
+        <div style={{ display: "flex", gap: "10px" }}>
           <button
             onClick={fetchReport}
             style={{
@@ -344,7 +357,6 @@ export default function OperationalReportsPage() {
               borderRadius: "12px",
               color: "var(--text-muted)",
               cursor: "pointer",
-              flexShrink: 0,
             }}
           >
             <RefreshCcw size={18} className={loading ? "animate-spin" : ""} />
@@ -356,20 +368,18 @@ export default function OperationalReportsPage() {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              padding: "10px clamp(12px, 3vw, 20px)",
+              padding: "10px 20px",
               backgroundColor: "white",
               color: "black",
               borderRadius: "12px",
               border: "1.5px solid black",
               fontWeight: 800,
-              fontSize: "clamp(11px, 2vw, 12px)",
+              fontSize: "12px",
               cursor: "pointer",
               opacity: loading || !summary ? 0.5 : 1,
-              flexShrink: 0,
             }}
           >
-            <Printer size={16} />{" "}
-            <span className="button-text-hide">PRINT</span>
+            <Printer size={16} /> {t("common.print") || "PRINT"}
           </button>
           <button
             onClick={handleDownloadPDF}
@@ -378,39 +388,37 @@ export default function OperationalReportsPage() {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              padding: "10px clamp(12px, 3vw, 20px)",
+              padding: "10px 20px",
               backgroundColor: "black",
               color: "#fff",
               borderRadius: "12px",
               border: "none",
               fontWeight: 800,
-              fontSize: "clamp(11px, 2vw, 12px)",
+              fontSize: "12px",
               cursor: "pointer",
               opacity: loading || !summary ? 0.5 : 1,
-              flexShrink: 0,
             }}
           >
-            <Download size={16} /> <span className="button-text-hide">PDF</span>
+            <Download size={16} /> {t("common.downloadPdf") || "DOWNLOAD PDF"}
           </button>
         </div>
       </div>
-
       {/* Config Section */}
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 340px",
+          gap: "1.5rem",
+        }}
         className="report-config-grid"
       >
-        <div
-          className="premium-card"
-          style={{ padding: "clamp(1.25rem, 4vw, 1.5rem)" }}
-        >
+        <div className="premium-card" style={{ padding: "1.5rem" }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: "10px",
               marginBottom: "1.25rem",
-              flexWrap: "wrap",
             }}
           >
             <div
@@ -423,7 +431,6 @@ export default function OperationalReportsPage() {
                 alignItems: "center",
                 justifyContent: "center",
                 color: "var(--primary-main)",
-                flexShrink: 0,
               }}
             >
               <BarChart3 size={18} />
@@ -431,7 +438,7 @@ export default function OperationalReportsPage() {
             <p
               style={{
                 margin: 0,
-                fontSize: "clamp(9px, 2vw, 10px)",
+                fontSize: "10px",
                 fontWeight: 900,
                 color: "var(--text-muted)",
                 textTransform: "uppercase",
@@ -444,7 +451,7 @@ export default function OperationalReportsPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+              gridTemplateColumns: "1fr 1fr",
               gap: "10px",
             }}
           >
@@ -456,7 +463,7 @@ export default function OperationalReportsPage() {
                   display: "flex",
                   alignItems: "center",
                   gap: "12px",
-                  padding: "clamp(12px, 3vw, 16px)",
+                  padding: "16px",
                   backgroundColor:
                     reportType === type.id ? `${type.color}10` : "#f8fafc",
                   border:
@@ -480,14 +487,13 @@ export default function OperationalReportsPage() {
                     alignItems: "center",
                     justifyContent: "center",
                     color: "#fff",
-                    flexShrink: 0,
                   }}
                 >
                   <type.icon size={16} />
                 </div>
                 <span
                   style={{
-                    fontSize: "clamp(12px, 2vw, 13px)",
+                    fontSize: "13px",
                     fontWeight: 800,
                     color:
                       reportType === type.id ? "var(--text-main)" : "#64748b",
@@ -507,10 +513,8 @@ export default function OperationalReportsPage() {
           onEndChange={setEndDate}
         />
       </div>
-
       {/* Stats */}
       {summary && <ReportStats stats={stats} />}
-
       {/* Data Table */}
       {reportType !== "DAILY_SUMMARY" && (
         <div style={{ position: "relative" }}>
@@ -538,7 +542,6 @@ export default function OperationalReportsPage() {
           <ReportTable columns={getColumns()} data={data} />
         </div>
       )}
-
       {/* Daily Summary Specific View */}
       {reportType === "DAILY_SUMMARY" && summary && (
         <div
@@ -565,16 +568,40 @@ export default function OperationalReportsPage() {
                 <span style={{ fontWeight: 700, color: "#64748b" }}>
                   {t("reports.dailySummary.totalSales")}
                 </span>
-                <span style={{ fontWeight: 900, color: "#0369a1" }}>
-                  ₹ {summary.saleTotal?.toLocaleString("en-IN") || "0"}
+                <span className="text-[15px] font-black text-[#0369a1] tabular-nums">
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      opacity: 0.6,
+                      marginRight: "2px",
+                    }}
+                  >
+                    ₹
+                  </span>
+                  {summary.saleTotal?.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  }) || "0.00"}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontWeight: 700, color: "#64748b" }}>
                   {t("reports.dailySummary.totalPurchases")}
                 </span>
-                <span style={{ fontWeight: 900, color: "#15803d" }}>
-                  ₹ {summary.purchaseTotal?.toLocaleString("en-IN") || "0"}
+                <span className="text-[15px] font-black text-[#15803d] tabular-nums">
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      opacity: 0.6,
+                      marginRight: "2px",
+                    }}
+                  >
+                    ₹
+                  </span>
+                  {summary.purchaseTotal?.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  }) || "0.00"}
                 </span>
               </div>
               <div
@@ -588,8 +615,20 @@ export default function OperationalReportsPage() {
                 <span style={{ fontWeight: 700, color: "#64748b" }}>
                   {t("reports.dailySummary.totalOthers")}
                 </span>
-                <span style={{ fontWeight: 900, color: "#64748b" }}>
-                  ₹ {summary.othersTotal?.toLocaleString("en-IN") || "0"}
+                <span className="text-[15px] font-black text-[#64748b] tabular-nums">
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      opacity: 0.6,
+                      marginRight: "2px",
+                    }}
+                  >
+                    ₹
+                  </span>
+                  {summary.othersTotal?.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  }) || "0.00"}
                 </span>
               </div>
             </div>
@@ -611,16 +650,40 @@ export default function OperationalReportsPage() {
                 <span style={{ fontWeight: 700, color: "#64748b" }}>
                   {t("reports.dailySummary.paymentsReceived")}
                 </span>
-                <span style={{ fontWeight: 900, color: "#7c3aed" }}>
-                  ₹ {summary.paymentsIn?.toLocaleString("en-IN") || "0"}
+                <span className="text-[15px] font-black text-[#7c3aed] tabular-nums">
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      opacity: 0.6,
+                      marginRight: "2px",
+                    }}
+                  >
+                    ₹
+                  </span>
+                  {summary.paymentsIn?.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  }) || "0.00"}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontWeight: 700, color: "#64748b" }}>
                   {t("reports.dailySummary.paymentsPaid")}
                 </span>
-                <span style={{ fontWeight: 900, color: "#ea580c" }}>
-                  ₹ {summary.paymentsOut?.toLocaleString("en-IN") || "0"}
+                <span className="text-[15px] font-black text-[#ea580c] tabular-nums">
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      opacity: 0.6,
+                      marginRight: "2px",
+                    }}
+                  >
+                    ₹
+                  </span>
+                  {summary.paymentsOut?.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  }) || "0.00"}
                 </span>
               </div>
               <div
@@ -634,45 +697,439 @@ export default function OperationalReportsPage() {
                 <span style={{ fontWeight: 700, color: "#64748b" }}>
                   {t("reports.dailySummary.businessExpenses")}
                 </span>
-                <span style={{ fontWeight: 900, color: "#e11d48" }}>
-                  ₹ {summary.expenseTotal?.toLocaleString("en-IN") || "0"}
+                <span className="text-[15px] font-black text-[#e11d48] tabular-nums">
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      opacity: 0.6,
+                      marginRight: "2px",
+                    }}
+                  >
+                    ₹
+                  </span>
+                  {summary.expenseTotal?.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  }) || "0.00"}
                 </span>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      <style>{`
-                .animate-spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-                .button-text-hide {
-                    display: inline;
+      return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div>
+            <div style={{ marginBottom: "1rem" }}>
+              <Link
+                href="/reports"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  color: "var(--text-muted)",
+                  fontSize: "12px",
+                  fontWeight: 800,
+                  textDecoration: "none",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.color = "var(--primary-main)")
                 }
-
-                @media (max-width: 768px) {
-                    .report-config-grid {
-                        grid-template-columns: 1fr !important;
-                    }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.color = "var(--text-muted)")
                 }
+              >
+                <ArrowLeft size={16} />
+                {t("common.back") || "BACK"}
+              </Link>
+            </div>
+            <h1
+              style={{
+                fontSize: "clamp(1.5rem, 5vw, 1.875rem)",
+                fontWeight: 900,
+                color: "var(--text-main)",
+                letterSpacing: "-0.02em",
+                margin: 0,
+              }}
+            >
+              {t("reports.title")}
+            </h1>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                marginTop: "6px",
+              }}
+            >
+              <div
+                style={{
+                  height: "3px",
+                  width: "24px",
+                  backgroundColor: "var(--primary-main)",
+                  borderRadius: "2px",
+                }}
+              />
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  color: "var(--text-muted)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.15em",
+                }}
+              >
+                {t("reports.subtitle")}
+              </p>
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+            }}
+          >
+            <button
+              onClick={fetchReport}
+              style={{
+                padding: "10px",
+                backgroundColor: "#f8fafc",
+                border: "1px solid var(--border-main)",
+                borderRadius: "12px",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              <RefreshCcw size={18} className={loading ? "animate-spin" : ""} />
+            </button>
+            <button
+              onClick={handlePrintPDF}
+              disabled={loading || !summary}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "10px clamp(12px, 3vw, 20px)",
+                backgroundColor: "white",
+                color: "black",
+                borderRadius: "12px",
+                border: "1.5px solid black",
+                fontWeight: 800,
+                fontSize: "clamp(11px, 2vw, 12px)",
+                cursor: "pointer",
+                opacity: loading || !summary ? 0.5 : 1,
+                flexShrink: 0,
+              }}
+            >
+              <Printer size={16} />{" "}
+              <span className="button-text-hide">PRINT</span>
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={loading || !summary}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "10px clamp(12px, 3vw, 20px)",
+                backgroundColor: "black",
+                color: "#fff",
+                borderRadius: "12px",
+                border: "none",
+                fontWeight: 800,
+                fontSize: "clamp(11px, 2vw, 12px)",
+                cursor: "pointer",
+                opacity: loading || !summary ? 0.5 : 1,
+                flexShrink: 0,
+              }}
+            >
+              <Download size={16} />{" "}
+              <span className="button-text-hide">PDF</span>
+            </button>
+          </div>
+        </div>
 
-                @media (max-width: 640px) {
-                    .button-text-hide {
-                        display: none;
-                    }
+        {/* Config Section */}
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}
+          className="report-config-grid"
+        >
+          <div
+            className="premium-card"
+            style={{ padding: "clamp(1.25rem, 4vw, 1.5rem)" }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                marginBottom: "1.25rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <div
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  backgroundColor: "var(--primary-glow)",
+                  borderRadius: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--primary-main)",
+                  flexShrink: 0,
+                }}
+              >
+                <BarChart3 size={18} />
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "clamp(9px, 2vw, 10px)",
+                  fontWeight: 900,
+                  color: "var(--text-muted)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.2em",
+                }}
+              >
+                {t("reports.reportType")}
+              </p>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                gap: "10px",
+              }}
+            >
+              {reportTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => setReportType(type.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "clamp(12px, 3vw, 16px)",
+                    backgroundColor:
+                      reportType === type.id ? `${type.color}10` : "#f8fafc",
+                    border:
+                      reportType === type.id
+                        ? `2px solid ${type.color}`
+                        : "2px solid transparent",
+                    borderRadius: "16px",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    textAlign: "left",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      backgroundColor:
+                        reportType === type.id ? type.color : "#e2e8f0",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <type.icon size={16} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "clamp(12px, 2vw, 13px)",
+                      fontWeight: 800,
+                      color:
+                        reportType === type.id ? "var(--text-main)" : "#64748b",
+                    }}
+                  >
+                    {type.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-                    div:first-child {
-                        padding: 0 16px;
-                    }
-                }
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onStartChange={setStartDate}
+            onEndChange={setEndDate}
+          />
+        </div>
 
-                @media (max-width: 480px) {
-                    div:first-child {
-                        padding: 0 12px;
-                    }
-                }
-            `}</style>
+        {/* Stats */}
+        {summary && <ReportStats stats={stats} />}
+
+        {/* Data Table */}
+        {reportType !== "DAILY_SUMMARY" && (
+          <div style={{ position: "relative" }}>
+            {loading && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: "rgba(255,255,255,0.5)",
+                  backdropFilter: "blur(2px)",
+                  zIndex: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "20px",
+                }}
+              >
+                <Loader2
+                  size={32}
+                  className="animate-spin"
+                  color="var(--primary-main)"
+                />
+              </div>
+            )}
+            <ReportTable columns={getColumns()} data={data} />
+          </div>
+        )}
+
+        {/* Daily Summary Specific View */}
+        {reportType === "DAILY_SUMMARY" && summary && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+              gap: "1.5rem",
+            }}
+          >
+            <div className="premium-card" style={{ padding: "2rem" }}>
+              <h3
+                style={{
+                  margin: "0 0 1.5rem",
+                  fontSize: "1.125rem",
+                  fontWeight: 900,
+                }}
+              >
+                {t("reports.dailySummary.salesVsPurchases")}
+              </h3>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span style={{ fontWeight: 700, color: "#64748b" }}>
+                    {t("reports.dailySummary.totalSales")}
+                  </span>
+                  <span style={{ fontWeight: 900, color: "#0369a1" }}>
+                    ₹ {summary.saleTotal?.toLocaleString("en-IN") || "0"}
+                  </span>
+                </div>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span style={{ fontWeight: 700, color: "#64748b" }}>
+                    {t("reports.dailySummary.totalPurchases")}
+                  </span>
+                  <span style={{ fontWeight: 900, color: "#15803d" }}>
+                    ₹ {summary.purchaseTotal?.toLocaleString("en-IN") || "0"}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    paddingTop: "0.5rem",
+                    borderTop: "1px solid #f1f5f9",
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: "#64748b" }}>
+                    {t("reports.dailySummary.totalOthers")}
+                  </span>
+                  <span style={{ fontWeight: 900, color: "#64748b" }}>
+                    ₹ {summary.othersTotal?.toLocaleString("en-IN") || "0"}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="premium-card" style={{ padding: "2rem" }}>
+              <h3
+                style={{
+                  margin: "0 0 1.5rem",
+                  fontSize: "1.125rem",
+                  fontWeight: 900,
+                }}
+              >
+                {t("reports.dailySummary.expensesAndCashFlow")}
+              </h3>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span style={{ fontWeight: 700, color: "#64748b" }}>
+                    {t("reports.dailySummary.paymentsReceived")}
+                  </span>
+                  <span style={{ fontWeight: 900, color: "#7c3aed" }}>
+                    ₹ {summary.paymentsIn?.toLocaleString("en-IN") || "0"}
+                  </span>
+                </div>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span style={{ fontWeight: 700, color: "#64748b" }}>
+                    {t("reports.dailySummary.paymentsPaid")}
+                  </span>
+                  <span style={{ fontWeight: 900, color: "#ea580c" }}>
+                    ₹ {summary.paymentsOut?.toLocaleString("en-IN") || "0"}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    paddingTop: "0.5rem",
+                    borderTop: "1px solid #f1f5f9",
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: "#64748b" }}>
+                    {t("reports.dailySummary.businessExpenses")}
+                  </span>
+                  <span style={{ fontWeight: 900, color: "#e11d48" }}>
+                    ₹ {summary.expenseTotal?.toLocaleString("en-IN") || "0"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -2,21 +2,22 @@
 
 import { useState, useEffect } from "react";
 import {
-    ReceiptText,
     Plus,
     Search,
-    Calendar,
     ChevronRight,
     ArrowUpRight,
     ArrowDownLeft,
-    Filter,
     Clock,
     User,
-    ArrowRight
+    ArrowRight,
+    X
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import Link from "next/link";
 import { toast } from "sonner";
+import { fmtDate, fmtDateShort } from "@/lib/dateUtils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface Bill {
     id: string;
@@ -34,6 +35,9 @@ export default function BillsPage() {
     const [filter, setFilter] = useState<"ALL" | "PURCHASE" | "SALE">("ALL");
     const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState(search);
+    const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
 
     const [pagination, setPagination] = useState({ totalPages: 1, page: 1, total: 0 });
 
@@ -51,8 +55,9 @@ export default function BillsPage() {
         const fetchBills = async () => {
             setLoading(true);
             try {
+                const url = `/api/bills?type=${filter}&search=${encodeURIComponent(debouncedSearch)}&page=${pagination.page}${fromDate ? `&startDate=${fromDate}` : ""}${toDate ? `&endDate=${toDate}` : ""}&sort=${dateSort}`;
                 const r = await fetch(
-                    `/api/bills?type=${filter}&search=${encodeURIComponent(debouncedSearch)}&page=${pagination.page}`,
+                    url,
                     { signal: controller.signal }
                 );
                 if (!r.ok) throw new Error("Fetch failed");
@@ -73,7 +78,7 @@ export default function BillsPage() {
         };
         fetchBills();
         return () => controller.abort();
-    }, [filter, debouncedSearch, pagination.page]);
+    }, [filter, debouncedSearch, pagination.page, fromDate, toDate, dateSort]);
 
     const activeDate = new Date().toLocaleDateString(language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN", {
         day: "numeric",
@@ -203,6 +208,36 @@ export default function BillsPage() {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
+
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span style={{ fontSize: "10px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase" }}>{t("common.from") || "From"}</span>
+                            <input
+                                type="date"
+                                value={fromDate}
+                                onChange={(e) => setFromDate(e.target.value)}
+                                style={{ padding: "8px", borderRadius: "10px", border: "1.5px solid var(--border-main)", fontSize: "12px", fontWeight: 700, outline: "none" }}
+                            />
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span style={{ fontSize: "10px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase" }}>{t("common.to") || "To"}</span>
+                            <input
+                                type="date"
+                                value={toDate}
+                                onChange={(e) => setToDate(e.target.value)}
+                                style={{ padding: "8px", borderRadius: "10px", border: "1.5px solid var(--border-main)", fontSize: "12px", fontWeight: 700, outline: "none" }}
+                            />
+                        </div>
+                        {(fromDate || toDate) && (
+                            <button
+                                onClick={() => { setFromDate(""); setToDate(""); }}
+                                style={{ padding: "8px", borderRadius: "10px", border: "none", backgroundColor: "#f1f5f9", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                                title="Clear dates"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -210,82 +245,103 @@ export default function BillsPage() {
             <div className="premium-card overflow-hidden">
 
                 {/* Desktop View (Table) */}
-                <div className="hidden lg:block">
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                            <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-main)" }}>
-                                <th style={{ textAlign: "left", padding: "1.25rem 1.5rem", fontSize: "10px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)" }}>
-                                    {t("common.billNumber")}
-                                </th>
-                                <th style={{ textAlign: "left", padding: "1.25rem 1.5rem", fontSize: "10px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)" }}>
-                                    {t("common.party")}
-                                </th>
-                                <th style={{ textAlign: "left", padding: "1.25rem 1.5rem", fontSize: "10px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)" }}>
-                                    {t("common.type")}
-                                </th>
-                                <th style={{ textAlign: "right", padding: "1.25rem 1.5rem", fontSize: "10px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)" }}>
-                                    {t("common.amount")}
-                                </th>
-                                <th style={{ textAlign: "right", padding: "1.25rem 1.5rem", fontSize: "10px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)" }}>
-                                    {t("common.date")}
-                                </th>
-                                <th style={{ width: "60px" }}></th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <div className="hidden lg:block border border-gray-200 rounded-none overflow-hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
+                                {[
+                                    { label: t("common.billNumber"), key: "billNo" },
+                                    { label: t("common.party"), key: "party" },
+                                    { label: t("common.type"), key: "type" },
+                                    { label: t("common.amount"), key: "amount", align: "right" as const },
+                                    { label: t("common.date"), key: "date", align: "right" as const },
+                                    { label: "", key: "actions", width: "40px" }
+                                ].map((h, idx) => (
+                                    <TableHead
+                                        key={h.key}
+                                        onClick={h.key === "date" ? () => setDateSort(s => s === "asc" ? "desc" : "asc") : undefined}
+                                        className={cn(
+                                            "h-10 px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-600 border-r border-gray-200 last:border-r-0 whitespace-nowrap",
+                                            h.align === "right" && "text-right",
+                                            h.key === "date" && "cursor-pointer select-none",
+                                            h.key === "actions" && "w-[40px]"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "flex items-center gap-1",
+                                            h.align === "right" ? "justify-end" : "justify-start"
+                                        )}>
+                                            {h.label}
+                                            {h.key === "date" && (
+                                                <span className={cn("text-xs", dateSort === "desc" ? "text-blue-600" : "text-gray-400")}>
+                                                    {dateSort === "desc" ? "↓" : "↑"}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </TableHead>
+                                ))}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
-                                    <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                                        <td colSpan={6} style={{ padding: "1.5rem" }}><div style={{ height: "16px", backgroundColor: "#f1f5f9", borderRadius: "8px", width: "100%", animation: "pulse 1.5s infinite" }} /></td>
-                                    </tr>
+                                    <TableRow key={i} className="border-b border-gray-200">
+                                        <TableCell colSpan={6} className="p-4">
+                                            <div className="h-4 bg-gray-50 rounded w-full animate-pulse" />
+                                        </TableCell>
+                                    </TableRow>
                                 ))
                             ) : bills.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} style={{ textAlign: "center", padding: "5rem", color: "var(--text-muted)", fontWeight: 700 }}>
-                                        No bills found.
-                                    </td>
-                                </tr>
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-20 text-gray-400 font-medium">
+                                        {t("bills.noBills") || "No bills found."}
+                                    </TableCell>
+                                </TableRow>
                             ) : (
                                 bills.map((bill) => (
-                                    <tr key={bill.id} className="group hover:bg-slate-50/50 cursor-pointer transition-colors" style={{ borderBottom: "1px solid #f1f5f9" }}>
-                                        <td style={{ padding: "1.25rem 1.5rem" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                                <div style={{ padding: "8px", borderRadius: "10px", backgroundColor: bill.type === 'PURCHASE' ? "rgba(21, 128, 61, 0.08)" : "rgba(3, 105, 161, 0.08)", color: bill.type === 'PURCHASE' ? "var(--primary-main)" : "#0369a1" }}>
-                                                    {bill.type === 'PURCHASE' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
-                                                </div>
-                                                <Link href={`/bills/${bill.id}`} style={{ fontSize: "14px", fontWeight: 900, color: "var(--primary-main)", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }} className="hover:underline">
-                                                    {bill.billNumber}
-                                                </Link>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: "1.25rem 1.5rem" }}>
-                                            <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-main)" }}>{bill.party}</span>
-                                        </td>
-                                        <td style={{ padding: "1.25rem 1.5rem" }}>
-                                            <span className="accent-badge" style={{ backgroundColor: bill.type === 'PURCHASE' ? "rgba(21, 128, 61, 0.08)" : "rgba(3, 105, 161, 0.08)", color: bill.type === 'PURCHASE' ? "var(--primary-main)" : "#0369a1" }}>
-                                                {bill.type === 'PURCHASE' ? 'Purchase' : 'Sale'}
+                                    <TableRow
+                                        key={bill.id}
+                                        className="even:bg-gray-50/50 odd:bg-white hover:bg-blue-50/30 transition-colors border-b border-gray-200 last:border-b-0 cursor-pointer"
+                                        onClick={() => window.location.href = `/bills/${bill.id}`}
+                                    >
+                                        <TableCell className="border-r border-gray-200">
+                                            <Link
+                                                href={`/bills/${bill.id}`}
+                                                className={cn(
+                                                    "text-[14px] font-bold tracking-tight hover:underline transition-colors",
+                                                    bill.type === 'PURCHASE' ? "text-emerald-700" : "text-blue-700"
+                                                )}
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {bill.billNumber}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell className="border-r border-gray-200">
+                                            <span className="text-[14px] font-bold text-gray-900">{bill.party}</span>
+                                        </TableCell>
+                                        <TableCell className="border-r border-gray-200">
+                                            <span className={cn(
+                                                "text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider",
+                                                bill.type === 'PURCHASE' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-blue-50 text-blue-700 border-blue-200"
+                                            )}>
+                                                {bill.type}
                                             </span>
-                                        </td>
-                                        <td style={{ padding: "1.25rem 1.5rem", textAlign: "right" }}>
-                                            <span style={{ fontSize: "15px", fontWeight: 900, color: "var(--text-main)", fontVariantNumeric: "tabular-nums" }}>
-                                                ₹ {bill.netTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: "1.25rem 1.5rem", textAlign: "right" }}>
-                                            <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-muted)" }}>
-                                                {new Date(bill.billDate).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' })}
-                                            </span>
-                                        </td>
-                                        <td style={{ paddingRight: "1.5rem", textAlign: "right" }}>
-                                            <div style={{ color: "var(--border-main)", transform: "translateX(0)", transition: "all 0.2s ease" }} className="group-hover:text-slate-900 group-hover:translate-x-1">
-                                                <ChevronRight size={18} />
-                                            </div>
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                        <TableCell className="text-right font-bold text-[14px] text-gray-900 tabular-nums border-l border-gray-200 bg-gray-50/30">
+                                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
+                                            {bill.netTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                        </TableCell>
+                                        <TableCell className="text-right text-[12px] font-bold text-gray-500 border-l border-gray-200">
+                                            {fmtDate(bill.billDate)}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <ChevronRight size={14} className="text-gray-300 group-hover:text-blue-500 transition-colors inline" />
+                                        </TableCell>
+                                    </TableRow>
                                 ))
                             )}
-                        </tbody>
-                    </table>
+                        </TableBody>
+                    </Table>
                 </div>
 
                 {/* Mobile View (Card List) */}
@@ -313,7 +369,7 @@ export default function BillsPage() {
                                             <div>
                                                 <p style={{ fontSize: "13px", fontWeight: 900, color: "var(--text-main)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{bill.billNumber}</p>
                                                 <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", margin: 0 }}>
-                                                    {new Date(bill.billDate).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' })}
+                                                    {fmtDateShort(bill.billDate)}
                                                 </p>
                                             </div>
                                         </div>
@@ -344,7 +400,7 @@ export default function BillsPage() {
                 {!loading && bills.length > 0 && pagination.totalPages > 1 && (
                     <div style={{ padding: "1.25rem 1.75rem", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#fff" }}>
                         <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "var(--text-muted)" }}>
-                            Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+                            {t("common.pagination.status", { page: pagination.page, total: pagination.totalPages, count: pagination.total })}
                         </p>
                         <div style={{ display: "flex", gap: "0.5rem" }}>
                             <button
@@ -356,7 +412,7 @@ export default function BillsPage() {
                                     transition: "all 0.2s"
                                 }}
                             >
-                                Previous
+                                {t("common.pagination.previous")}
                             </button>
                             <button
                                 onClick={() => handlePageChange(Math.min(pagination.totalPages, pagination.page + 1))}
@@ -367,7 +423,7 @@ export default function BillsPage() {
                                     transition: "all 0.2s"
                                 }}
                             >
-                                Next
+                                {t("common.pagination.next")}
                             </button>
                         </div>
                     </div>
@@ -375,25 +431,25 @@ export default function BillsPage() {
             </div>
 
             <style jsx>{`
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
-                .quick-action-btn:hover {
-                    transform: translateY(-2px);
-                }
-                .quick-action-btn:active {
-                    transform: translateY(0) scale(0.98);
-                }
-                .purchase:hover {
-                    background-color: var(--color-primary-dark) !important;
-                    box-shadow: 0 12px 20px -5px rgba(21, 128, 61, 0.3) !important;
-                }
-                .sale:hover {
-                    background-color: #0284c7 !important;
-                    box-shadow: 0 12px 20px -5px rgba(3, 105, 161, 0.3) !important;
-                }
-            `}</style>
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.5; }
+                    }
+                    .quick-action-btn:hover {
+                        transform: translateY(-2px);
+                    }
+                    .quick-action-btn:active {
+                        transform: translateY(0) scale(0.98);
+                    }
+                    .purchase:hover {
+                        background-color: var(--color-primary-dark) !important;
+                        box-shadow: 0 12px 20px -5px rgba(21, 128, 61, 0.3) !important;
+                    }
+                    .sale:hover {
+                        background-color: #0284c7 !important;
+                        box-shadow: 0 12px 20px -5px rgba(3, 105, 161, 0.3) !important;
+                    }
+                `}</style>
         </div>
     );
 }

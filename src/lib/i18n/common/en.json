@@ -26,6 +26,9 @@
   "party": "Party",
   "type": "Type",
   "amount": "Amount",
+  "paymentMode": "Payment Mode",
+  "from": "From",
+  "to": "To",
   "actions": "Actions",
   "all": "All",
   "pagination": {
