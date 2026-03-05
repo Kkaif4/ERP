@@ -82,6 +82,7 @@ export default function NewSaleBillPage() {
 
   const [customerPage, setCustomerPage] = useState(1);
   const [hasMoreCustomers, setHasMoreCustomers] = useState(true);
+  const [munimRef, setMunimRef] = useState("");
 
   // Refs for click outside dismissal
   const customerSearchRef = useRef<HTMLDivElement>(null);
@@ -98,7 +99,7 @@ export default function NewSaleBillPage() {
     fetch("/api/config")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setConfig(d))
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -289,6 +290,7 @@ export default function NewSaleBillPage() {
         quantityUnits: parseFloat(l.quantityUnits) || 0,
         pricePerUnit: parseFloat(l.price) || 0,
       })),
+      munimRef: munimRef ? parseInt(munimRef) : undefined,
     };
 
     const result = saleBillSchema.safeParse(data);
@@ -424,7 +426,10 @@ export default function NewSaleBillPage() {
           style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
         >
           {/* Customer Card */}
-          <div className="premium-card" style={{ padding: "1.75rem", position: "relative", zIndex: 40 }}>
+          <div
+            className="premium-card"
+            style={{ padding: "1.75rem", position: "relative", zIndex: 40 }}
+          >
             <div
               style={{
                 display: "flex",
@@ -604,10 +609,16 @@ export default function NewSaleBillPage() {
                       fontWeight: 800,
                       fontSize: "13px",
                       whiteSpace: "nowrap",
-                      transition: "all 0.2s"
+                      transition: "all 0.2s",
                     }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.12)"}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.08)"}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        "rgba(3,105,161,0.12)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        "rgba(3,105,161,0.08)")
+                    }
                   >
                     <UserPlus size={18} />
                     {t("master.customers.addCustomer")}
@@ -729,8 +740,74 @@ export default function NewSaleBillPage() {
             )}
           </div>
 
+          {/* Reference Card */}
+          <div
+            className="premium-card"
+            style={{ padding: "1.75rem", position: "relative", zIndex: 35 }}
+          >
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem" }}>
+              {/* Munim Reference */}
+              <div style={{ flex: "0 0 150px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      backgroundColor: "rgba(245,158,11,0.1)",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#f59e0b",
+                    }}
+                  >
+                    <Info size={16} />
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "13px",
+                      fontWeight: 800,
+                      color: "var(--text-muted)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    Munim Ref
+                  </p>
+                </div>
+                <input
+                  type="number"
+                  placeholder="Ref #"
+                  value={munimRef}
+                  onChange={(e) => setMunimRef(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    backgroundColor: "#f1f5f9",
+                    border: "1.5px solid #e2e8f0",
+                    borderRadius: "12px",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Items Card */}
-          <div className="premium-card" style={{ overflow: "visible", position: "relative", zIndex: 30 }}>
+          <div
+            className="premium-card"
+            style={{ overflow: "visible", position: "relative", zIndex: 30 }}
+          >
             <div
               style={{
                 display: "flex",
@@ -850,10 +927,19 @@ export default function NewSaleBillPage() {
                         <button
                           key={item.id}
                           onMouseDown={() => {
-                            if (config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0) return;
+                            if (
+                              config?.enableStockRestriction &&
+                              item.availableKg <= 0 &&
+                              item.availableUnits <= 0
+                            )
+                              return;
                             addLine(item);
                           }}
-                          disabled={config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0}
+                          disabled={
+                            config?.enableStockRestriction &&
+                            item.availableKg <= 0 &&
+                            item.availableUnits <= 0
+                          }
                           style={{
                             width: "100%",
                             display: "block",
@@ -861,27 +947,67 @@ export default function NewSaleBillPage() {
                             padding: "10px 14px",
                             border: "none",
                             backgroundColor: "transparent",
-                            cursor: (config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0) ? "not-allowed" : "pointer",
+                            cursor:
+                              config?.enableStockRestriction &&
+                              item.availableKg <= 0 &&
+                              item.availableUnits <= 0
+                                ? "not-allowed"
+                                : "pointer",
                             borderRadius: "10px",
                             fontSize: "13px",
                             fontWeight: 700,
                             color: "#1e293b",
                             transition: "background 0.15s",
-                            opacity: (config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0) ? 0.5 : 1,
+                            opacity:
+                              config?.enableStockRestriction &&
+                              item.availableKg <= 0 &&
+                              item.availableUnits <= 0
+                                ? 0.5
+                                : 1,
                           }}
                           onMouseEnter={(e) => {
-                            if (!(config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0)) {
-                              e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.06)";
+                            if (
+                              !(
+                                config?.enableStockRestriction &&
+                                item.availableKg <= 0 &&
+                                item.availableUnits <= 0
+                              )
+                            ) {
+                              e.currentTarget.style.backgroundColor =
+                                "rgba(3,105,161,0.06)";
                             }
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "transparent";
+                            e.currentTarget.style.backgroundColor =
+                              "transparent";
                           }}
                         >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
                             <span>{item.name}</span>
-                            <span style={{ fontSize: "11px", color: (item.availableKg <= 0 && item.availableUnits <= 0) ? "#ef4444" : "#10b981", fontWeight: 800 }}>
-                              {item.availableKg > 0 ? `${item.availableKg} KG` : item.availableUnits > 0 ? `${item.availableUnits} Units` : (config?.enableStockRestriction ? t("bills.sale.noStock") : "No Stock")}
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color:
+                                  item.availableKg <= 0 &&
+                                  item.availableUnits <= 0
+                                    ? "#ef4444"
+                                    : "#10b981",
+                                fontWeight: 800,
+                              }}
+                            >
+                              {item.availableKg > 0
+                                ? `${item.availableKg} KG`
+                                : item.availableUnits > 0
+                                  ? `${item.availableUnits} Units`
+                                  : config?.enableStockRestriction
+                                    ? t("bills.sale.noStock")
+                                    : "No Stock"}
                             </span>
                           </div>
                         </button>
@@ -1012,10 +1138,20 @@ export default function NewSaleBillPage() {
                           letterSpacing: "0.1em",
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                            gap: "4px",
+                          }}
+                        >
                           {t("bills.purchase.total")}
                           <Tooltip content={t("bills.purchase.totalTooltip")}>
-                            <Info size={14} style={{ cursor: "help", opacity: 0.7 }} />
+                            <Info
+                              size={14}
+                              style={{ cursor: "help", opacity: 0.7 }}
+                            />
                           </Tooltip>
                         </div>
                       </th>
@@ -1039,7 +1175,14 @@ export default function NewSaleBillPage() {
                           >
                             {line.itemName}
                           </p>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "4px 0" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              margin: "4px 0",
+                            }}
+                          >
                             <span
                               style={{
                                 fontSize: "14px",
@@ -1061,13 +1204,24 @@ export default function NewSaleBillPage() {
                               style={{
                                 fontSize: "11px",
                                 fontWeight: 800,
-                                color: (line.availableKg <= 0 && line.availableUnits <= 0) ? "#ef4444" : "#64748b",
-                                backgroundColor: (line.availableKg <= 0 && line.availableUnits <= 0) ? "rgba(239, 68, 68, 0.08)" : "#f8fafc",
+                                color:
+                                  line.availableKg <= 0 &&
+                                  line.availableUnits <= 0
+                                    ? "#ef4444"
+                                    : "#64748b",
+                                backgroundColor:
+                                  line.availableKg <= 0 &&
+                                  line.availableUnits <= 0
+                                    ? "rgba(239, 68, 68, 0.08)"
+                                    : "#f8fafc",
                                 padding: "2px 8px",
                                 borderRadius: "6px",
                               }}
                             >
-                              Stock: {line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG`}
+                              Stock:{" "}
+                              {line.pricingMode === "UNIT"
+                                ? `${line.availableUnits} Units`
+                                : `${line.availableKg} KG`}
                             </span>
                           </div>
                         </td>
@@ -1087,8 +1241,12 @@ export default function NewSaleBillPage() {
                               margin: "0 auto",
                               padding: "8px",
                               textAlign: "center",
-                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f1f5f9",
-                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid #e2e8f0",
+                              backgroundColor: isStockError(line)
+                                ? "#fef2f2"
+                                : "#f1f5f9",
+                              border: isStockError(line)
+                                ? "1.5px solid #ef4444"
+                                : "1.5px solid #e2e8f0",
                               borderRadius: "10px",
                               fontWeight: 800,
                               fontSize: "14px",
@@ -1096,17 +1254,40 @@ export default function NewSaleBillPage() {
                               transition: "all 0.2s",
                             }}
                             onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
+                              e.currentTarget.style.borderColor = isStockError(
+                                line,
+                              )
+                                ? "#ef4444"
+                                : "#0369a1";
+                              e.currentTarget.style.backgroundColor =
+                                isStockError(line) ? "#fff1f1" : "#fff";
                             }}
                             onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#e2e8f0";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f1f5f9";
+                              e.currentTarget.style.borderColor = isStockError(
+                                line,
+                              )
+                                ? "#ef4444"
+                                : "#e2e8f0";
+                              e.currentTarget.style.backgroundColor =
+                                isStockError(line) ? "#fef2f2" : "#f1f5f9";
                             }}
                           />
                           {isStockError(line) && (
-                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
-                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            <p
+                              style={{
+                                margin: "4px 0 0",
+                                fontSize: "10px",
+                                fontWeight: 800,
+                                color: "#ef4444",
+                                textAlign: "center",
+                              }}
+                            >
+                              {t("bills.sale.availableStock", {
+                                amount:
+                                  line.pricingMode === "UNIT"
+                                    ? `${line.availableUnits} Units`
+                                    : `${line.availableKg} KG`,
+                              })}
                             </p>
                           )}
                         </td>
@@ -1126,8 +1307,12 @@ export default function NewSaleBillPage() {
                               margin: "0 auto",
                               padding: "8px",
                               textAlign: "center",
-                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f1f5f9",
-                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid #e2e8f0",
+                              backgroundColor: isStockError(line)
+                                ? "#fef2f2"
+                                : "#f1f5f9",
+                              border: isStockError(line)
+                                ? "1.5px solid #ef4444"
+                                : "1.5px solid #e2e8f0",
                               borderRadius: "10px",
                               fontWeight: 800,
                               fontSize: "14px",
@@ -1135,17 +1320,40 @@ export default function NewSaleBillPage() {
                               transition: "all 0.2s",
                             }}
                             onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
+                              e.currentTarget.style.borderColor = isStockError(
+                                line,
+                              )
+                                ? "#ef4444"
+                                : "#0369a1";
+                              e.currentTarget.style.backgroundColor =
+                                isStockError(line) ? "#fff1f1" : "#fff";
                             }}
                             onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#e2e8f0";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f1f5f9";
+                              e.currentTarget.style.borderColor = isStockError(
+                                line,
+                              )
+                                ? "#ef4444"
+                                : "#e2e8f0";
+                              e.currentTarget.style.backgroundColor =
+                                isStockError(line) ? "#fef2f2" : "#f1f5f9";
                             }}
                           />
                           {isStockError(line) && (
-                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
-                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            <p
+                              style={{
+                                margin: "4px 0 0",
+                                fontSize: "10px",
+                                fontWeight: 800,
+                                color: "#ef4444",
+                                textAlign: "center",
+                              }}
+                            >
+                              {t("bills.sale.availableStock", {
+                                amount:
+                                  line.pricingMode === "UNIT"
+                                    ? `${line.availableUnits} Units`
+                                    : `${line.availableKg} KG`,
+                              })}
                             </p>
                           )}
                         </td>
@@ -1347,25 +1555,52 @@ export default function NewSaleBillPage() {
                               boxSizing: "border-box",
                               padding: "10px",
                               textAlign: "center",
-                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f8fafc",
-                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid transparent",
+                              backgroundColor: isStockError(line)
+                                ? "#fef2f2"
+                                : "#f8fafc",
+                              border: isStockError(line)
+                                ? "1.5px solid #ef4444"
+                                : "1.5px solid transparent",
                               borderRadius: "10px",
                               fontWeight: 800,
                               fontSize: "15px",
                               outline: "none",
                             }}
                             onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
+                              e.currentTarget.style.borderColor = isStockError(
+                                line,
+                              )
+                                ? "#ef4444"
+                                : "#0369a1";
+                              e.currentTarget.style.backgroundColor =
+                                isStockError(line) ? "#fff1f1" : "#fff";
                             }}
                             onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "transparent";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f8fafc";
+                              e.currentTarget.style.borderColor = isStockError(
+                                line,
+                              )
+                                ? "#ef4444"
+                                : "transparent";
+                              e.currentTarget.style.backgroundColor =
+                                isStockError(line) ? "#fef2f2" : "#f8fafc";
                             }}
                           />
                           {isStockError(line) && (
-                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
-                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            <p
+                              style={{
+                                margin: "4px 0 0",
+                                fontSize: "10px",
+                                fontWeight: 800,
+                                color: "#ef4444",
+                                textAlign: "center",
+                              }}
+                            >
+                              {t("bills.sale.availableStock", {
+                                amount:
+                                  line.pricingMode === "UNIT"
+                                    ? `${line.availableUnits} Units`
+                                    : `${line.availableKg} KG`,
+                              })}
                             </p>
                           )}
                         </div>
@@ -1396,25 +1631,52 @@ export default function NewSaleBillPage() {
                               boxSizing: "border-box",
                               padding: "10px",
                               textAlign: "center",
-                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f8fafc",
-                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid transparent",
+                              backgroundColor: isStockError(line)
+                                ? "#fef2f2"
+                                : "#f8fafc",
+                              border: isStockError(line)
+                                ? "1.5px solid #ef4444"
+                                : "1.5px solid transparent",
                               borderRadius: "10px",
                               fontWeight: 800,
                               fontSize: "15px",
                               outline: "none",
                             }}
                             onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
+                              e.currentTarget.style.borderColor = isStockError(
+                                line,
+                              )
+                                ? "#ef4444"
+                                : "#0369a1";
+                              e.currentTarget.style.backgroundColor =
+                                isStockError(line) ? "#fff1f1" : "#fff";
                             }}
                             onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "transparent";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f8fafc";
+                              e.currentTarget.style.borderColor = isStockError(
+                                line,
+                              )
+                                ? "#ef4444"
+                                : "transparent";
+                              e.currentTarget.style.backgroundColor =
+                                isStockError(line) ? "#fef2f2" : "#f8fafc";
                             }}
                           />
                           {isStockError(line) && (
-                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
-                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            <p
+                              style={{
+                                margin: "4px 0 0",
+                                fontSize: "10px",
+                                fontWeight: 800,
+                                color: "#ef4444",
+                                textAlign: "center",
+                              }}
+                            >
+                              {t("bills.sale.availableStock", {
+                                amount:
+                                  line.pricingMode === "UNIT"
+                                    ? `${line.availableUnits} Units`
+                                    : `${line.availableKg} KG`,
+                              })}
                             </p>
                           )}
                         </div>
@@ -1606,16 +1868,22 @@ export default function NewSaleBillPage() {
                 value: fmt(taxAmount),
                 tooltip: t("bills.sale.taxTooltip", {
                   value: config?.taxValue,
-                  type: config?.taxType === "PERCENTAGE" ? t("bills.sale.taxPercentage") : t("bills.sale.taxFixed")
-                })
+                  type:
+                    config?.taxType === "PERCENTAGE"
+                      ? t("bills.sale.taxPercentage")
+                      : t("bills.sale.taxFixed"),
+                }),
               },
               {
                 label: `${t("bills.purchase.serviceCharge")} ${config ? `(${config.serviceChargeValue}${config.serviceChargeType === "PERCENTAGE" ? "%" : "₹"})` : ""}`,
                 value: fmt(serviceChargeAmount),
                 tooltip: t("bills.sale.serviceChargeTooltip", {
                   value: config?.serviceChargeValue,
-                  type: config?.serviceChargeType === "PERCENTAGE" ? t("bills.sale.scPercentage") : t("bills.sale.scFixed")
-                })
+                  type:
+                    config?.serviceChargeType === "PERCENTAGE"
+                      ? t("bills.sale.scPercentage")
+                      : t("bills.sale.scFixed"),
+                }),
               },
             ].map(({ label, value, tooltip }) => (
               <div
@@ -1636,7 +1904,7 @@ export default function NewSaleBillPage() {
                     letterSpacing: "0.1em",
                     display: "flex",
                     alignItems: "center",
-                    gap: "4px"
+                    gap: "4px",
                   }}
                 >
                   {label}
@@ -1691,7 +1959,7 @@ export default function NewSaleBillPage() {
                     letterSpacing: "0.15em",
                     display: "flex",
                     alignItems: "center",
-                    gap: "4px"
+                    gap: "4px",
                   }}
                 >
                   {t("bills.sale.payable")}
@@ -1737,8 +2005,13 @@ export default function NewSaleBillPage() {
                     ? "not-allowed"
                     : "pointer",
                 backgroundColor:
-                  isSubmitting || lines.length === 0 || hasAnyStockError ? "#1e293b" : "#0369a1",
-                color: isSubmitting || lines.length === 0 || hasAnyStockError ? "#475569" : "#fff",
+                  isSubmitting || lines.length === 0 || hasAnyStockError
+                    ? "#1e293b"
+                    : "#0369a1",
+                color:
+                  isSubmitting || lines.length === 0 || hasAnyStockError
+                    ? "#475569"
+                    : "#fff",
                 fontWeight: 900,
                 fontSize: "13px",
                 textTransform: "uppercase",

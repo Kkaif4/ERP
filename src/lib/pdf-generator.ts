@@ -17,6 +17,11 @@ type BillWithRelations = Bill & {
   farmer?: Farmer | null;
   customer?: Customer | null;
   organization: Organization;
+  vehicleAgent?: {
+    id: string;
+    name: string;
+    vehicleNumber?: string | null;
+  } | null;
 };
 
 // Colors from the premium UI
@@ -99,6 +104,8 @@ const TRANSLATIONS: any = {
     totalkg: "Qty (KG)",
     totalunits: "Qty (Units)",
     othersamount: "Others Amount",
+    vehicleAgent: "Transport",
+    munimRef: "Munim Ref",
   },
   mr: {
     purchaseBill: "खरेदी बिल",
@@ -155,6 +162,8 @@ const TRANSLATIONS: any = {
     totalkg: "वजन (किलो)",
     totalunits: "नग (यूनिट)",
     othersamount: "इतर रक्कम",
+    vehicleAgent: "वाहन प्रतिनिधी",
+    munimRef: "मुनिम संदर्भ",
   },
   hi: {
     purchaseBill: "खरीद बिल",
@@ -211,6 +220,8 @@ const TRANSLATIONS: any = {
     totalkg: "मात्रा (किलो)",
     totalunits: "मात्रा (यूनिट)",
     othersamount: "अन्य राशि",
+    vehicleAgent: "वाहन एजेंट",
+    munimRef: "मुनीम संदर्भ",
   },
 };
 
@@ -401,6 +412,9 @@ export async function generateBillPDF(
           { day: "2-digit", month: "short", year: "numeric" },
         );
         doc.text(`${t("date", lang)}: ${formattedBillDate}`, margin, 94);
+        if (bill.munimRef) {
+          doc.text(`${t("munimRef", lang)}: #${bill.munimRef}`, margin, 108);
+        }
 
         doc
           .moveTo(margin, 105)
@@ -472,6 +486,12 @@ export async function generateBillPDF(
           align: "right",
           width: contentWidth,
         });
+        if (bill.munimRef) {
+          doc.text(`${t("munimRef", lang)}: #${bill.munimRef}`, margin, 90, {
+            align: "right",
+            width: contentWidth,
+          });
+        }
 
         // Divider
         doc
@@ -526,6 +546,25 @@ export async function generateBillPDF(
           );
           currentY += 12;
         }
+
+        if (bill.type === "PURCHASE" && bill.vehicleAgent) {
+          doc
+            .fillColor(COLORS.secondary)
+            .font(currentBold)
+            .fontSize(8)
+            .text(t("vehicleAgent", lang), margin, currentY);
+          currentY += 12;
+          doc
+            .fillColor(COLORS.text)
+            .font(currentBold)
+            .fontSize(9)
+            .text(
+              `${bill.vehicleAgent.name}${bill.vehicleAgent.vehicleNumber ? ` (${bill.vehicleAgent.vehicleNumber})` : ""}`,
+              margin,
+              currentY,
+            );
+          currentY += 12;
+        }
       } else {
         // Background for section titles
         doc.rect(margin, currentY, contentWidth, 20).fill("#f8fafc");
@@ -569,6 +608,27 @@ export async function generateBillPDF(
               `${t("village", lang)}: ${(party as any).village}`,
               margin + (isThermal ? 10 : 200),
               currentY + (isThermal ? 30 : 0),
+            );
+        }
+
+        if (bill.type === "PURCHASE" && bill.vehicleAgent) {
+          currentY += 45;
+          doc.rect(margin, currentY, contentWidth, 20).fill("#f8fafc");
+          doc
+            .fillColor(COLORS.secondary)
+            .font(currentBold)
+            .fontSize(9)
+            .text(t("vehicleAgent", lang), margin + 10, currentY + 6);
+
+          currentY += 30;
+          doc
+            .fillColor(COLORS.text)
+            .font(currentBold)
+            .fontSize(12)
+            .text(
+              `${bill.vehicleAgent.name}${bill.vehicleAgent.vehicleNumber ? ` - ${bill.vehicleAgent.vehicleNumber}` : ""}`,
+              margin + 10,
+              currentY,
             );
         }
       }

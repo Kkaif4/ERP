@@ -26,6 +26,8 @@ export async function POST(req: Request) {
       advanceDeduction = 0,
       othersAmount = 0,
       othersNote = "",
+      vehicleAgentId,
+      munimRef,
     } = validationResult.data;
 
     // Fetch Farmer
@@ -118,6 +120,8 @@ export async function POST(req: Request) {
           previousBalance,
           finalAmount,
           createdById: session.userId,
+          vehicleAgentId,
+          munimRef,
           items: {
             create: lineItems,
           },

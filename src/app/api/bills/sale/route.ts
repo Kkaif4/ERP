@@ -18,7 +18,16 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const { customerId, items } = validationResult.data;
+    const {
+      customerId,
+      items,
+      labourCharges = 0,
+      freightCharges = 0,
+      advanceDeduction = 0,
+      othersAmount = 0,
+      othersNote = "",
+      munimRef,
+    } = validationResult.data;
 
     // Fetch Customer
     const customer = await prisma.customer.findFirst({
@@ -125,7 +134,13 @@ export async function POST(req: Request) {
 
     // 3. Totals
     const grossTotal = subtotal + taxAmount + serviceChargeAmount;
-    const netTotal = grossTotal;
+
+    const lc = Number(labourCharges);
+    const fc = Number(freightCharges);
+    const ad = Number(advanceDeduction);
+    const oa = Number(othersAmount);
+
+    const netTotal = grossTotal - lc - fc - ad - oa;
     const finalAmount = netTotal + previousBalance;
 
     // 5. Generate Bill Number
@@ -152,15 +167,18 @@ export async function POST(req: Request) {
           type: "SALE",
           customerId,
           subtotal,
-          labourCharges: 0,
-          freightCharges: 0,
+          labourCharges: lc,
+          freightCharges: fc,
           taxAmount,
           serviceChargeAmount,
           grossTotal,
-          advanceDeduction: 0,
+          othersAmount: oa,
+          othersNote,
+          advanceDeduction: ad,
           netTotal,
           previousBalance,
           finalAmount,
+          munimRef,
           createdById: session.userId,
           items: {
             create: lineItems,

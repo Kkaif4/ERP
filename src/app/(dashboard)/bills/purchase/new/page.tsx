@@ -27,6 +27,7 @@ import Link from "next/link";
 import { purchaseBillSchema } from "@/lib/schemas";
 import Tooltip from "@/components/ui/Tooltip";
 import { AddPartyModal } from "@/components/modals/AddPartyModal";
+import { VehicleAgentModal } from "@/components/modals/VehicleAgentModal";
 import { useUser } from "@/components/providers/UserContext";
 
 interface Farmer {
@@ -38,6 +39,11 @@ interface Item {
   id: string;
   name: string;
   defaultPricingMode: "WEIGHT" | "WEIGHT_KG" | "UNIT";
+}
+interface VehicleAgent {
+  id: string;
+  name: string;
+  vehicleNumber?: string;
 }
 interface BillLine {
   itemId: string;
@@ -79,6 +85,20 @@ export default function NewPurchaseBillPage() {
   const { user } = useUser();
   const isAdmin = user?.role === "ORG_ADMIN" || user?.role === "SUPER_ADMIN";
   const [isFarmerModalOpen, setIsFarmerModalOpen] = useState(false);
+  const [isVehicleAgentModalOpen, setIsVehicleAgentModalOpen] = useState(false);
+
+  const [selectedVehicleAgent, setSelectedVehicleAgent] =
+    useState<VehicleAgent | null>(null);
+  const [vehicleAgentSearch, setVehicleAgentSearch] = useState("");
+  const [vehicleAgentsList, setVehicleAgentsList] = useState<VehicleAgent[]>(
+    [],
+  );
+  const [isVehicleAgentDropdownOpen, setIsVehicleAgentDropdownOpen] =
+    useState(false);
+  const [isVehicleAgentLoading, setIsVehicleAgentLoading] = useState(false);
+  const [munimRef, setMunimRef] = useState("");
+  const [debouncedVehicleAgentSearch, setDebouncedVehicleAgentSearch] =
+    useState("");
 
   const [farmerPage, setFarmerPage] = useState(1);
   const [hasMoreFarmers, setHasMoreFarmers] = useState(true);
@@ -93,6 +113,7 @@ export default function NewPurchaseBillPage() {
   const [hasMoreItems, setHasMoreItems] = useState(true);
   const [isItemLoading, setIsItemLoading] = useState(false);
   const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
+  const vehicleAgentSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/config")
@@ -114,6 +135,12 @@ export default function NewPurchaseBillPage() {
         !itemSearchRef.current.contains(event.target as Node)
       ) {
         setIsItemDropdownOpen(false);
+      }
+      if (
+        vehicleAgentSearchRef.current &&
+        !vehicleAgentSearchRef.current.contains(event.target as Node)
+      ) {
+        setIsVehicleAgentDropdownOpen(false);
       }
     };
 
@@ -142,6 +169,14 @@ export default function NewPurchaseBillPage() {
     }, 400);
     return () => clearTimeout(timer);
   }, [itemSearch]);
+
+  // Debounce vehicle agent search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedVehicleAgentSearch(vehicleAgentSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [vehicleAgentSearch]);
 
   // Auto-calculate labor charges if Labor Charge Per Unit is set
   useEffect(() => {
@@ -210,6 +245,30 @@ export default function NewPurchaseBillPage() {
     fetchItemsList();
     return () => controller.abort();
   }, [debouncedItemSearch, itemPage, isItemDropdownOpen]);
+
+  useEffect(() => {
+    if (!isVehicleAgentDropdownOpen) return;
+    const controller = new AbortController();
+    const fetchVehicleAgents = async () => {
+      setIsVehicleAgentLoading(true);
+      try {
+        const res = await fetch(
+          `/api/vehicle-agents?search=${encodeURIComponent(debouncedVehicleAgentSearch)}`,
+          { signal: controller.signal },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setVehicleAgentsList(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch vehicle agents:", error);
+      } finally {
+        setIsVehicleAgentLoading(false);
+      }
+    };
+    fetchVehicleAgents();
+    return () => controller.abort();
+  }, [debouncedVehicleAgentSearch, isVehicleAgentDropdownOpen]);
 
   const addLine = (item: Item) => {
     setLines([
@@ -289,6 +348,8 @@ export default function NewPurchaseBillPage() {
       advanceDeduction: parseFloat(advanceDeduction) || 0,
       othersAmount: parseFloat(othersAmount) || 0,
       othersNote: othersNote,
+      vehicleAgentId: selectedVehicleAgent?.id,
+      munimRef: munimRef ? parseInt(munimRef) : undefined,
     };
 
     const result = purchaseBillSchema.safeParse(data);
@@ -721,14 +782,291 @@ export default function NewPurchaseBillPage() {
                               color: "#94a3b8",
                               fontWeight: 700,
                             }}
-                          >
-                            No farmers found
-                          </p>
+                          ></p>
                         )}
                     </div>
                   )}
               </div>
             )}
+          </div>
+
+          {/* Transport & Reference Card */}
+          <div
+            className="premium-card"
+            style={{ padding: "1.75rem", position: "relative", zIndex: 35 }}
+          >
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem" }}>
+              {/* Vehicle Agent */}
+              <div style={{ flex: "1 1 300px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      backgroundColor: "rgba(99,102,241,0.1)",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#6366f1",
+                    }}
+                  >
+                    <Truck size={16} />
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "13px",
+                      fontWeight: 800,
+                      color: "var(--text-muted)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    Transport (Vehicle Agent)
+                  </p>
+                </div>
+
+                {selectedVehicleAgent ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "12px 16px",
+                      backgroundColor: "rgba(99,102,241,0.06)",
+                      border: "1.5px solid rgba(99,102,241,0.15)",
+                      borderRadius: "12px",
+                    }}
+                  >
+                    <div>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontWeight: 800,
+                          fontSize: "14px",
+                          color: "#4338ca",
+                        }}
+                      >
+                        {selectedVehicleAgent.name}
+                      </p>
+                      {selectedVehicleAgent.vehicleNumber && (
+                        <p
+                          style={{
+                            margin: "2px 0 0",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: "#6366f1",
+                            opacity: 0.8,
+                          }}
+                        >
+                          {selectedVehicleAgent.vehicleNumber}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setSelectedVehicleAgent(null)}
+                      style={{
+                        padding: "8px",
+                        borderRadius: "50%",
+                        border: "none",
+                        backgroundColor: "transparent",
+                        cursor: "pointer",
+                        color: "#6366f1",
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    ref={vehicleAgentSearchRef}
+                    style={{
+                      position: "relative",
+                      display: "flex",
+                      gap: "10px",
+                    }}
+                  >
+                    <div style={{ position: "relative", flex: 1 }}>
+                      <Search
+                        style={{
+                          position: "absolute",
+                          left: "14px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "#94a3b8",
+                        }}
+                        size={16}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Search vehicle agent..."
+                        value={vehicleAgentSearch}
+                        onFocus={() => setIsVehicleAgentDropdownOpen(true)}
+                        onChange={(e) => setVehicleAgentSearch(e.target.value)}
+                        style={{
+                          width: "100%",
+                          boxSizing: "border-box",
+                          padding: "12px 12px 12px 42px",
+                          backgroundColor: "#f1f5f9",
+                          border: "1.5px solid #e2e8f0",
+                          borderRadius: "12px",
+                          fontSize: "14px",
+                          fontWeight: 700,
+                          color: "var(--text-main)",
+                          outline: "none",
+                        }}
+                      />
+                      {isVehicleAgentDropdownOpen &&
+                        (vehicleAgentSearch.length > 0 ||
+                          vehicleAgentsList.length > 0) && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "100%",
+                              left: 0,
+                              right: 0,
+                              marginTop: "6px",
+                              backgroundColor: "#fff",
+                              border: "1px solid var(--border-main)",
+                              borderRadius: "14px",
+                              boxShadow: "0 15px 30px rgba(0,0,0,0.1)",
+                              zIndex: 100,
+                              padding: "5px",
+                              maxHeight: "200px",
+                              overflowY: "auto",
+                            }}
+                          >
+                            {vehicleAgentsList.map((a) => (
+                              <button
+                                key={a.id}
+                                onMouseDown={() => {
+                                  setSelectedVehicleAgent(a);
+                                  setVehicleAgentSearch("");
+                                  setIsVehicleAgentDropdownOpen(false);
+                                }}
+                                style={{
+                                  width: "100%",
+                                  textAlign: "left",
+                                  padding: "10px 12px",
+                                  border: "none",
+                                  backgroundColor: "transparent",
+                                  cursor: "pointer",
+                                  borderRadius: "10px",
+                                }}
+                              >
+                                <p
+                                  style={{
+                                    margin: 0,
+                                    fontWeight: 800,
+                                    color: "#1e293b",
+                                    fontSize: "14px",
+                                  }}
+                                >
+                                  {a.name}
+                                </p>
+                                {a.vehicleNumber && (
+                                  <p
+                                    style={{
+                                      margin: "2px 0 0",
+                                      fontSize: "11px",
+                                      fontWeight: 600,
+                                      color: "#6366f1",
+                                    }}
+                                  >
+                                    {a.vehicleNumber}
+                                  </p>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsVehicleAgentModalOpen(true)}
+                      style={{
+                        padding: "0 14px",
+                        backgroundColor: "rgba(99,102,241,0.08)",
+                        border: "1.5px solid rgba(99,102,241,0.2)",
+                        borderRadius: "12px",
+                        color: "#6366f1",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 800,
+                        fontSize: "13px",
+                      }}
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Munim Reference */}
+              <div style={{ flex: "0 0 150px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      backgroundColor: "rgba(245,158,11,0.1)",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#f59e0b",
+                    }}
+                  >
+                    <Info size={16} />
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "13px",
+                      fontWeight: 800,
+                      color: "var(--text-muted)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    Munim Ref
+                  </p>
+                </div>
+                <input
+                  type="number"
+                  placeholder="Ref #"
+                  value={munimRef}
+                  onChange={(e) => setMunimRef(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    backgroundColor: "#f1f5f9",
+                    border: "1.5px solid #e2e8f0",
+                    borderRadius: "12px",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    outline: "none",
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Items Card */}
@@ -1939,6 +2277,11 @@ export default function NewPurchaseBillPage() {
                     .purchase-bill-grid { grid-template-columns: 1fr 340px; }
                 }
             `}</style>
+      <VehicleAgentModal
+        isOpen={isVehicleAgentModalOpen}
+        onClose={() => setIsVehicleAgentModalOpen(false)}
+        onSuccess={(agent) => setSelectedVehicleAgent(agent)}
+      />
     </div>
   );
 }

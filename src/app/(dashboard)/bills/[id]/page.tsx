@@ -9,6 +9,7 @@ import {
   Phone,
   MapPin,
   Download,
+  Truck,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
@@ -164,9 +165,9 @@ export default function BillDetailPage() {
 
   const totalExpenses = isPurchase
     ? Number(bill.labourCharges || 0) +
-    Number(bill.freightCharges || 0) +
-    Number(bill.advanceDeduction || 0) +
-    Number(bill.othersAmount || 0)
+      Number(bill.freightCharges || 0) +
+      Number(bill.advanceDeduction || 0) +
+      Number(bill.othersAmount || 0)
     : 0;
 
   const totalUnits = totals.units.toFixed(1);
@@ -320,8 +321,6 @@ export default function BillDetailPage() {
             </div>
           </div>
 
-          <div className="divider" />
-
           {/* --- Party Information Section --- */}
           <div className="party-details-section">
             <div className="party-card">
@@ -397,6 +396,66 @@ export default function BillDetailPage() {
                 </p>
               )}
             </div>
+            {isPurchase && bill.vehicleAgent && (
+              <div
+                className="party-card"
+                style={{
+                  borderLeft: pageSize.startsWith("THERMAL")
+                    ? "none"
+                    : "1px solid #eee",
+                  paddingLeft: pageSize.startsWith("THERMAL") ? "0" : "20px",
+                }}
+              >
+                <h4
+                  style={{
+                    margin: "0 0 10px",
+                    fontSize: "11px",
+                    color: "#000000ff",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.15em",
+                    borderBottom: "1px solid #eee",
+                    paddingBottom: "6px",
+                    fontWeight: pageSize.startsWith("THERMAL") ? 600 : 700,
+                  }}
+                >
+                  Transport Details
+                </h4>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: pageSize.startsWith("THERMAL")
+                        ? "11px"
+                        : "13px",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    {bill.vehicleAgent.name}
+                  </span>
+                  {bill.vehicleAgent.vehicleNumber && (
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 800,
+                        color: "#6366f1",
+                        backgroundColor: "rgba(99,102,241,0.08)",
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                        border: "1px solid rgba(99,102,241,0.1)",
+                      }}
+                    >
+                      {bill.vehicleAgent.vehicleNumber}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div
@@ -427,7 +486,10 @@ export default function BillDetailPage() {
                 </TableHeader>
                 <TableBody>
                   {bill.items.map((item: any, idx: number) => (
-                    <TableRow key={item.id} className="border-b border-dashed border-[#eee] hover:bg-transparent">
+                    <TableRow
+                      key={item.id}
+                      className="border-b border-dashed border-[#eee] hover:bg-transparent"
+                    >
                       <TableCell className="py-1.5 px-0 text-[11px]">
                         {idx + 1}. {item.item.name}
                       </TableCell>
@@ -499,15 +561,22 @@ export default function BillDetailPage() {
                         {Number(item.quantityKg).toFixed(1)}
                       </TableCell>
                       <TableCell className="pl-4 pr-8 py-5 border-b border-[#eee] text-right text-[14px] text-[#0f172a] font-bold tabular-nums">
-                        <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">₹</span>
-                        {Number(item.pricePerUnit).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">
+                          ₹
+                        </span>
+                        {Number(item.pricePerUnit).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                        })}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
                 <TableFooter className="bg-[#fdfdfd] border-t-2 border-[#eee] font-black">
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={2} className="p-3 pl-8 text-left text-[12px] font-black uppercase tracking-widest text-[#94a3b8]">
+                    <TableCell
+                      colSpan={2}
+                      className="p-3 pl-8 text-left text-[12px] font-black uppercase tracking-widest text-[#94a3b8]"
+                    >
                       {t("bills.details.totals") || "TOTALS"}
                     </TableCell>
                     <TableCell className="p-3 text-right text-[14px] font-black text-[#1e293b] tabular-nums">
@@ -517,7 +586,9 @@ export default function BillDetailPage() {
                       {totalWeight.toFixed(2)}
                     </TableCell>
                     <TableCell className="p-3 pr-8 text-right text-[16px] font-black text-[#0f172a] tabular-nums">
-                      <span className="text-[13px] font-semibold text-[#64748b]/70 mr-0.5">₹</span>
+                      <span className="text-[13px] font-semibold text-[#64748b]/70 mr-0.5">
+                        ₹
+                      </span>
                       {Number(itemsSubtotal).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                       })}

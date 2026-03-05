@@ -87,6 +87,7 @@ model Organization {
   auditLogs      AuditLog[]
   businessConfig BusinessConfig?
   subscriptions  Subscription[]
+  vehicleAgents  VehicleAgent[]
 }
 
 // ─── Subscription Plans (Super Admin manages) ───────────
@@ -252,6 +253,9 @@ model Bill {
   billDate            DateTime     @default(now())
   createdById         String       @db.Uuid
   createdBy           User         @relation(fields: [createdById], references: [id])
+  vehicleAgentId      String?      @db.Uuid
+  vehicleAgent        VehicleAgent? @relation(fields: [vehicleAgentId], references: [id])
+  munimRef            Int?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -414,4 +418,22 @@ model Expense {
   @@index([organizationId])
   @@index([paymentId])
   @@index([createdById])
+}
+
+// ─── Vehicle Agents (Transport) ─────────────────────────
+
+model VehicleAgent {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  vehicleNumber  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  bills Bill[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([name])
 }

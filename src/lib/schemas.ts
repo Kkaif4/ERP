@@ -117,11 +117,40 @@ export const purchaseBillSchema = z.object({
     .optional()
     .transform((v) => (v ? Number(v.toFixed(2)) : undefined)),
   othersNote: z.string().optional(),
+  vehicleAgentId: z.string().uuid().optional(),
+  munimRef: z.number().int().positive().optional(),
 });
 
 export const saleBillSchema = z.object({
   customerId: z.string().min(1, "Select a customer"),
   items: z.array(billItemSchema).min(1, "Add at least one item"),
+  labourCharges: z
+    .number()
+    .nonnegative()
+    .max(1000000, "Charge too large")
+    .optional(),
+  freightCharges: z
+    .number()
+    .nonnegative()
+    .max(1000000, "Charge too large")
+    .optional(),
+  advanceDeduction: z
+    .number()
+    .nonnegative()
+    .max(1000000, "Deduction too large")
+    .optional(),
+  othersAmount: z
+    .number()
+    .nonnegative()
+    .max(1000000, "Charge too large")
+    .optional(),
+  othersNote: z.string().optional(),
+  munimRef: z.number().int().positive().optional(),
+});
+
+export const vehicleAgentSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  vehicleNumber: z.string().optional(),
 });
 
 export const businessConfigSchema = z
