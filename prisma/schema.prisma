@@ -388,6 +388,7 @@ model BusinessConfig {
   defaultPageSize    String       @default("A4")
   city                   String?      // Used for jurisdiction text
   enableStockRestriction Boolean      @default(false)
+  laborChargePerUnit     Decimal      @default(0) @db.Decimal(8, 2)
   updatedAt              DateTime     @updatedAt
 }
 

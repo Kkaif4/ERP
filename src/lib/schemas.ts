@@ -146,6 +146,13 @@ export const businessConfigSchema = z
       .default("A4"),
     city: z.string().optional().or(z.literal("")),
     enableStockRestriction: z.boolean().optional().default(false),
+    laborChargePerUnit: z
+      .number()
+      .nonnegative()
+      .max(1000000, "Value too large")
+      .optional()
+      .default(0)
+      .transform((v) => Number(v.toFixed(2))),
   })
   .refine(
     (data) => {

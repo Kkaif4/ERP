@@ -37,13 +37,13 @@ export async function POST(req: Request) {
     }
     const previousBalance = Number(farmer.balance);
 
-    // Fetch Business Config
+    // 1. Fetch Business Config & Calculate Line Totals
     const config = await prisma.businessConfig.findUnique({
       where: { organizationId: session.organizationId },
     });
 
-    // 1. Calculate Line Totals and Subtotal
     let subtotal = 0;
+    let totalUnits = 0;
     const lineItems = items.map((item: any) => {
       let lineTotal = 0;
       if (item.pricingMode === "WEIGHT") {
@@ -54,6 +54,7 @@ export async function POST(req: Request) {
         lineTotal = item.quantity * item.pricePerUnit;
       }
       subtotal += lineTotal;
+      totalUnits += Number(item.quantityUnits || 0);
       return {
         itemId: item.itemId,
         pricingMode: item.pricingMode,
@@ -65,9 +66,14 @@ export async function POST(req: Request) {
       };
     });
 
-    // 2. Base for Net Total (Subtotal - Labour - Freight - Advance)
-    // Note: Target requested NOT to apply Tax and Service charges to Purchase Bills
-    const lc = Number(labourCharges);
+    // 2. Adjust Labour Charges if setting is active
+    let finalLabourCharges = Number(labourCharges);
+    if (config && Number(config.laborChargePerUnit) > 0) {
+      finalLabourCharges = totalUnits * Number(config.laborChargePerUnit);
+    }
+
+    // 3. Base for Net Total (Subtotal - Labour - Freight - Advance)
+    const lc = finalLabourCharges;
     const fc = Number(freightCharges);
     const ad = Number(advanceDeduction);
     const oa = Number(othersAmount);
@@ -76,7 +82,7 @@ export async function POST(req: Request) {
     const netTotal = subtotal - lc - fc - ad - oa;
     const finalAmount = netTotal + previousBalance;
 
-    // 3. Generate Bill Number
+    // 4. Generate Bill Number
     const lastBill = await prisma.bill.findFirst({
       where: { organizationId: session.organizationId, type: "PURCHASE" },
       orderBy: { createdAt: "desc" },
@@ -90,7 +96,7 @@ export async function POST(req: Request) {
     }
     const billNumber = `PUR-${nextNum.toString().padStart(4, "0")}`;
 
-    // 4. Database Transaction
+    // 5. Database Transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create Bill
       const bill = await tx.bill.create({
@@ -100,14 +106,14 @@ export async function POST(req: Request) {
           type: "PURCHASE",
           farmerId,
           subtotal,
-          labourCharges: Number(labourCharges),
-          freightCharges: Number(freightCharges),
+          labourCharges: lc,
+          freightCharges: fc,
           taxAmount: 0,
           serviceChargeAmount: 0,
           grossTotal,
           othersAmount: oa,
           othersNote,
-          advanceDeduction: Number(advanceDeduction),
+          advanceDeduction: ad,
           netTotal,
           previousBalance,
           finalAmount,

@@ -35,7 +35,6 @@ export default function StaffPage() {
         name: "",
         username: "",
         password: "",
-        pin: "",
         isActive: true
     });
 
@@ -83,7 +82,7 @@ export default function StaffPage() {
             if (res.ok) {
                 toast.success(t("staff.alerts.successAdd"));
                 setIsModalOpen(false);
-                setFormData({ name: "", username: "", password: "", pin: "", isActive: true });
+                setFormData({ name: "", username: "", password: "", isActive: true });
                 fetchStaff();
             } else {
                 const err = await res.json();
@@ -243,17 +242,6 @@ export default function StaffPage() {
                                 value={formData.password}
                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                                 placeholder={t("staff.modal.passwordPlaceholder")}
-                                style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
-                            />
-                        </div>
-                        <div>
-                            <label style={{ display: "block", marginBottom: "8px", fontSize: "10px", fontWeight: 900, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{t("staff.modal.pin")}</label>
-                            <input
-                                type="text"
-                                maxLength={4}
-                                value={formData.pin}
-                                onChange={e => setFormData({ ...formData, pin: e.target.value })}
-                                placeholder={t("staff.modal.pinPlaceholder")}
                                 style={{ width: "100%", padding: "12px 16px", backgroundColor: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "12px", outline: "none", fontWeight: 700 }}
                             />
                         </div>
