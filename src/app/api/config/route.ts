@@ -9,12 +9,19 @@ export async function GET() {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let config = await prisma.businessConfig.findUnique({
-        where: { organizationId: session.organizationId },
-    });
+    const [config, organization] = await Promise.all([
+        prisma.businessConfig.findUnique({
+            where: { organizationId: session.organizationId },
+        }),
+        prisma.organization.findUnique({
+            where: { id: session.organizationId },
+            select: { billingMethod: true },
+        }),
+    ]);
 
+    let finalConfig = config;
     if (!config) {
-        config = await prisma.businessConfig.create({
+        finalConfig = await prisma.businessConfig.create({
             data: {
                 organizationId: session.organizationId,
                 taxType: "PERCENTAGE",
@@ -25,7 +32,10 @@ export async function GET() {
         });
     }
 
-    return NextResponse.json(config);
+    return NextResponse.json({
+        ...finalConfig,
+        billingMethod: organization?.billingMethod || "STANDARD",
+    });
 }
 
 export async function PUT(req: NextRequest) {
@@ -53,9 +63,16 @@ export async function PUT(req: NextRequest) {
             defaultPageSize,
             city,
             enableStockRestriction,
-        } = validationResult.data;
+            billingMethod,
+        } = body;
 
         const config = await prisma.$transaction(async (tx) => {
+            if (billingMethod) {
+                await tx.organization.update({
+                    where: { id: session.organizationId },
+                    data: { billingMethod },
+                });
+            }
 
             const updated = await tx.businessConfig.upsert({
                 where: { organizationId: session.organizationId },

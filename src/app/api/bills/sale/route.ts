@@ -84,18 +84,38 @@ export async function POST(req: Request) {
       }
     }
 
-    // 1. Item Subtotal
+    // 5. Fetch Organization Billing Method
+    const organization = await prisma.organization.findUnique({
+      where: { id: session.organizationId! },
+      select: { billingMethod: true },
+    });
+
+    // 6. Check for Pending Bill (Consolidation)
+    let existingBill = null;
+    if (organization?.billingMethod === "CUSTOM") {
+      existingBill = await prisma.bill.findFirst({
+        where: {
+          organizationId: session.organizationId,
+          customerId,
+          status: "PENDING",
+          type: "SALE",
+        },
+        include: { items: true },
+      });
+    }
+
+    // Recalculate Subtotal and merge items if consolidating
     let subtotal = 0;
-    const lineItems = items.map((item: any) => {
+    let netTotalChange = 0;
+
+    // Convert current request items into line item objects
+    const requestLineItems = items.map((item: any) => {
       let lineTotal = 0;
       if (item.pricingMode === "WEIGHT") {
         lineTotal = (item.quantity / 10) * item.pricePerUnit;
-      } else if (item.pricingMode === "WEIGHT_KG") {
-        lineTotal = item.quantity * item.pricePerUnit;
       } else {
         lineTotal = item.quantity * item.pricePerUnit;
       }
-      subtotal += lineTotal;
       return {
         itemId: item.itemId,
         pricingMode: item.pricingMode,
@@ -107,89 +127,120 @@ export async function POST(req: Request) {
       };
     });
 
-    // 2. Tax and Service Charge
-    let taxAmount = 0;
-    let serviceChargeAmount = 0;
-
-    if (config) {
-      taxAmount =
-        config.taxType === "PERCENTAGE"
-          ? subtotal * (Number(config.taxValue) / 100)
-          : Number(config.taxValue);
-
-      serviceChargeAmount =
-        config.serviceChargeType === "PERCENTAGE"
-          ? subtotal * (Number(config.serviceChargeValue) / 100)
-          : Number(config.serviceChargeValue);
-    }
-
-    // 3. Totals
-    const grossTotal = subtotal + taxAmount + serviceChargeAmount;
-    const netTotal = grossTotal;
-    const finalAmount = netTotal + previousBalance;
-
-    // 5. Generate Bill Number
-    const lastBill = await prisma.bill.findFirst({
-      where: { organizationId: session.organizationId, type: "SALE" },
-      orderBy: { createdAt: "desc" },
-      select: { billNumber: true },
-    });
-
-    let nextNum = 1;
-    if (lastBill) {
-      const lastNum = parseInt(lastBill.billNumber.split("-")[1]);
-      if (!isNaN(lastNum)) nextNum = lastNum + 1;
-    }
-    const billNumber = `SAL-${nextNum.toString().padStart(4, "0")}`;
-
-    // 6. Database Transaction
+    // ── Database Transaction ──
     const result = await prisma.$transaction(async (tx) => {
-      // Create Bill
-      const bill = await tx.bill.create({
-        data: {
-          organizationId: session.organizationId!,
-          billNumber,
-          type: "SALE",
-          customerId,
-          subtotal,
-          labourCharges: 0,
-          freightCharges: 0,
-          taxAmount,
-          serviceChargeAmount,
-          grossTotal,
-          advanceDeduction: 0,
-          netTotal,
-          previousBalance,
-          finalAmount,
-          createdById: session.userId,
-          items: {
-            create: lineItems,
-          },
-        },
-        include: { items: true },
-      });
+      let finalBill;
 
-      // Update Customer Balance
+      if (existingBill) {
+        // CONSOLIDATION LOGIC
+        // 1. Calculate new overall subtotal
+        // Sum existing items in DB + new items from request
+        const existingSubtotal = Number(existingBill.subtotal);
+        const newItemsSubtotal = requestLineItems.reduce((acc, i) => acc + i.total, 0);
+        const totalSubtotal = existingSubtotal + newItemsSubtotal;
+
+        // 2. Recalculate Tax & Service Charge on OVERALL subtotal
+        let taxAmount = 0;
+        let serviceChargeAmount = 0;
+        if (config) {
+          taxAmount = config.taxType === "PERCENTAGE"
+            ? totalSubtotal * (Number(config.taxValue) / 100)
+            : Number(config.taxValue);
+          serviceChargeAmount = config.serviceChargeType === "PERCENTAGE"
+            ? totalSubtotal * (Number(config.serviceChargeValue) / 100)
+            : Number(config.serviceChargeValue);
+        }
+
+        const grossTotal = totalSubtotal + taxAmount + serviceChargeAmount;
+        const netTotal = grossTotal;
+        netTotalChange = netTotal - Number(existingBill.netTotal);
+
+        // 3. Update the Bill
+        finalBill = await tx.bill.update({
+          where: { id: existingBill.id },
+          data: {
+            subtotal: totalSubtotal,
+            taxAmount,
+            serviceChargeAmount,
+            grossTotal,
+            netTotal,
+            finalAmount: netTotal + Number(existingBill.previousBalance),
+            items: {
+              create: requestLineItems,
+            },
+          },
+          include: { items: true },
+        });
+      } else {
+        // STANDARD CREATE LOGIC (or first PENDING bill)
+        const subtotal = requestLineItems.reduce((acc, i) => acc + i.total, 0);
+        let taxAmount = 0;
+        let serviceChargeAmount = 0;
+        if (config) {
+          taxAmount = config.taxType === "PERCENTAGE" ? subtotal * (Number(config.taxValue) / 100) : Number(config.taxValue);
+          serviceChargeAmount = config.serviceChargeType === "PERCENTAGE" ? subtotal * (Number(config.serviceChargeValue) / 100) : Number(config.serviceChargeValue);
+        }
+        const grossTotal = subtotal + taxAmount + serviceChargeAmount;
+        const netTotal = grossTotal;
+        netTotalChange = netTotal;
+
+        // Generate Bill Number
+        const lastBill = await tx.bill.findFirst({
+          where: { organizationId: session.organizationId, type: "SALE" },
+          orderBy: { createdAt: "desc" },
+          select: { billNumber: true },
+        });
+        let nextNum = 1;
+        if (lastBill) {
+          const lastNum = parseInt(lastBill.billNumber.split("-")[1]);
+          if (!isNaN(lastNum)) nextNum = lastNum + 1;
+        }
+        const billNumber = `SAL-${nextNum.toString().padStart(4, "0")}`;
+
+        finalBill = await tx.bill.create({
+          data: {
+            organizationId: session.organizationId!,
+            billNumber,
+            type: "SALE",
+            customerId,
+            subtotal,
+            taxAmount,
+            serviceChargeAmount,
+            grossTotal,
+            netTotal,
+            previousBalance,
+            finalAmount: netTotal + previousBalance,
+            createdById: session.userId,
+            status: organization?.billingMethod === "CUSTOM" ? "PENDING" : "PAID",
+            items: {
+              create: requestLineItems,
+            },
+          },
+          include: { items: true },
+        });
+      }
+
+      // Update Customer Balance by the net change
       await tx.customer.update({
         where: { id: customerId },
         data: {
-          balance: { increment: netTotal },
+          balance: { increment: netTotalChange },
         },
       });
 
       // Audit Log
       await tx.auditLog.create({
         data: {
-          action: "CREATE",
+          action: existingBill ? "UPDATE" : "CREATE",
           entity: "BILL",
-          entityId: bill.id,
-          newValue: bill as any,
+          entityId: finalBill.id,
+          newValue: finalBill as any,
           userId: session.userId,
           organizationId: session.organizationId!,
         },
       });
 
-      return bill;
+      return finalBill;
     });
 
     // 7. Sync Stock (Non-blocking or awaited)

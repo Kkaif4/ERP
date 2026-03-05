@@ -13,11 +13,13 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
 
+    const isNumericSearch = /^\d+$/.test(search);
     const where = {
         organizationId: session.organizationId!,
         OR: [
             { name: { contains: search, mode: "insensitive" as const } },
             { mobile: { contains: search } },
+            ...(isNumericSearch ? [{ incrementalId: parseInt(search) }] : []),
         ],
     };
 
@@ -63,10 +65,19 @@ export async function POST(req: Request) {
         // DUE = positive balance, ADVANCE = negative balance
         const initialBalance = openingBalanceType === "ADVANCE" ? -(openingBalance || 0) : (openingBalance || 0);
 
+        // Generate incrementalId
+        const lastFarmer = await prisma.farmer.findFirst({
+            where: { organizationId: session.organizationId! },
+            orderBy: { incrementalId: "desc" },
+            select: { incrementalId: true },
+        });
+        const incrementalId = (lastFarmer?.incrementalId || 0) + 1;
+
         const farmer = await prisma.farmer.create({
             data: {
                 name,
                 mobile,
+                incrementalId,
                 address: address || "",
                 organizationId: session.organizationId!,
                 balance: initialBalance,

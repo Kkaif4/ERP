@@ -146,6 +146,7 @@ export const businessConfigSchema = z
       .default("A4"),
     city: z.string().optional().or(z.literal("")),
     enableStockRestriction: z.boolean().optional().default(false),
+    billingMethod: z.enum(["STANDARD", "CUSTOM"]).optional().default("STANDARD"),
   })
   .refine(
     (data) => {
@@ -209,4 +210,9 @@ export const publicRegistrationSchema = z.object({
   username: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   organizationName: z.string().min(1, "Organization name is required"),
+});
+
+export const organizationPatchSchema = z.object({
+  name: z.string().min(1).optional(),
+  billingMethod: z.enum(["STANDARD", "CUSTOM"]).optional(),
 });

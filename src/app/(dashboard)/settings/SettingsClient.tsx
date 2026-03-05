@@ -35,6 +35,7 @@ export default function SettingsClient() {
     const [defaultPageSize, setDefaultPageSize] = useState<string>("A4");
     const [city, setCity] = useState<string>("");
     const [enableStockRestriction, setEnableStockRestriction] = useState<boolean>(false);
+    const [billingMethod, setBillingMethod] = useState<"STANDARD" | "CUSTOM">("STANDARD");
     const [uploadingLogo, setUploadingLogo] = useState(false);
 
     useEffect(() => {
@@ -53,6 +54,7 @@ export default function SettingsClient() {
                 setDefaultPageSize(data.defaultPageSize ?? "A4");
                 setCity(data.city ?? "");
                 setEnableStockRestriction(data.enableStockRestriction ?? false);
+                setBillingMethod((data as any).billingMethod ?? "STANDARD");
             } catch (e: any) {
                 console.error(e);
                 toast.error(e?.message || "Unable to load business settings");
@@ -77,6 +79,7 @@ export default function SettingsClient() {
             defaultPageSize,
             city,
             enableStockRestriction,
+            billingMethod,
         };
 
         const validationResult = businessConfigSchema.safeParse(data);
@@ -642,6 +645,74 @@ export default function SettingsClient() {
                                             transition: "left 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                                         }}
                                     />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Billing Method Section */}
+                        <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}>
+                            <p
+                                style={{
+                                    margin: "0 0 1rem",
+                                    fontSize: "11px",
+                                    fontWeight: 900,
+                                    color: "var(--text-muted)",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.18em",
+                                }}
+                            >
+                                {t("settings.billingSection") || "Billing Settings"}
+                            </p>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    padding: "1rem",
+                                    backgroundColor: "#f8fafc",
+                                    borderRadius: "16px",
+                                    border: "1.5px solid var(--border-main)",
+                                }}
+                            >
+                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                    <span style={{ fontSize: "14px", fontWeight: 800, color: "var(--text-main)" }}>
+                                        {t("settings.billingMethodLabel") || "Sale Billing Method"}
+                                    </span>
+                                    <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>
+                                        {billingMethod === "STANDARD"
+                                            ? (t("settings.standardBillingHint") || "Standard: Each bill redirects to list after confirmation.")
+                                            : (t("settings.customBillingHint") || "Custom: Items stay sticky; bills for same customer are consolidated.")}
+                                    </span>
+                                </div>
+                                <div
+                                    onClick={() => setBillingMethod(billingMethod === "STANDARD" ? "CUSTOM" : "STANDARD")}
+                                    style={{
+                                        width: "100px",
+                                        height: "36px",
+                                        backgroundColor: "#f1f5f9",
+                                        borderRadius: "10px",
+                                        padding: "4px",
+                                        display: "flex",
+                                        position: "relative",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            top: "4px",
+                                            left: billingMethod === "STANDARD" ? "4px" : "50%",
+                                            width: "calc(50% - 4px)",
+                                            height: "calc(100% - 8px)",
+                                            backgroundColor: "#fff",
+                                            borderRadius: "8px",
+                                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                                            transition: "left 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                                            zIndex: 1
+                                        }}
+                                    />
+                                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: 900, zIndex: 2, color: billingMethod === "STANDARD" ? "var(--primary-main)" : "#64748b" }}>STD</div>
+                                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: 900, zIndex: 2, color: billingMethod === "CUSTOM" ? "var(--primary-main)" : "#64748b" }}>CUS</div>
                                 </div>
                             </div>
                         </div>

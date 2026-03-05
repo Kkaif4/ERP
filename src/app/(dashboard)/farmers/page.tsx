@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useUser } from "@/components/providers/UserContext";
 import { AddPartyModal } from "@/components/modals/AddPartyModal";
 
-interface Farmer { id: string; name: string; mobile: string; address: string | null; balance: number; }
+interface Farmer { id: string; incrementalId: number; name: string; mobile: string; address: string | null; balance: number; }
 
 export default function FarmersPage() {
     const { t, language } = useTranslation();
@@ -133,7 +133,10 @@ export default function FarmersPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <h3 style={{ margin: "0 0 1rem", fontSize: "1.125rem", fontWeight: 900, color: "var(--text-main)", letterSpacing: "-0.01em" }}>{farmer.name}</h3>
+                                <h3 style={{ margin: "0 0 1rem", fontSize: "1.125rem", fontWeight: 900, color: "var(--text-main)", letterSpacing: "-0.01em" }}>
+                                    <span style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginRight: "0.5rem", fontWeight: 700 }}>#{farmer.incrementalId}</span>
+                                    {farmer.name}
+                                </h3>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#64748b" }}>
                                         <div style={{ width: "32px", height: "32px", backgroundColor: "#f8fafc", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

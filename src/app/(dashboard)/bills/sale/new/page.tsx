@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   ShoppingCart,
   Plus,
@@ -8,7 +8,6 @@ import {
   Calculator,
   Save,
   Search,
-  ArrowRight,
   X,
   UserCircle,
   Package,
@@ -22,12 +21,14 @@ import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 
 import { saleBillSchema } from "@/lib/schemas";
 import Tooltip from "@/components/ui/Tooltip";
 import { AddPartyModal } from "@/components/modals/AddPartyModal";
 import { useUser } from "@/components/providers/UserContext";
 
+/* ─── Types ─── */
 interface Customer {
   id: string;
   name: string;
@@ -58,42 +59,75 @@ interface BusinessConfig {
   serviceChargeType: "PERCENTAGE" | "FIXED";
   serviceChargeValue: number;
   enableStockRestriction: boolean;
+  billingMethod: "STANDARD" | "CUSTOM";
 }
 
+/* ─── Page ─── */
 export default function NewSaleBillPage() {
   const { t } = useTranslation();
   const router = useRouter();
-
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
-  );
-  const [lines, setLines] = useState<BillLine[]>([]);
-  const [config, setConfig] = useState<BusinessConfig | null>(null);
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [customersList, setCustomersList] = useState<Customer[]>([]);
-  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
-  const [itemSearch, setItemSearch] = useState("");
-  const [itemsList, setItemsList] = useState<Item[]>([]);
-  const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useUser();
   const isAdmin = user?.role === "ORG_ADMIN" || user?.role === "SUPER_ADMIN";
+
+  /* ── State ── */
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [lines, setLines] = useState<BillLine[]>([]);
+  const [config, setConfig] = useState<BusinessConfig | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
+  // Customer search
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState("");
+  const [customersList, setCustomersList] = useState<Customer[]>([]);
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [isCustomerLoading, setIsCustomerLoading] = useState(false);
   const [customerPage, setCustomerPage] = useState(1);
   const [hasMoreCustomers, setHasMoreCustomers] = useState(true);
 
-  // Refs for click outside dismissal
-  const customerSearchRef = useRef<HTMLDivElement>(null);
-  const itemSearchRef = useRef<HTMLDivElement>(null);
-  const [isCustomerLoading, setIsCustomerLoading] = useState(false);
-  const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState("");
-
+  // Item search
+  const [itemSearch, setItemSearch] = useState("");
+  const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
+  const [itemsList, setItemsList] = useState<Item[]>([]);
+  const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
+  const [isItemLoading, setIsItemLoading] = useState(false);
   const [itemPage, setItemPage] = useState(1);
   const [hasMoreItems, setHasMoreItems] = useState(true);
-  const [isItemLoading, setIsItemLoading] = useState(false);
-  const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
 
+  /* ── Refs ── */
+  const customerSearchRef = useRef<HTMLDivElement>(null);
+  const customerInputRef = useRef<HTMLInputElement>(null);
+  const itemSearchRef = useRef<HTMLDivElement>(null);
+  const itemInputRef = useRef<HTMLInputElement>(null);
+  const qtyRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const qtyKgRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const priceRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const [mounted, setMounted] = useState(false);
+
+  // Keyboard navigation focus
+  const [focusedCustomerIndex, setFocusedCustomerIndex] = useState(-1);
+  const [focusedItemIndex, setFocusedItemIndex] = useState(-1);
+
+  // Reset focus when search changes
+  useEffect(() => setFocusedCustomerIndex(0), [customersList]);
+  useEffect(() => setFocusedItemIndex(0), [itemsList]);
+
+  // Scroll active elements into view
+  useEffect(() => {
+    if (isItemDropdownOpen && focusedItemIndex >= 0) {
+      document.getElementById(`item-option-${focusedItemIndex}`)?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusedItemIndex, isItemDropdownOpen]);
+
+  useEffect(() => {
+    if (isCustomerDropdownOpen && focusedCustomerIndex >= 0) {
+      document.getElementById(`customer-option-${focusedCustomerIndex}`)?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusedCustomerIndex, isCustomerDropdownOpen]);
+
+  useEffect(() => setMounted(true), []);
+
+  /* ── Fetch config ── */
   useEffect(() => {
     fetch("/api/config")
       .then((r) => (r.ok ? r.json() : null))
@@ -101,8 +135,89 @@ export default function NewSaleBillPage() {
       .catch(() => { });
   }, []);
 
+  /* ── Debounce customer search ── */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedCustomerSearch(customerSearch);
+      setCustomerPage(1);
+      setHasMoreCustomers(true);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [customerSearch]);
+
+  /* ── Debounce item search ── */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedItemSearch(itemSearch);
+      setItemPage(1);
+      setHasMoreItems(true);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [itemSearch]);
+
+  /* ── Fetch customers ── */
+  useEffect(() => {
+    if (!isCustomerDropdownOpen) return;
+    const controller = new AbortController();
+    const fetchCustomers = async () => {
+      if (!hasMoreCustomers && customerPage !== 1) return;
+      setIsCustomerLoading(true);
+      try {
+        const res = await fetch(
+          `/api/customers?search=${encodeURIComponent(debouncedCustomerSearch)}&page=${customerPage}&limit=20`,
+          { signal: controller.signal }
+        );
+        const result = await res.json();
+        if (result.data) {
+          setCustomersList((prev) =>
+            customerPage === 1 ? result.data : [...prev, ...result.data]
+          );
+          setHasMoreCustomers(result.pagination.page < result.pagination.totalPages);
+        }
+      } catch {
+        /* abort or network error */
+      } finally {
+        setIsCustomerLoading(false);
+      }
+    };
+    fetchCustomers();
+    return () => controller.abort();
+  }, [debouncedCustomerSearch, customerPage, isCustomerDropdownOpen]);
+
+  /* ── Fetch items ── */
+  useEffect(() => {
+    if (!isItemDropdownOpen) return;
+    const controller = new AbortController();
+    const fetchItems = async () => {
+      if (!hasMoreItems && itemPage !== 1) return;
+      setIsItemLoading(true);
+      try {
+        const res = await fetch(
+          `/api/items?search=${encodeURIComponent(debouncedItemSearch)}&page=${itemPage}&limit=20&activeOnly=true`,
+          { signal: controller.signal }
+        );
+        const result = await res.json();
+        if (result.data) {
+          setItemsList((prev) =>
+            itemPage === 1 ? result.data : [...prev, ...result.data]
+          );
+          setHasMoreItems(result.pagination.page < result.pagination.totalPages);
+        }
+      } catch {
+        /* abort or network error */
+      } finally {
+        setIsItemLoading(false);
+      }
+    };
+    fetchItems();
+    return () => controller.abort();
+  }, [debouncedItemSearch, itemPage, isItemDropdownOpen]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // We check if the click is inside the search ref.
+      // Since dropdowns are portaled, clicking them might trigger this if we don't handle it.
+      // However, selecting an item triggers onMouseDown which handles the close before this.
       if (
         customerSearchRef.current &&
         !customerSearchRef.current.contains(event.target as Node)
@@ -116,108 +231,122 @@ export default function NewSaleBillPage() {
         setIsItemDropdownOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Debounce customer search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedCustomerSearch(customerSearch);
-      setCustomerPage(1);
-      setHasMoreCustomers(true);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [customerSearch]);
+  /* ── Dropdown Positioning ── */
+  const [customerDropdownStyle, setCustomerDropdownStyle] = useState<React.CSSProperties>({});
+  const [itemDropdownStyle, setItemDropdownStyle] = useState<React.CSSProperties>({});
 
-  // Debounce item search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedItemSearch(itemSearch);
-      setItemPage(1);
-      setHasMoreItems(true);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [itemSearch]);
-
-  useEffect(() => {
-    if (!isCustomerDropdownOpen) return;
-    const controller = new AbortController();
-    const fetchCustomersList = async () => {
-      if (!hasMoreCustomers && customerPage !== 1) return;
-      setIsCustomerLoading(true);
-      try {
-        const res = await fetch(
-          `/api/customers?search=${encodeURIComponent(debouncedCustomerSearch)}&page=${customerPage}&limit=20`,
-          { signal: controller.signal },
-        );
-        const result = await res.json();
-        if (result.data) {
-          setCustomersList((prev) =>
-            customerPage === 1 ? result.data : [...prev, ...result.data],
-          );
-          setHasMoreCustomers(
-            result.pagination.page < result.pagination.totalPages,
-          );
-        }
-      } finally {
-        setIsCustomerLoading(false);
-      }
-    };
-    fetchCustomersList();
-    return () => controller.abort();
-  }, [debouncedCustomerSearch, customerPage, isCustomerDropdownOpen]);
+  const updateDropdownPositions = useCallback(() => {
+    if (isCustomerDropdownOpen && customerSearchRef.current) {
+      const rect = customerSearchRef.current.getBoundingClientRect();
+      setCustomerDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+    if (isItemDropdownOpen && itemSearchRef.current) {
+      const rect = itemSearchRef.current.getBoundingClientRect();
+      setItemDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+  }, [isCustomerDropdownOpen, isItemDropdownOpen]);
 
   useEffect(() => {
-    if (!isItemDropdownOpen) return;
-    const controller = new AbortController();
-    const fetchItemsList = async () => {
-      if (!hasMoreItems && itemPage !== 1) return;
-      setIsItemLoading(true);
-      try {
-        const res = await fetch(
-          `/api/items?search=${encodeURIComponent(debouncedItemSearch)}&page=${itemPage}&limit=20&activeOnly=true`,
-          { signal: controller.signal },
-        );
-        const result = await res.json();
-        if (result.data) {
-          setItemsList((prev) =>
-            itemPage === 1 ? result.data : [...prev, ...result.data],
-          );
-          setHasMoreItems(
-            result.pagination.page < result.pagination.totalPages,
-          );
-        }
-      } finally {
-        setIsItemLoading(false);
-      }
-    };
-    fetchItemsList();
-    return () => controller.abort();
-  }, [debouncedItemSearch, itemPage, isItemDropdownOpen]);
+    updateDropdownPositions();
+    if (isCustomerDropdownOpen || isItemDropdownOpen) {
+      window.addEventListener("scroll", updateDropdownPositions, true);
+      window.addEventListener("resize", updateDropdownPositions);
+      return () => {
+        window.removeEventListener("scroll", updateDropdownPositions, true);
+        window.removeEventListener("resize", updateDropdownPositions);
+      };
+    }
+  }, [isCustomerDropdownOpen, isItemDropdownOpen, updateDropdownPositions]);
 
-  const addLine = (item: Item) => {
-    setLines([
-      ...lines,
-      {
-        itemId: item.id,
-        itemName: item.name,
-        pricingMode: item.defaultPricingMode,
-        quantity: "",
-        quantityKg: "",
-        quantityUnits: "",
-        price: "",
-        total: 0,
-        availableKg: item.availableKg || 0,
-        availableUnits: item.availableUnits || 0,
-      },
-    ]);
-    setItemSearch("");
-    setIsItemDropdownOpen(false);
+  /* ── Calculations ── */
+  const subtotal = lines.reduce((acc, l) => acc + l.total, 0);
+  const taxAmount = config
+    ? config.taxType === "PERCENTAGE"
+      ? subtotal * (config.taxValue / 100)
+      : Number(config.taxValue)
+    : 0;
+  const serviceChargeAmount = config
+    ? config.serviceChargeType === "PERCENTAGE"
+      ? subtotal * (config.serviceChargeValue / 100)
+      : Number(config.serviceChargeValue)
+    : 0;
+  const netTotal = subtotal + taxAmount + serviceChargeAmount;
+
+  const isStockError = (line: BillLine) => {
+    if (!config?.enableStockRestriction) return false;
+    const q = parseFloat(line.quantity) || 0;
+    if (line.pricingMode === "WEIGHT" || line.pricingMode === "WEIGHT_KG") {
+      return q > line.availableKg;
+    }
+    return q > line.availableUnits;
   };
+  const hasAnyStockError = lines.some(isStockError);
+
+  const canSubmit =
+    !isSubmitting &&
+    lines.length > 0 &&
+    !hasAnyStockError &&
+    !!selectedCustomer &&
+    lines.every(
+      (l) =>
+        parseFloat(l.price) > 0 &&
+        (parseFloat(l.quantity) > 0 ||
+          parseFloat(l.quantityKg) > 0 ||
+          parseFloat(l.quantityUnits) > 0)
+    );
+
+  const fmt = (n: number) => `₹ ${n.toLocaleString("en-IN")}`;
+
+  /* ── Line operations ── */
+  const addLine = useCallback(
+    (item: Item) => {
+      const newIdx = lines.length;
+      setLines((prev) => [
+        ...prev,
+        {
+          itemId: item.id,
+          itemName: item.name,
+          pricingMode: item.defaultPricingMode,
+          quantity: "",
+          quantityKg: "",
+          quantityUnits: "",
+          price: "",
+          total: 0,
+          availableKg: item.availableKg || 0,
+          availableUnits: item.availableUnits || 0,
+        },
+      ]);
+      setItemSearch("");
+      setIsItemDropdownOpen(false);
+      // Focus quantity after render
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const dRef = qtyRefs.current.get(`desktop-${newIdx}`);
+          const mRef = qtyRefs.current.get(`mobile-${newIdx}`);
+          if (dRef && dRef.offsetParent !== null) { dRef.focus(); dRef.select(); }
+          else if (mRef && mRef.offsetParent !== null) { mRef.focus(); mRef.select(); }
+        }, 50);
+      });
+    },
+    [lines]
+  );
+
   const updateLine = (index: number, field: keyof BillLine, value: any) => {
     const newLines = [...lines];
     if (
@@ -231,7 +360,7 @@ export default function NewSaleBillPage() {
     (newLines[index] as any)[field] = value;
     const l = newLines[index];
 
-    // Auto-sync the virtual "quantity" based on what the pricing mode expects
+    // Sync quantity
     if (l.pricingMode === "WEIGHT" || l.pricingMode === "WEIGHT_KG") {
       l.quantity = l.quantityKg;
     } else {
@@ -243,42 +372,18 @@ export default function NewSaleBillPage() {
 
     if (l.pricingMode === "WEIGHT") {
       l.total = (q / 10) * p;
-    } else if (l.pricingMode === "WEIGHT_KG") {
-      l.total = q * p;
     } else {
       l.total = q * p;
     }
+
     setLines(newLines);
   };
+
   const removeLine = (index: number) =>
     setLines(lines.filter((_, i) => i !== index));
 
-  const subtotal = lines.reduce((acc, l) => acc + l.total, 0);
-  const taxAmount = config
-    ? config.taxType === "PERCENTAGE"
-      ? subtotal * (config.taxValue / 100)
-      : Number(config.taxValue)
-    : 0;
-  const serviceChargeAmount = config
-    ? config.serviceChargeType === "PERCENTAGE"
-      ? subtotal * (config.serviceChargeValue / 100)
-      : Number(config.serviceChargeValue)
-    : 0;
-  const grossTotal = subtotal + taxAmount + serviceChargeAmount;
-  const netTotal = grossTotal;
-
-  const isStockError = (line: BillLine) => {
-    if (!config?.enableStockRestriction) return false;
-    const q = parseFloat(line.quantity) || 0;
-    if (line.pricingMode === "WEIGHT" || line.pricingMode === "WEIGHT_KG") {
-      return q > line.availableKg;
-    }
-    return q > line.availableUnits;
-  };
-
-  const hasAnyStockError = lines.some(isStockError);
-
-  const handleSubmit = async () => {
+  /* ── Submit ── */
+  const handleSubmit = useCallback(async () => {
     const data = {
       customerId: selectedCustomer?.id || "",
       items: lines.map((l) => ({
@@ -306,7 +411,16 @@ export default function NewSaleBillPage() {
       });
       if (res.ok) {
         toast.success(t("bills.purchase.success"));
-        router.push("/bills");
+        if (config?.billingMethod === "CUSTOM") {
+          // Keep items, reset customer
+          setSelectedCustomer(null);
+          setCustomerSearch("");
+          setIsCustomerDropdownOpen(false);
+          setTimeout(() => customerInputRef.current?.focus(), 100);
+        } else {
+          // Standard bill logic: redirect to bills list
+          router.push("/bills");
+        }
       } else {
         const err = await res.json();
         toast.error(err.error || t("bills.purchase.error"));
@@ -316,71 +430,126 @@ export default function NewSaleBillPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }, [selectedCustomer, lines, config, t, router]);
+
+  /* ── Ctrl+Enter global shortcut ── */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        if (canSubmit) handleSubmit();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canSubmit, handleSubmit]);
+
+  /* ── Keyboard: Qty → Price ── */
+  const focusVisible = (baseRefMap: Map<string, HTMLInputElement>, index: number) => {
+    const dRef = baseRefMap.get(`desktop-${index}`);
+    const mRef = baseRefMap.get(`mobile-${index}`);
+    if (dRef && dRef.offsetParent !== null) { dRef.focus(); dRef.select(); return true; }
+    if (mRef && mRef.offsetParent !== null) { mRef.focus(); mRef.select(); return true; }
+    return false;
+  }
+
+  const handleQuantityEnter = (index: number) => {
+    const didFocusKg = focusVisible(qtyKgRefs.current, index);
+    if (!didFocusKg) {
+      handleQuantityKgEnter(index);
+    }
   };
 
-  const fmt = (n: number) => `₹ ${n.toLocaleString("en-IN")}`;
+  const handleQuantityKgEnter = (index: number) => {
+    focusVisible(priceRefs.current, index);
+  };
 
+  /* ── Keyboard: Price Enter → Item Search ── */
+  const handlePriceEnter = () => {
+    if (itemInputRef.current) {
+      itemInputRef.current.focus();
+      itemInputRef.current.select();
+    }
+  };
+
+  /* ── Keyboard: Item Search Enter → Add first item from list ── */
+  const handleItemSearchEnter = () => {
+    if (itemsList.length > 0) {
+      const safeIndex = Math.min(Math.max(0, focusedItemIndex), itemsList.length - 1);
+      const selected = itemsList[safeIndex];
+      if (!selected) return;
+      if (config?.enableStockRestriction && selected.availableKg <= 0 && selected.availableUnits <= 0) {
+        toast.error("Item is out of stock");
+        return;
+      }
+      addLine(selected);
+    } else if (itemSearch.trim()) {
+      toast.error("No items found matching your search");
+    }
+  };
+
+  const handleItemKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleItemSearchEnter();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setFocusedItemIndex((prev) => (prev < itemsList.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setFocusedItemIndex((prev) => (prev > 0 ? prev - 1 : 0));
+    }
+  };
+
+  /* ── Keyboard: Customer Enter → Select first or submit ── */
+  const handleCustomerEnter = () => {
+    if (selectedCustomer) {
+      if (canSubmit) {
+        handleSubmit();
+      } else {
+        itemInputRef.current?.focus();
+      }
+    } else if (!selectedCustomer && customersList.length > 0) {
+      const safeIndex = Math.min(Math.max(0, focusedCustomerIndex), customersList.length - 1);
+      const selected = customersList[safeIndex];
+      if (!selected) return;
+      setSelectedCustomer(selected);
+      setCustomerSearch("");
+      setIsCustomerDropdownOpen(false);
+      setTimeout(() => {
+        if (lines.length === 0) {
+          itemInputRef.current?.focus();
+        } else {
+          customerInputRef.current?.focus();
+        }
+      }, 100);
+    }
+  };
+
+  const handleCustomerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleCustomerEnter();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setFocusedCustomerIndex((prev) => (prev < customersList.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setFocusedCustomerIndex((prev) => (prev > 0 ? prev - 1 : 0));
+    }
+  };
+
+  /* ─────────────────────── RENDER ─────────────────────── */
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "2rem",
-        overflowX: "hidden",
-      }}
-    >
+    <div className="flex flex-col gap-8">
       {/* ── Header ── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "1rem",
-        }}
-      >
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1
-            style={{
-              fontSize: "1.875rem",
-              fontWeight: 900,
-              color: "var(--text-main)",
-              letterSpacing: "-0.02em",
-              margin: 0,
-              lineHeight: 1.2,
-            }}
-          >
+          <h1 className="text-3xl font-black text-[var(--text-main)] tracking-tight leading-tight m-0">
             {t("bills.sale.title")}
           </h1>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginTop: "6px",
-            }}
-          >
-            <div
-              style={{
-                height: "3px",
-                width: "24px",
-                backgroundColor: "#0369a1",
-                borderRadius: "2px",
-              }}
-            />
-            <p
-              style={{
-                margin: 0,
-                fontSize: "11px",
-                fontWeight: 800,
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.15em",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
+          <div className="flex items-center gap-2.5 mt-1.5">
+            <div className="h-[3px] w-6 bg-sky-700 rounded-sm" />
+            <p className="m-0 text-[11px] font-extrabold text-[var(--text-muted)] uppercase tracking-[0.15em] flex items-center gap-1.5">
               <Clock size={12} />
               {t("bills.sale.subtitle")}
             </p>
@@ -388,455 +557,59 @@ export default function NewSaleBillPage() {
         </div>
         <Link
           href="/bills"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 20px",
-            backgroundColor: "#f1f5f9",
-            color: "#64748b",
-            borderRadius: "12px",
-            fontWeight: 800,
-            fontSize: "14px",
-            textDecoration: "none",
-            transition: "all 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#e2e8f0";
-            e.currentTarget.style.color = "#0f172a";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#f1f5f9";
-            e.currentTarget.style.color = "#64748b";
-          }}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-500 rounded-xl font-extrabold text-sm no-underline transition-colors hover:bg-slate-200 hover:text-slate-900"
         >
           <X size={16} /> {t("common.cancel")}
         </Link>
       </div>
 
       {/* ── Main Grid ── */}
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}
-        className="sale-bill-grid"
-      >
-        {/* Left Column */}
-        <div
-          style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
-        >
-          {/* Customer Card */}
-          <div className="premium-card" style={{ padding: "1.75rem", position: "relative", zIndex: 40 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "1.25rem",
-              }}
-            >
-              <div
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  backgroundColor: "rgba(3,105,161,0.1)",
-                  borderRadius: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#0369a1",
-                }}
-              >
-                <UserCircle size={18} strokeWidth={2} />
-              </div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "14px",
-                  fontWeight: 900,
-                  color: "var(--text-muted)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.2em",
-                }}
-              >
-                {t("bills.sale.selectCustomer")}
-              </p>
-            </div>
-
-            {selectedCustomer ? (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "1rem 1.25rem",
-                  backgroundColor: "rgba(3,105,161,0.06)",
-                  border: "1.5px solid rgba(3,105,161,0.15)",
-                  borderRadius: "16px",
-                }}
-              >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "12px" }}
-                >
-                  <div
-                    style={{
-                      width: "44px",
-                      height: "44px",
-                      backgroundColor: "#0369a1",
-                      color: "#fff",
-                      borderRadius: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 900,
-                      fontSize: "18px",
-                    }}
-                  >
-                    {selectedCustomer.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontWeight: 900,
-                        fontSize: "15px",
-                        color: "#0c4a6e",
-                      }}
-                    >
-                      {selectedCustomer.name}
-                    </p>
-                    <p
-                      style={{
-                        margin: "2px 0 0",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        color: "#0369a1",
-                        opacity: 0.7,
-                      }}
-                    >
-                      {selectedCustomer.mobile}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedCustomer(null)}
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "50%",
-                    border: "none",
-                    backgroundColor: "#fff",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#94a3b8",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "#ef4444";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "#94a3b8";
-                  }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            ) : (
-              <div
-                ref={customerSearchRef}
-                style={{ position: "relative", display: "flex", gap: "10px" }}
-              >
-                <div style={{ position: "relative", flex: 1 }}>
-                  <Search
-                    style={{
-                      position: "absolute",
-                      left: "14px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "#94a3b8",
-                    }}
-                    size={18}
-                  />
-                  <input
-                    type="text"
-                    placeholder={t("bills.sale.customerPlaceholder")}
-                    value={customerSearch}
-                    onFocus={() => setIsCustomerDropdownOpen(true)}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
-                    style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      padding: "14px 14px 14px 50px",
-                      backgroundColor: "#f1f5f9",
-                      border: "1.5px solid #e2e8f0",
-                      borderRadius: "14px",
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      color: "var(--text-main)",
-                      outline: "none",
-                      transition: "all 0.2s",
-                    }}
-                    onFocusCapture={(e) => {
-                      e.currentTarget.style.borderColor = "#0369a1";
-                      e.currentTarget.style.backgroundColor = "#fff";
-                    }}
-                    onBlurCapture={(e) => {
-                      e.currentTarget.style.borderColor = "#e2e8f0";
-                      e.currentTarget.style.backgroundColor = "#f1f5f9";
-                    }}
-                  />
-                </div>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => setIsCustomerModalOpen(true)}
-                    style={{
-                      padding: "0 16px",
-                      backgroundColor: "rgba(3,105,161,0.08)",
-                      border: "1.5px solid rgba(3,105,161,0.2)",
-                      borderRadius: "14px",
-                      color: "#0369a1",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      fontWeight: 800,
-                      fontSize: "13px",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.2s"
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.12)"}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.08)"}
-                  >
-                    <UserPlus size={18} />
-                    {t("master.customers.addCustomer")}
-                  </button>
-                )}
-                {isCustomerDropdownOpen &&
-                  (debouncedCustomerSearch.length > 0 ||
-                    customersList.length > 0) && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: 0,
-                        right: 0,
-                        marginTop: "8px",
-                        backgroundColor: "#fff",
-                        border: "1px solid var(--border-main)",
-                        borderRadius: "16px",
-                        boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
-                        zIndex: 100,
-                        padding: "6px",
-                        maxHeight: "280px",
-                        overflowY: "auto",
-                      }}
-                      onScroll={(e) => {
-                        const { scrollTop, scrollHeight, clientHeight } =
-                          e.currentTarget;
-                        if (
-                          scrollHeight - scrollTop <= clientHeight + 50 &&
-                          hasMoreCustomers &&
-                          !isCustomerLoading
-                        ) {
-                          setCustomerPage((p) => p + 1);
-                        }
-                      }}
-                    >
-                      {customersList.map((c) => (
-                        <button
-                          key={c.id}
-                          onMouseDown={() => {
-                            setSelectedCustomer(c);
-                            setCustomerSearch("");
-                            setIsCustomerDropdownOpen(false);
-                          }}
-                          style={{
-                            width: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "12px 14px",
-                            border: "none",
-                            backgroundColor: "transparent",
-                            cursor: "pointer",
-                            borderRadius: "12px",
-                            transition: "background 0.15s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor =
-                              "rgba(3,105,161,0.06)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor =
-                              "transparent";
-                          }}
-                        >
-                          <div style={{ textAlign: "left" }}>
-                            <p
-                              style={{
-                                margin: 0,
-                                fontWeight: 800,
-                                color: "#1e293b",
-                                fontSize: "14px",
-                              }}
-                            >
-                              {c.name}
-                            </p>
-                            <p
-                              style={{
-                                margin: "2px 0 0",
-                                fontSize: "12px",
-                                color: "#94a3b8",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {c.mobile}
-                            </p>
-                          </div>
-                          <ArrowRight size={16} color="#cbd5e1" />
-                        </button>
-                      ))}
-                      {isCustomerLoading && (
-                        <div style={{ padding: "12px", textAlign: "center" }}>
-                          <Loader2
-                            size={18}
-                            style={{ animation: "spin 0.6s linear infinite" }}
-                            color="var(--primary-main)"
-                          />
-                        </div>
-                      )}
-                      {!isCustomerLoading &&
-                        customersList.length === 0 &&
-                        debouncedCustomerSearch.length > 0 && (
-                          <p
-                            style={{
-                              padding: "12px",
-                              margin: 0,
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#94a3b8",
-                              fontWeight: 700,
-                            }}
-                          >
-                            No customers found
-                          </p>
-                        )}
-                    </div>
-                  )}
-              </div>
-            )}
-          </div>
-
-          {/* Items Card */}
-          <div className="premium-card" style={{ overflow: "visible", position: "relative", zIndex: 30 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "1rem",
-                padding: "1.5rem 1.75rem",
-                borderBottom: "1px solid var(--border-main)",
-                background:
-                  "linear-gradient(to right, rgba(255,255,255,1), rgba(248,250,252,1))",
-              }}
-            >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "10px" }}
-              >
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    backgroundColor: "rgba(3,105,161,0.1)",
-                    borderRadius: "10px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#0369a1",
-                  }}
-                >
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 xl:gap-8 items-start">
+        {/* ════════ LEFT COLUMN — Items ════════ */}
+        <div className="flex flex-col gap-6 w-full min-w-0">
+          {/* ── Items Card ── */}
+          <div className="premium-card overflow-visible relative z-30 flex-1">
+            {/* Items header + search */}
+            <div className="flex items-center justify-between flex-wrap gap-4 px-5 py-4 border-b border-[var(--border-main)] bg-gradient-to-r from-white to-slate-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 bg-sky-700/10 rounded-[10px] flex items-center justify-center text-sky-700">
                   <Package size={18} strokeWidth={2} />
                 </div>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "14px",
-                    fontWeight: 900,
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.2em",
-                  }}
-                >
+                <p className="m-0 text-sm font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">
                   {t("bills.purchase.billItems")}
                 </p>
               </div>
-              <div
-                ref={itemSearchRef}
-                style={{ position: "relative", flex: "1", minWidth: 0 }}
-              >
+
+              {/* Item search */}
+              <div ref={itemSearchRef} className="relative flex-1 min-w-0">
                 <Plus
-                  style={{
-                    position: "absolute",
-                    left: "14px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#94a3b8",
-                  }}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                   size={16}
                 />
                 <input
+                  ref={itemInputRef}
                   type="text"
                   placeholder={t("bills.purchase.addItem")}
                   value={itemSearch}
-                  onFocus={() => setIsItemDropdownOpen(true)}
+                  onFocus={() => {
+                    setIsItemDropdownOpen(true);
+                    setFocusedItemIndex(0);
+                  }}
                   onChange={(e) => setItemSearch(e.target.value)}
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    padding: "10px 12px 10px 44px",
-                    backgroundColor: "#f1f5f9",
-                    border: "1.5px solid #e2e8f0",
-                    borderRadius: "12px",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "var(--text-main)",
-                    outline: "none",
-                    transition: "all 0.2s",
-                  }}
-                  onFocusCapture={(e) => {
-                    e.currentTarget.style.borderColor = "#0369a1";
-                    e.currentTarget.style.backgroundColor = "#fff";
-                  }}
-                  onBlurCapture={(e) => {
-                    e.currentTarget.style.borderColor = "#e2e8f0";
-                    e.currentTarget.style.backgroundColor = "#f1f5f9";
-                  }}
+                  onKeyDown={handleItemKeyDown}
+                  className="w-full box-border py-2.5 pl-11 pr-3 bg-slate-100 border-[1.5px] border-slate-200 rounded-xl text-[13px] font-bold text-[var(--text-main)] outline-none transition-all focus:border-sky-700 focus:bg-white"
                 />
-                {isItemDropdownOpen &&
-                  (debouncedItemSearch.length > 0 || itemsList.length > 0) && (
+
+                {/* Item dropdown */}
+                {mounted && isItemDropdownOpen &&
+                  (debouncedItemSearch.length > 0 || itemsList.length > 0) &&
+                  createPortal(
                     <div
-                      style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: 0,
-                        right: 0,
-                        marginTop: "8px",
-                        backgroundColor: "#fff",
-                        border: "1px solid var(--border-main)",
-                        borderRadius: "14px",
-                        boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
-                        zIndex: 100,
-                        padding: "4px",
-                        maxHeight: "240px",
-                        overflowY: "auto",
-                      }}
+                      style={itemDropdownStyle}
+                      className="bg-white border border-[var(--border-main)] rounded-[14px] shadow-[0_20px_40px_rgba(0,0,0,0.1)] p-1 max-h-60 overflow-y-auto"
+                      onMouseDown={(e) => e.stopPropagation()}
                       onScroll={(e) => {
-                        const { scrollTop, scrollHeight, clientHeight } =
-                          e.currentTarget;
+                        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
                         if (
                           scrollHeight - scrollTop <= clientHeight + 50 &&
                           hasMoreItems &&
@@ -846,211 +619,119 @@ export default function NewSaleBillPage() {
                         }
                       }}
                     >
-                      {itemsList.map((item) => (
-                        <button
-                          key={item.id}
-                          onMouseDown={() => {
-                            if (config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0) return;
-                            addLine(item);
-                          }}
-                          disabled={config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0}
-                          style={{
-                            width: "100%",
-                            display: "block",
-                            textAlign: "left",
-                            padding: "10px 14px",
-                            border: "none",
-                            backgroundColor: "transparent",
-                            cursor: (config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0) ? "not-allowed" : "pointer",
-                            borderRadius: "10px",
-                            fontSize: "13px",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            transition: "background 0.15s",
-                            opacity: (config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0) ? 0.5 : 1,
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!(config?.enableStockRestriction && item.availableKg <= 0 && item.availableUnits <= 0)) {
-                              e.currentTarget.style.backgroundColor = "rgba(3,105,161,0.06)";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "transparent";
-                          }}
-                        >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span>{item.name}</span>
-                            <span style={{ fontSize: "11px", color: (item.availableKg <= 0 && item.availableUnits <= 0) ? "#ef4444" : "#10b981", fontWeight: 800 }}>
-                              {item.availableKg > 0 ? `${item.availableKg} KG` : item.availableUnits > 0 ? `${item.availableUnits} Units` : (config?.enableStockRestriction ? t("bills.sale.noStock") : "No Stock")}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
+                      {itemsList.map((item, index) => {
+                        const outOfStock =
+                          config?.enableStockRestriction &&
+                          item.availableKg <= 0 &&
+                          item.availableUnits <= 0;
+                        const isFocused = index === focusedItemIndex;
+                        return (
+                          <button
+                            key={item.id}
+                            id={`item-option-${index}`}
+                            onMouseDown={() => {
+                              if (outOfStock) return;
+                              addLine(item);
+                            }}
+                            disabled={!!outOfStock}
+                            className={`w-full block text-left px-3.5 py-2.5 border-none bg-transparent rounded-[10px] text-[13px] font-bold text-slate-800 transition-colors ${outOfStock
+                              ? "opacity-50 cursor-not-allowed"
+                              : isFocused
+                                ? "bg-sky-100 cursor-pointer shadow-sm text-sky-950 ring-1 ring-sky-200"
+                                : "cursor-pointer hover:bg-sky-50"
+                              }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span>{item.name}</span>
+                              <span
+                                className={`text-[11px] font-extrabold ${item.availableKg <= 0 && item.availableUnits <= 0
+                                  ? "text-red-500"
+                                  : "text-emerald-500"
+                                  }`}
+                              >
+                                {item.availableKg > 0
+                                  ? `${item.availableKg} KG`
+                                  : item.availableUnits > 0
+                                    ? `${item.availableUnits} Units`
+                                    : config?.enableStockRestriction
+                                      ? t("bills.sale.noStock")
+                                      : "No Stock"}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
                       {isItemLoading && (
-                        <div style={{ padding: "10px", textAlign: "center" }}>
+                        <div className="p-2.5 text-center">
                           <Loader2
                             size={16}
-                            style={{ animation: "spin 0.6s linear infinite" }}
-                            color="var(--primary-main)"
+                            className="animate-spin text-[var(--primary-main)] mx-auto"
                           />
                         </div>
                       )}
                       {!isItemLoading &&
                         itemsList.length === 0 &&
                         debouncedItemSearch.length > 0 && (
-                          <p
-                            style={{
-                              padding: "10px",
-                              margin: 0,
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#94a3b8",
-                              fontWeight: 700,
-                            }}
-                          >
+                          <p className="p-2.5 m-0 text-center text-xs text-slate-400 font-bold">
                             No items found
                           </p>
                         )}
-                    </div>
+                    </div>,
+                    document.body
                   )}
               </div>
             </div>
 
+            {/* Items table / empty state */}
             {lines.length === 0 ? (
-              <div
-                style={{
-                  padding: "4rem",
-                  textAlign: "center",
-                  color: "#e2e8f0",
-                }}
-              >
+              <div className="py-16 px-4 text-center text-slate-300">
                 <ShoppingCart
                   size={40}
-                  style={{ margin: "0 auto 1rem", opacity: 0.4 }}
+                  className="mx-auto mb-4 opacity-40"
                 />
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "12px",
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                  }}
-                >
+                <p className="m-0 text-xs font-extrabold uppercase tracking-[0.15em]">
                   {t("bills.purchase.emptyItems")}
                 </p>
               </div>
             ) : (
-              <div>
-                {/* Desktop Table */}
-                <table
-                  style={{ width: "100%", borderCollapse: "collapse" }}
-                  className="bill-items-table"
-                >
+              <>
+                {/* Desktop table */}
+                <table className="w-full border-collapse bill-items-table">
                   <thead>
-                    <tr style={{ backgroundColor: "#f8fafc" }}>
-                      <th
-                        style={{
-                          padding: "12px 20px",
-                          textAlign: "left",
-                          fontSize: "14px",
-                          fontWeight: 900,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                        }}
-                      >
+                    <tr className="bg-slate-50">
+                      <th className="px-5 py-3 text-left text-[14px] font-black text-slate-400 uppercase tracking-wide">
                         {t("bills.purchase.item")}
                       </th>
-                      <th
-                        style={{
-                          padding: "12px 16px",
-                          textAlign: "center",
-                          fontSize: "14px",
-                          fontWeight: 900,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                        }}
-                      >
+                      <th className="px-4 py-3 text-center text-[14px] font-black text-slate-400 uppercase tracking-wide">
                         {t("bills.purchase.quantity")} (Units)
                       </th>
-                      <th
-                        style={{
-                          padding: "12px 16px",
-                          textAlign: "center",
-                          fontSize: "14px",
-                          fontWeight: 900,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                        }}
-                      >
+                      <th className="px-4 py-3 text-center text-[14px] font-black text-slate-400 uppercase tracking-wide">
                         {t("bills.purchase.quantity")} (KG)
                       </th>
-                      <th
-                        style={{
-                          padding: "12px 16px",
-                          textAlign: "center",
-                          fontSize: "14px",
-                          fontWeight: 900,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                        }}
-                      >
+                      <th className="px-4 py-3 text-center text-[14px] font-black text-slate-400 uppercase tracking-wide">
                         {t("bills.purchase.price")}
                       </th>
-                      <th
-                        style={{
-                          padding: "12px 20px",
-                          textAlign: "right",
-                          fontSize: "14px",
-                          fontWeight: 900,
-                          color: "#94a3b8",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px" }}>
+                      <th className="px-5 py-3 text-right text-[14px] font-black text-slate-400 uppercase tracking-wide">
+                        <div className="flex items-center justify-end gap-1">
                           {t("bills.purchase.total")}
                           <Tooltip content={t("bills.purchase.totalTooltip")}>
-                            <Info size={14} style={{ cursor: "help", opacity: 0.7 }} />
+                            <Info size={14} className="cursor-help opacity-70" />
                           </Tooltip>
                         </div>
                       </th>
-                      <th style={{ padding: "12px 16px" }}></th>
+                      <th className="px-4 py-3" />
                     </tr>
                   </thead>
                   <tbody>
                     {lines.map((line, idx) => (
-                      <tr
-                        key={idx}
-                        style={{ borderBottom: "1px solid #f1f5f9" }}
-                      >
-                        <td style={{ padding: "16px 20px" }}>
-                          <p
-                            style={{
-                              margin: 0,
-                              fontWeight: 800,
-                              fontSize: "14px",
-                              color: "#1e293b",
-                            }}
-                          >
+                      <tr key={idx} className="border-b border-slate-100">
+                        {/* Item name + pricing mode badge + stock */}
+                        <td className="px-5 py-4">
+                          <p className="m-0 font-extrabold text-sm text-slate-800">
                             {line.itemName}
                           </p>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "4px 0" }}>
-                            <span
-                              style={{
-                                fontSize: "14px",
-                                fontWeight: 800,
-                                color: "#0369a1",
-                                backgroundColor: "rgba(3,105,161,0.08)",
-                                padding: "2px 8px",
-                                borderRadius: "6px",
-                                textTransform: "uppercase",
-                              }}
-                            >
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[14px] font-extrabold text-sky-700 bg-sky-700/[0.08] px-2 py-0.5 rounded-md uppercase">
                               {line.pricingMode === "WEIGHT"
                                 ? "per 10 KG"
                                 : line.pricingMode === "WEIGHT_KG"
@@ -1058,187 +739,132 @@ export default function NewSaleBillPage() {
                                   : "per Unit"}
                             </span>
                             <span
-                              style={{
-                                fontSize: "11px",
-                                fontWeight: 800,
-                                color: (line.availableKg <= 0 && line.availableUnits <= 0) ? "#ef4444" : "#64748b",
-                                backgroundColor: (line.availableKg <= 0 && line.availableUnits <= 0) ? "rgba(239, 68, 68, 0.08)" : "#f8fafc",
-                                padding: "2px 8px",
-                                borderRadius: "6px",
-                              }}
+                              className={`text-[11px] font-extrabold px-2 py-0.5 rounded-md ${line.availableKg <= 0 && line.availableUnits <= 0
+                                ? "text-red-500 bg-red-500/[0.08]"
+                                : "text-slate-500 bg-slate-50"
+                                }`}
                             >
-                              Stock: {line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG`}
+                              Stock:{" "}
+                              {line.pricingMode === "UNIT"
+                                ? `${line.availableUnits} Units`
+                                : `${line.availableKg} KG`}
                             </span>
                           </div>
                         </td>
-                        <td style={{ padding: "16px" }}>
+
+                        {/* Qty Units */}
+                        <td className="px-4 py-4">
                           <input
+                            ref={(el) => {
+                              if (el) qtyRefs.current.set(`desktop-${idx}`, el);
+                              else qtyRefs.current.delete(`desktop-${idx}`);
+                            }}
                             type="text"
                             inputMode="decimal"
-                            min="0"
-                            step="1"
                             value={line.quantityUnits}
                             onChange={(e) =>
                               updateLine(idx, "quantityUnits", e.target.value)
                             }
-                            style={{
-                              width: "60px",
-                              display: "block",
-                              margin: "0 auto",
-                              padding: "8px",
-                              textAlign: "center",
-                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f1f5f9",
-                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid #e2e8f0",
-                              borderRadius: "10px",
-                              fontWeight: 800,
-                              fontSize: "14px",
-                              outline: "none",
-                              transition: "all 0.2s",
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleQuantityEnter(idx);
+                              }
                             }}
-                            onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
-                            }}
-                            onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#e2e8f0";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f1f5f9";
-                            }}
+                            onFocus={(e) => e.target.select()}
+                            className={`w-[60px] block mx-auto p-2 text-center rounded-[10px] font-extrabold text-sm outline-none transition-all ${isStockError(line)
+                              ? "bg-red-50 border-[1.5px] border-red-500 focus:bg-red-50/80"
+                              : "bg-slate-100 border-[1.5px] border-slate-200 focus:border-sky-700 focus:bg-white"
+                              }`}
                           />
                           {isStockError(line) && (
-                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
-                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            <p className="mt-1 text-[10px] font-extrabold text-red-500 text-center m-0">
+                              {t("bills.sale.availableStock", {
+                                amount:
+                                  line.pricingMode === "UNIT"
+                                    ? `${line.availableUnits} Units`
+                                    : `${line.availableKg} KG`,
+                              })}
                             </p>
                           )}
                         </td>
-                        <td style={{ padding: "16px" }}>
+
+                        {/* Qty KG */}
+                        <td className="px-4 py-4">
                           <input
+                            ref={(el) => {
+                              if (el) qtyKgRefs.current.set(`desktop-${idx}`, el);
+                              else qtyKgRefs.current.delete(`desktop-${idx}`);
+                            }}
                             type="text"
                             inputMode="decimal"
-                            min="0"
-                            step="0.01"
                             value={line.quantityKg}
                             onChange={(e) =>
                               updateLine(idx, "quantityKg", e.target.value)
                             }
-                            style={{
-                              width: "70px",
-                              display: "block",
-                              margin: "0 auto",
-                              padding: "8px",
-                              textAlign: "center",
-                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f1f5f9",
-                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid #e2e8f0",
-                              borderRadius: "10px",
-                              fontWeight: 800,
-                              fontSize: "14px",
-                              outline: "none",
-                              transition: "all 0.2s",
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleQuantityKgEnter(idx);
+                              }
                             }}
-                            onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
-                            }}
-                            onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#e2e8f0";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f1f5f9";
-                            }}
+                            onFocus={(e) => e.target.select()}
+                            className={`w-[70px] block mx-auto p-2 text-center rounded-[10px] font-extrabold text-sm outline-none transition-all ${isStockError(line)
+                              ? "bg-red-50 border-[1.5px] border-red-500 focus:bg-red-50/80"
+                              : "bg-slate-100 border-[1.5px] border-slate-200 focus:border-sky-700 focus:bg-white"
+                              }`}
                           />
                           {isStockError(line) && (
-                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
-                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
+                            <p className="mt-1 text-[10px] font-extrabold text-red-500 text-center m-0">
+                              {t("bills.sale.availableStock", {
+                                amount:
+                                  line.pricingMode === "UNIT"
+                                    ? `${line.availableUnits} Units`
+                                    : `${line.availableKg} KG`,
+                              })}
                             </p>
                           )}
                         </td>
-                        <td style={{ padding: "16px" }}>
-                          <div
-                            style={{
-                              position: "relative",
-                              width: "100px",
-                              margin: "0 auto",
-                            }}
-                          >
-                            <span
-                              style={{
-                                position: "absolute",
-                                left: "10px",
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                fontSize: "11px",
-                                fontWeight: 800,
-                                color: "#94a3b8",
-                              }}
-                            >
+
+                        {/* Price */}
+                        <td className="px-4 py-4">
+                          <div className="relative w-[100px] mx-auto">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] font-extrabold text-slate-400">
                               ₹
                             </span>
                             <input
+                              ref={(el) => {
+                                if (el) priceRefs.current.set(`desktop-${idx}`, el);
+                                else priceRefs.current.delete(`desktop-${idx}`);
+                              }}
                               type="text"
                               inputMode="decimal"
-                              min="0"
-                              step="0.01"
                               value={line.price}
                               onChange={(e) =>
                                 updateLine(idx, "price", e.target.value)
                               }
-                              style={{
-                                width: "100%",
-                                boxSizing: "border-box",
-                                padding: "8px 8px 8px 24px",
-                                textAlign: "center",
-                                backgroundColor: "#f1f5f9",
-                                border: "1.5px solid #e2e8f0",
-                                borderRadius: "10px",
-                                fontWeight: 800,
-                                fontSize: "14px",
-                                outline: "none",
-                                transition: "all 0.2s",
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handlePriceEnter();
+                                }
                               }}
-                              onFocusCapture={(e) => {
-                                e.currentTarget.style.borderColor = "#0369a1";
-                                e.currentTarget.style.backgroundColor = "#fff";
-                              }}
-                              onBlurCapture={(e) => {
-                                e.currentTarget.style.borderColor = "#e2e8f0";
-                                e.currentTarget.style.backgroundColor =
-                                  "#f1f5f9";
-                              }}
+                              onFocus={(e) => e.target.select()}
+                              className="w-full box-border p-2 pl-6 text-center bg-slate-100 border-[1.5px] border-slate-200 rounded-[10px] font-extrabold text-sm outline-none transition-all focus:border-sky-700 focus:bg-white"
                             />
                           </div>
                         </td>
-                        <td
-                          style={{
-                            padding: "16px 20px",
-                            textAlign: "right",
-                            fontWeight: 900,
-                            fontSize: "15px",
-                            color: "#0f172a",
-                          }}
-                        >
+
+                        {/* Total */}
+                        <td className="px-5 py-4 text-right font-black text-[15px] text-slate-900">
                           {fmt(line.total)}
                         </td>
-                        <td style={{ padding: "16px" }}>
+
+                        {/* Delete */}
+                        <td className="px-4 py-4">
                           <button
                             onClick={() => removeLine(idx)}
-                            style={{
-                              width: "34px",
-                              height: "34px",
-                              border: "none",
-                              backgroundColor: "#f8fafc",
-                              borderRadius: "10px",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#cbd5e1",
-                              transition: "all 0.2s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "#fef2f2";
-                              e.currentTarget.style.color = "#ef4444";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "#f8fafc";
-                              e.currentTarget.style.color = "#cbd5e1";
-                            }}
+                            className="w-[34px] h-[34px] border-none bg-slate-50 rounded-[10px] cursor-pointer flex items-center justify-center text-slate-300 transition-all hover:bg-red-50 hover:text-red-500"
                           >
                             <Trash2 size={15} />
                           </button>
@@ -1248,46 +874,16 @@ export default function NewSaleBillPage() {
                   </tbody>
                 </table>
 
-                {/* Mobile Cards */}
+                {/* Mobile cards */}
                 <div className="bill-items-mobile">
                   {lines.map((line, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: "1.25rem 1.5rem",
-                        borderBottom: "1px solid #f1f5f9",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          marginBottom: "1rem",
-                        }}
-                      >
+                    <div key={idx} className="px-6 py-5 border-b border-slate-100">
+                      <div className="flex justify-between items-start mb-4">
                         <div>
-                          <p
-                            style={{
-                              margin: 0,
-                              fontWeight: 800,
-                              fontSize: "15px",
-                              color: "#1e293b",
-                            }}
-                          >
+                          <p className="m-0 font-extrabold text-[15px] text-slate-800">
                             {line.itemName}
                           </p>
-                          <span
-                            style={{
-                              fontSize: "14px",
-                              fontWeight: 800,
-                              color: "#0369a1",
-                              backgroundColor: "rgba(3,105,161,0.08)",
-                              padding: "2px 8px",
-                              borderRadius: "6px",
-                              textTransform: "uppercase",
-                            }}
-                          >
+                          <span className="text-[14px] font-extrabold text-sky-700 bg-sky-700/[0.08] px-2 py-0.5 rounded-md uppercase">
                             {line.pricingMode === "WEIGHT"
                               ? "per 10 KG"
                               : line.pricingMode === "WEIGHT_KG"
@@ -1297,477 +893,375 @@ export default function NewSaleBillPage() {
                         </div>
                         <button
                           onClick={() => removeLine(idx)}
-                          style={{
-                            width: "32px",
-                            height: "32px",
-                            border: "none",
-                            backgroundColor: "#f8fafc",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#cbd5e1",
-                          }}
+                          className="w-8 h-8 border-none bg-slate-50 rounded-lg cursor-pointer flex items-center justify-center text-slate-300"
                         >
                           <Trash2 size={14} />
                         </button>
                       </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr 1fr",
-                          gap: "0.75rem",
-                        }}
-                      >
+
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Units */}
                         <div>
-                          <p
-                            style={{
-                              margin: "0 0 6px",
-                              fontSize: "14px",
-                              fontWeight: 800,
-                              color: "#94a3b8",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.1em",
-                            }}
-                          >
+                          <p className="m-0 mb-1.5 text-[14px] font-extrabold text-slate-400 uppercase tracking-wide">
                             Qty (Units)
                           </p>
                           <input
+                            ref={(el) => {
+                              if (el) qtyRefs.current.set(`mobile-${idx}`, el);
+                              else qtyRefs.current.delete(`mobile-${idx}`);
+                            }}
                             type="text"
                             inputMode="decimal"
-                            min="0"
-                            step="1"
                             value={line.quantityUnits}
                             onChange={(e) =>
                               updateLine(idx, "quantityUnits", e.target.value)
                             }
-                            style={{
-                              width: "100%",
-                              boxSizing: "border-box",
-                              padding: "10px",
-                              textAlign: "center",
-                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f8fafc",
-                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid transparent",
-                              borderRadius: "10px",
-                              fontWeight: 800,
-                              fontSize: "15px",
-                              outline: "none",
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleQuantityEnter(idx);
+                              }
                             }}
-                            onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
-                            }}
-                            onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "transparent";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f8fafc";
-                            }}
+                            onFocus={(e) => e.target.select()}
+                            className={`w-full box-border p-2.5 text-center rounded-[10px] font-extrabold text-[15px] outline-none ${isStockError(line)
+                              ? "bg-red-50 border-[1.5px] border-red-500"
+                              : "bg-slate-50 border-[1.5px] border-transparent focus:border-sky-700 focus:bg-white"
+                              }`}
                           />
-                          {isStockError(line) && (
-                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
-                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
-                            </p>
-                          )}
                         </div>
+                        {/* KG */}
                         <div>
-                          <p
-                            style={{
-                              margin: "0 0 6px",
-                              fontSize: "14px",
-                              fontWeight: 800,
-                              color: "#94a3b8",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.1em",
-                            }}
-                          >
+                          <p className="m-0 mb-1.5 text-[14px] font-extrabold text-slate-400 uppercase tracking-wide">
                             {t("bills.purchase.quantity")} (KG)
                           </p>
                           <input
+                            ref={(el) => {
+                              if (el) qtyKgRefs.current.set(`mobile-${idx}`, el);
+                              else qtyKgRefs.current.delete(`mobile-${idx}`);
+                            }}
                             type="text"
                             inputMode="decimal"
-                            min="0"
-                            step="0.01"
                             value={line.quantityKg}
                             onChange={(e) =>
                               updateLine(idx, "quantityKg", e.target.value)
                             }
-                            style={{
-                              width: "100%",
-                              boxSizing: "border-box",
-                              padding: "10px",
-                              textAlign: "center",
-                              backgroundColor: isStockError(line) ? "#fef2f2" : "#f8fafc",
-                              border: isStockError(line) ? "1.5px solid #ef4444" : "1.5px solid transparent",
-                              borderRadius: "10px",
-                              fontWeight: 800,
-                              fontSize: "15px",
-                              outline: "none",
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleQuantityKgEnter(idx);
+                              }
                             }}
-                            onFocusCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "#0369a1";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fff1f1" : "#fff";
-                            }}
-                            onBlurCapture={(e) => {
-                              e.currentTarget.style.borderColor = isStockError(line) ? "#ef4444" : "transparent";
-                              e.currentTarget.style.backgroundColor = isStockError(line) ? "#fef2f2" : "#f8fafc";
-                            }}
+                            onFocus={(e) => e.target.select()}
+                            className={`w-full box-border p-2.5 text-center rounded-[10px] font-extrabold text-[15px] outline-none ${isStockError(line)
+                              ? "bg-red-50 border-[1.5px] border-red-500"
+                              : "bg-slate-50 border-[1.5px] border-transparent focus:border-sky-700 focus:bg-white"
+                              }`}
                           />
-                          {isStockError(line) && (
-                            <p style={{ margin: "4px 0 0", fontSize: "10px", fontWeight: 800, color: "#ef4444", textAlign: "center" }}>
-                              {t("bills.sale.availableStock", { amount: line.pricingMode === "UNIT" ? `${line.availableUnits} Units` : `${line.availableKg} KG` })}
-                            </p>
-                          )}
                         </div>
+                        {/* Price */}
                         <div>
-                          <p
-                            style={{
-                              margin: "0 0 6px",
-                              fontSize: "14px",
-                              fontWeight: 800,
-                              color: "#94a3b8",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.1em",
-                            }}
-                          >
+                          <p className="m-0 mb-1.5 text-[14px] font-extrabold text-slate-400 uppercase tracking-wide">
                             {t("bills.purchase.price")}
                           </p>
-                          <div style={{ position: "relative" }}>
-                            <span
-                              style={{
-                                position: "absolute",
-                                left: "12px",
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                fontSize: "12px",
-                                fontWeight: 800,
-                                color: "#94a3b8",
-                              }}
-                            >
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400">
                               ₹
                             </span>
                             <input
+                              ref={(el) => {
+                                if (el) priceRefs.current.set(`mobile-${idx}`, el);
+                                else priceRefs.current.delete(`mobile-${idx}`);
+                              }}
                               type="text"
                               inputMode="decimal"
-                              min="0"
-                              step="0.01"
                               value={line.price}
                               onChange={(e) =>
                                 updateLine(idx, "price", e.target.value)
                               }
-                              style={{
-                                width: "100%",
-                                boxSizing: "border-box",
-                                padding: "10px 10px 10px 28px",
-                                textAlign: "center",
-                                backgroundColor: "#f8fafc",
-                                border: "1.5px solid transparent",
-                                borderRadius: "10px",
-                                fontWeight: 800,
-                                fontSize: "15px",
-                                outline: "none",
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handlePriceEnter();
+                                }
                               }}
-                              onFocusCapture={(e) => {
-                                e.currentTarget.style.borderColor = "#0369a1";
-                                e.currentTarget.style.backgroundColor = "#fff";
-                              }}
-                              onBlurCapture={(e) => {
-                                e.currentTarget.style.borderColor =
-                                  "transparent";
-                                e.currentTarget.style.backgroundColor =
-                                  "#f8fafc";
-                              }}
+                              onFocus={(e) => e.target.select()}
+                              className="w-full box-border p-2.5 pl-7 text-center bg-slate-50 border-[1.5px] border-transparent rounded-[10px] font-extrabold text-[15px] outline-none focus:border-sky-700 focus:bg-white"
                             />
                           </div>
                         </div>
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginTop: "0.75rem",
-                          padding: "10px 14px",
-                          backgroundColor: "#f8fafc",
-                          borderRadius: "10px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "14px",
-                            fontWeight: 800,
-                            color: "#94a3b8",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.1em",
-                          }}
-                        >
+
+                      {/* Total row */}
+                      <div className="flex items-center justify-between mt-3 p-2.5 px-3.5 bg-slate-50 rounded-[10px]">
+                        <span className="text-[14px] font-extrabold text-slate-400 uppercase tracking-wide">
                           {t("bills.purchase.total")}
                         </span>
-                        <span
-                          style={{
-                            fontWeight: 900,
-                            fontSize: "17px",
-                            color: "#0f172a",
-                          }}
-                        >
+                        <span className="font-black text-[17px] text-slate-900">
                           {fmt(line.total)}
                         </span>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
 
-        {/* Right Column — Summary */}
-        <div style={{ position: "sticky", top: "6rem", height: "fit-content" }}>
-          <div
-            className="premium-card"
-            style={{
-              padding: "1.75rem",
-              backgroundColor: "#0f172a",
-              border: "none",
-              color: "#fff",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "1.5rem",
-              }}
-            >
-              <div
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  backgroundColor: "rgba(255,255,255,0.07)",
-                  borderRadius: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Calculator size={18} color="#60a5fa" />
+        {/* ════════ RIGHT COLUMN — Customer & Summary ════════ */}
+        <div className="lg:sticky lg:top-24 h-fit flex flex-col gap-6 w-full min-w-0">
+
+          {/* ── Customer Card ── */}
+          <div className="premium-card p-5 relative z-40 bg-white">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-sky-700/10 rounded-lg flex items-center justify-center text-sky-700">
+                  <UserCircle size={16} strokeWidth={2.5} />
+                </div>
+                <p className="m-0 text-[13px] font-black text-slate-500 uppercase tracking-[0.15em]">
+                  {t("bills.sale.selectCustomer")}
+                </p>
               </div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "14px",
-                  fontWeight: 900,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.2em",
-                  color: "#94a3b8",
-                }}
-              >
+              {isAdmin && !selectedCustomer && (
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerModalOpen(true)}
+                  className="w-8 h-8 bg-sky-50 rounded-lg text-sky-600 flex items-center justify-center transition-colors hover:bg-sky-100"
+                  title={t("master.customers.addCustomer")}
+                >
+                  <UserPlus size={16} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
+
+            {selectedCustomer ? (
+              <>
+                {/* Selected customer card */}
+                <div className="flex items-center justify-between p-3.5 bg-sky-50 border border-sky-100 rounded-[14px] mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-sky-700 text-white rounded-[10px] flex items-center justify-center font-black text-lg">
+                      {selectedCustomer.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="m-0 font-black text-[14px] text-sky-950 leading-tight">
+                        {selectedCustomer.name}
+                      </p>
+                      <p className="m-0 mt-0.5 text-[11px] font-bold text-sky-600">
+                        {selectedCustomer.mobile}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedCustomer(null);
+                      setTimeout(() => customerInputRef.current?.focus(), 50);
+                    }}
+                    className="w-8 h-8 rounded-full border-none bg-white flex items-center justify-center text-slate-400 shadow-sm transition-all hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                  >
+                    <X size={16} strokeWidth={2.5} />
+                  </button>
+                </div>
+
+                {/* Submit hint input */}
+                <input
+                  ref={customerInputRef}
+                  readOnly
+                  placeholder="Press Enter to create bill..."
+                  className="w-full box-border py-3 px-4 bg-sky-700/[0.04] border border-sky-700/10 rounded-[12px] text-[13px] font-extrabold text-sky-700 text-center cursor-default outline-none select-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCustomerEnter();
+                    }
+                  }}
+                  onFocus={(e) => e.target.select()}
+                />
+              </>
+            ) : (
+              <div ref={customerSearchRef} className="relative">
+                <Search
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={16}
+                />
+                <input
+                  ref={customerInputRef}
+                  type="text"
+                  placeholder={t("bills.sale.customerPlaceholder")}
+                  value={customerSearch}
+                  onFocus={() => {
+                    setIsCustomerDropdownOpen(true);
+                    setFocusedCustomerIndex(0);
+                  }}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  onKeyDown={handleCustomerKeyDown}
+                  className="w-full box-border py-3 pl-10 pr-3.5 bg-slate-50 border border-slate-200 rounded-[12px] text-[13px] font-bold text-slate-800 outline-none transition-all focus:border-sky-700 focus:bg-white focus:ring-4 focus:ring-sky-700/10"
+                />
+
+                {/* Customer dropdown */}
+                {mounted && isCustomerDropdownOpen &&
+                  (debouncedCustomerSearch.length > 0 || customersList.length > 0) &&
+                  createPortal(
+                    <div
+                      style={customerDropdownStyle}
+                      className="bg-white border border-slate-200 rounded-[14px] shadow-xl p-1.5 max-h-[250px] overflow-y-auto"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onScroll={(e) => {
+                        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                        if (
+                          scrollHeight - scrollTop <= clientHeight + 50 &&
+                          hasMoreCustomers &&
+                          !isCustomerLoading
+                        ) {
+                          setCustomerPage((p) => p + 1);
+                        }
+                      }}
+                    >
+                      {customersList.map((c, index) => {
+                        const isFocused = index === focusedCustomerIndex;
+                        return (
+                          <button
+                            key={c.id}
+                            id={`customer-option-${index}`}
+                            onMouseDown={() => {
+                              setSelectedCustomer(c);
+                              setCustomerSearch("");
+                              setIsCustomerDropdownOpen(false);
+                              setTimeout(() => {
+                                if (lines.length === 0) {
+                                  itemInputRef.current?.focus();
+                                } else {
+                                  customerInputRef.current?.focus();
+                                }
+                              }, 100);
+                            }}
+                            className={`w-full flex flex-col gap-0.5 px-3 py-2.5 border-none bg-transparent cursor-pointer rounded-[10px] transition-colors text-left ${isFocused ? "bg-sky-100 ring-1 ring-sky-200" : "hover:bg-sky-50"
+                              }`}
+                          >
+                            <p className="m-0 font-extrabold text-slate-800 text-[13px]">
+                              {c.name}
+                            </p>
+                            <p className="m-0 text-[11px] text-slate-500 font-bold">
+                              {c.mobile}
+                            </p>
+                          </button>
+                        );
+                      })}
+                      {isCustomerLoading && (
+                        <div className="p-3 text-center">
+                          <Loader2 size={16} className="animate-spin text-sky-700 mx-auto" />
+                        </div>
+                      )}
+                      {!isCustomerLoading &&
+                        customersList.length === 0 &&
+                        debouncedCustomerSearch.length > 0 && (
+                          <p className="p-3 m-0 text-center text-xs text-slate-400 font-bold">
+                            No customers found
+                          </p>
+                        )}
+                    </div>,
+                    document.body
+                  )}
+              </div>
+            )}
+          </div>
+
+          <div className="premium-card p-5 bg-slate-900 border-none text-white">
+            {/* Header */}
+            <div className="flex items-center gap-2.5 mb-6">
+              <div className="w-9 h-9 bg-white/[0.07] rounded-[10px] flex items-center justify-center">
+                <Calculator size={18} className="text-blue-400" />
+              </div>
+              <p className="m-0 text-sm font-black uppercase tracking-[0.2em] text-slate-400">
                 {t("bills.purchase.summary")}
               </p>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "0.875rem",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 800,
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                }}
-              >
+            {/* Subtotal */}
+            <div className="flex justify-between items-center mb-3.5">
+              <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wide">
                 {t("bills.purchase.subtotal")}
               </span>
-              <span
-                style={{ fontSize: "13px", fontWeight: 800, color: "#94a3b8" }}
-              >
+              <span className="text-[13px] font-extrabold text-slate-400">
                 {fmt(subtotal)}
               </span>
             </div>
 
-            <div
-              style={{
-                height: "1px",
-                backgroundColor: "rgba(255,255,255,0.07)",
-                margin: "1rem 0",
-              }}
-            />
+            <div className="h-px bg-white/[0.07] my-4" />
 
+            {/* Tax + Service Charge */}
             {[
               {
                 label: `${t("bills.purchase.tax")} ${config ? `(${config.taxValue}${config.taxType === "PERCENTAGE" ? "%" : "₹"})` : ""}`,
                 value: fmt(taxAmount),
                 tooltip: t("bills.sale.taxTooltip", {
                   value: config?.taxValue,
-                  type: config?.taxType === "PERCENTAGE" ? t("bills.sale.taxPercentage") : t("bills.sale.taxFixed")
-                })
+                  type:
+                    config?.taxType === "PERCENTAGE"
+                      ? t("bills.sale.taxPercentage")
+                      : t("bills.sale.taxFixed"),
+                }),
               },
               {
                 label: `${t("bills.purchase.serviceCharge")} ${config ? `(${config.serviceChargeValue}${config.serviceChargeType === "PERCENTAGE" ? "%" : "₹"})` : ""}`,
                 value: fmt(serviceChargeAmount),
                 tooltip: t("bills.sale.serviceChargeTooltip", {
                   value: config?.serviceChargeValue,
-                  type: config?.serviceChargeType === "PERCENTAGE" ? t("bills.sale.scPercentage") : t("bills.sale.scFixed")
-                })
+                  type:
+                    config?.serviceChargeType === "PERCENTAGE"
+                      ? t("bills.sale.scPercentage")
+                      : t("bills.sale.scFixed"),
+                }),
               },
             ].map(({ label, value, tooltip }) => (
               <div
                 key={label}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "0.875rem",
-                }}
+                className="flex justify-between items-center mb-3.5"
               >
-                <div
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 800,
-                    color: "#64748b",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px"
-                  }}
-                >
+                <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wide flex items-center gap-1">
                   {label}
                   <Tooltip content={tooltip}>
-                    <Info size={11} style={{ cursor: "help", opacity: 0.7 }} />
+                    <Info size={11} className="cursor-help opacity-70" />
                   </Tooltip>
                 </div>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 800,
-                    color: "#94a3b8",
-                  }}
-                >
+                <span className="text-[13px] font-extrabold text-slate-400">
                   {value}
                 </span>
               </div>
             ))}
 
-            <div
-              style={{
-                height: "1px",
-                backgroundColor: "rgba(255,255,255,0.07)",
-                margin: "1rem 0",
-              }}
-            />
+            <div className="h-px bg-white/[0.07] my-4" />
 
-            <div
-              style={{
-                marginTop: "1.5rem",
-                padding: "1.25rem",
-                backgroundColor: "rgba(255,255,255,0.04)",
-                borderRadius: "14px",
-                border: "1px solid rgba(255,255,255,0.06)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  marginBottom: "0.5rem",
-                }}
-              >
-                <TrendingUp size={13} color="#60a5fa" />
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 900,
-                    color: "#60a5fa",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px"
-                  }}
-                >
+            {/* Total Payable */}
+            <div className="mt-6 p-5 bg-white/[0.04] rounded-[14px] border border-white/[0.06]">
+              <div className="flex items-center gap-1.5 mb-2">
+                <TrendingUp size={13} className="text-blue-400" />
+                <div className="text-[14px] font-black text-blue-400 uppercase tracking-[0.15em] flex items-center gap-1">
                   {t("bills.sale.payable")}
                   <Tooltip content={t("bills.sale.payableTooltip")}>
-                    <Info size={13} style={{ cursor: "help", opacity: 0.7 }} />
+                    <Info size={13} className="cursor-help opacity-70" />
                   </Tooltip>
                 </div>
               </div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "2.25rem",
-                  fontWeight: 900,
-                  color: "#fff",
-                  letterSpacing: "-0.03em",
-                  lineHeight: 1,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "1.25rem",
-                    color: "#475569",
-                    marginRight: "4px",
-                  }}
-                >
-                  ₹
-                </span>
+              <p className="m-0 text-4xl font-black text-slate-800 tracking-tight leading-none">
+                <span className="text-xl text-slate-600 mr-1">₹</span>
                 {netTotal.toLocaleString("en-IN")}
               </p>
             </div>
 
+            {/* Submit button */}
             <button
-              disabled={isSubmitting || lines.length === 0 || hasAnyStockError}
+              disabled={!canSubmit}
               onClick={handleSubmit}
-              style={{
-                width: "100%",
-                marginTop: "1.25rem",
-                padding: "14px",
-                border: "none",
-                borderRadius: "14px",
-                cursor:
-                  isSubmitting || lines.length === 0 || hasAnyStockError
-                    ? "not-allowed"
-                    : "pointer",
-                backgroundColor:
-                  isSubmitting || lines.length === 0 || hasAnyStockError ? "#1e293b" : "#0369a1",
-                color: isSubmitting || lines.length === 0 || hasAnyStockError ? "#475569" : "#fff",
-                fontWeight: 900,
-                fontSize: "13px",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                transition: "all 0.2s",
-                boxShadow:
-                  isSubmitting || lines.length === 0 || hasAnyStockError
-                    ? "none"
-                    : "0 8px 16px rgba(3,105,161,0.3)",
-              }}
+              className={`w-full mt-5 py-3.5 border-none rounded-[14px] font-black text-[13px] uppercase tracking-wide flex items-center justify-center gap-2 transition-all ${canSubmit
+                ? "bg-sky-700 text-white cursor-pointer shadow-[0_8px_16px_rgba(3,105,161,0.3)] hover:bg-sky-800"
+                : "bg-slate-800 text-slate-600 cursor-not-allowed"
+                }`}
             >
               {isSubmitting ? (
-                <div
-                  style={{
-                    width: "20px",
-                    height: "20px",
-                    border: "2px solid rgba(255,255,255,0.2)",
-                    borderTopColor: "#fff",
-                    borderRadius: "50%",
-                    animation: "spin 0.6s linear infinite",
-                  }}
-                />
+                <Loader2 size={20} className="animate-spin" />
               ) : (
                 <>
-                  <Save size={18} /> {t("bills.purchase.confirm")}
+                  <Save size={18} /> {t("bills.purchase.confirm")} (Ctrl+Enter)
                 </>
               )}
             </button>
@@ -1775,24 +1269,19 @@ export default function NewSaleBillPage() {
         </div>
       </div>
 
+      {/* ── Responsive styles ── */}
       <style>{`
-                @keyframes spin { to { transform: rotate(360deg); } }
-                input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
-                .bill-items-table { display: none; }
-                .bill-items-mobile { display: block; }
-                .sale-bill-grid { grid-template-columns: 1fr; }
-                .charges-grid { grid-template-columns: 1fr; }
-                @media (min-width: 640px) {
-                    .charges-grid { grid-template-columns: repeat(3, 1fr); }
-                }
-                @media (min-width: 768px) {
-                    .bill-items-table { display: table; }
-                    .bill-items-mobile { display: none; }
-                }
-                @media (min-width: 1024px) {
-                    .sale-bill-grid { grid-template-columns: 1fr 340px; }
-                }
-            `}</style>
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+        .bill-items-table { display: none; }
+        .bill-items-mobile { display: block; }
+        .sale-bill-grid { grid-template-columns: 1fr; }
+        @media (min-width: 768px) {
+          .bill-items-table { display: table; }
+          .bill-items-mobile { display: none; }
+        }
+      `}</style>
+
       <AddPartyModal
         isOpen={isCustomerModalOpen}
         onClose={() => setIsCustomerModalOpen(false)}
