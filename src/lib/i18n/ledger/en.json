@@ -13,5 +13,8 @@
     "noEntries": "No transactions yet",
     "openingBalance": "Opening Balance",
     "roundOffAdjustment": "Round-off Adjustment",
-    "paymentWithMode": "Payment · {{mode}}"
+    "paymentWithMode": "Payment · {{mode}}",
+    "billNo": "Bill No",
+    "amount": "Amount",
+    "payment": "Payment"
 }

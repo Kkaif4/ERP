@@ -13,5 +13,8 @@
     "noEntries": "अद्याप कोणतेही व्यवहार नाहीत",
     "openingBalance": "सुरुवातीची बाकी(ओपनिंग बॅलन्स)",
     "roundOffAdjustment": "राऊंड-ऑफ ॲडजस्टमेंट",
-    "paymentWithMode": "पेमेंट · {{mode}}"
+    "paymentWithMode": "पेमेंट · {{mode}}",
+    "billNo": "बिल नंबर",
+    "amount": "भुगतान",
+    "payment": "फेड"
 }
