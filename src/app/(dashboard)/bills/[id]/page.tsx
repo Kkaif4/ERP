@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { QRCodeSVG } from "qrcode.react";
 import { DateTime } from "luxon";
 import { downloadPDF, printPDF } from "@/lib/print";
@@ -25,7 +26,6 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 
 type PageSize = "A4" | "A5" | "LEGAL" | "FOLIO" | "THERMAL_80" | "THERMAL_58";
 
@@ -116,8 +116,40 @@ export default function BillDetailPage() {
     };
   }, [bill, loading, pageSize]);
 
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
   const handlePrint = () => {
     printPDF(`/api/bills/${id}/pdf`, { pageSize, lang: language });
+  };
+
+  const handleMarkAsPaid = async () => {
+    setIsConfirmOpen(false);
+    setIsMarkingPaid(true);
+    try {
+      const res = await fetch(`/api/bills/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PAID", action: "MARK_PAID" }),
+      });
+
+      if (res.ok) {
+        toast.success("Bill marked as PAID");
+        // Reload bill data
+        const billRes = await fetch(`/api/bills/${id}`);
+        if (billRes.ok) {
+          const billData = await billRes.json();
+          setBill(billData);
+        }
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to mark as paid");
+      }
+    } catch (error) {
+      toast.error("An error occurred");
+    } finally {
+      setIsMarkingPaid(false);
+    }
   };
 
   if (loading) {
@@ -221,6 +253,124 @@ export default function BillDetailPage() {
             {t("bills.details.downloadPdf") || "Download PDF"}
           </button>
         </div>
+      </div>
+
+      {/* --- Payment Status Section --- */}
+      <div
+        className="no-print"
+        style={{
+          width: "100%",
+          maxWidth: "900px",
+          marginBottom: "1rem",
+          padding: "1.25rem",
+          backgroundColor: bill.status === "PAID" ? "#f0fdf4" : "#fffbeb",
+          border: "1.5px solid",
+          borderColor: bill.status === "PAID" ? "#bcf0da" : "#fef3c7",
+          borderRadius: "16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "1rem",
+        }}
+      >
+        <div style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
+          <div>
+            <p
+              style={{
+                fontSize: "10px",
+                fontWeight: 900,
+                color: "#64748b",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                marginBottom: "4px",
+              }}
+            >
+              Payment Status
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  color: bill.status === "PAID" ? "#15803d" : "#b45309",
+                  padding: "4px 10px",
+                  backgroundColor:
+                    bill.status === "PAID"
+                      ? "rgba(34, 197, 94, 0.1)"
+                      : "rgba(245, 158, 11, 0.1)",
+                  borderRadius: "8px",
+                  border: "1px solid",
+                  borderColor:
+                    bill.status === "PAID"
+                      ? "rgba(34, 197, 94, 0.2)"
+                      : "rgba(245, 158, 11, 0.2)",
+                }}
+              >
+                {bill.status}
+              </span>
+            </div>
+          </div>
+
+          {bill.status === "PENDING" && (
+            <div>
+              <p
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 900,
+                  color: "#64748b",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  marginBottom: "4px",
+                }}
+              >
+                Due Amount
+              </p>
+              <p
+                style={{
+                  fontSize: "18px",
+                  fontWeight: 900,
+                  color: "#1e293b",
+                  margin: 0,
+                }}
+              >
+                ₹
+                {bill.netTotal.toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                })}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {bill.status === "PENDING" && (
+          <button
+            disabled={isMarkingPaid}
+            onClick={() => setIsConfirmOpen(true)}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#15803d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "10px",
+              fontSize: "13px",
+              fontWeight: 800,
+              cursor: isMarkingPaid ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              boxShadow: "0 4px 12px rgba(21,128,61,0.2)",
+              transition: "all 0.2s",
+              opacity: isMarkingPaid ? 0.7 : 1,
+            }}
+          >
+            {isMarkingPaid ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              "Mark as Paid"
+            )}
+          </button>
+        )}
       </div>
 
       {/* --- THE BILL DOCUMENT --- */}
@@ -724,10 +874,10 @@ export default function BillDetailPage() {
                   </span>
                   <span>
                     ₹
-                    {Number(bill.finalAmount || bill.netTotal).toLocaleString(
-                      "en-IN",
-                      { minimumFractionDigits: 2 },
-                    )}
+                    {(bill.finalAmount != null
+                      ? Number(bill.finalAmount)
+                      : Number(bill.previousBalance) + Number(bill.netTotal)
+                    ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -1904,6 +2054,16 @@ export default function BillDetailPage() {
           text-align: center;
         }
       `}</style>
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleMarkAsPaid}
+        title="Confirm Payment"
+        message="This will update the party ledger and record the payment in the system. This action cannot be easily undone. Do you want to proceed?"
+        confirmText="Yes, Mark as Paid"
+        loading={isMarkingPaid}
+        variant="success"
+      />
     </div>
   );
 }

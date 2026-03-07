@@ -119,6 +119,12 @@ export const purchaseBillSchema = z.object({
   othersNote: z.string().optional(),
   vehicleAgentId: z.string().uuid().optional(),
   munimRef: z.number().int().positive().optional(),
+  status: z.enum(["PENDING", "PAID"]).optional(),
+});
+
+export const billStatusUpdateSchema = z.object({
+  status: z.enum(["PAID"]), // For now only allowing marking as PAID
+  action: z.literal("MARK_PAID"),
 });
 
 export const saleBillSchema = z.object({
@@ -175,6 +181,10 @@ export const businessConfigSchema = z
       .default("A4"),
     city: z.string().optional().or(z.literal("")),
     enableStockRestriction: z.boolean().optional().default(false),
+    billingMethod: z
+      .enum(["STANDARD", "CUSTOM"])
+      .optional()
+      .default("STANDARD"),
     laborChargePerUnit: z
       .number()
       .nonnegative()
@@ -245,4 +255,9 @@ export const publicRegistrationSchema = z.object({
   username: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   organizationName: z.string().min(1, "Organization name is required"),
+});
+
+export const organizationPatchSchema = z.object({
+  name: z.string().min(1).optional(),
+  billingMethod: z.enum(["STANDARD", "CUSTOM"]).optional(),
 });

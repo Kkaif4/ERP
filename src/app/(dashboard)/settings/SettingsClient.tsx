@@ -13,12 +13,12 @@ interface BusinessConfigDto {
   taxValue: number;
   serviceChargeType: ChargeType;
   serviceChargeValue: number;
+  laborChargePerUnit: number;
   upiId?: string;
   logoBase64?: string;
   defaultPageSize: string;
   city?: string;
   enableStockRestriction: boolean;
-  laborChargePerUnit: number;
 }
 
 export default function SettingsClient() {
@@ -38,6 +38,9 @@ export default function SettingsClient() {
   const [city, setCity] = useState<string>("");
   const [enableStockRestriction, setEnableStockRestriction] =
     useState<boolean>(false);
+  const [billingMethod, setBillingMethod] = useState<"STANDARD" | "CUSTOM">(
+    "STANDARD",
+  );
   const [laborChargePerUnit, setLaborChargePerUnit] = useState<string>("0");
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -57,6 +60,7 @@ export default function SettingsClient() {
         setDefaultPageSize(data.defaultPageSize ?? "A4");
         setCity(data.city ?? "");
         setEnableStockRestriction(data.enableStockRestriction ?? false);
+        setBillingMethod((data as any).billingMethod ?? "STANDARD");
         setLaborChargePerUnit(String(data.laborChargePerUnit ?? 0));
       } catch (e: any) {
         console.error(e);
@@ -78,11 +82,12 @@ export default function SettingsClient() {
       taxValue: Number(taxValue),
       serviceChargeType,
       serviceChargeValue: Number(serviceChargeValue),
+      laborChargePerUnit: Number(laborChargePerUnit),
       upiId,
       defaultPageSize,
       city,
       enableStockRestriction,
-      laborChargePerUnit: Number(laborChargePerUnit),
+      billingMethod,
     };
 
     const validationResult = businessConfigSchema.safeParse(data);
@@ -529,7 +534,9 @@ export default function SettingsClient() {
             </div>
 
             {/* Labor Charge Section */}
-            <div>
+            <div
+              style={{ borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}
+            >
               <p
                 style={{
                   margin: "0 0 0.5rem",
@@ -540,65 +547,58 @@ export default function SettingsClient() {
                   letterSpacing: "0.18em",
                 }}
               >
-                {t("settings.laborSection") || "Labor Charges"}
+                {t("settings.chargesSection") || "Charges Configuration"}
               </p>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr",
-                  gap: "0.75rem",
-                  alignItems: "center",
-                }}
-              >
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "6px",
-                      fontSize: "10px",
-                      fontWeight: 800,
-                      letterSpacing: "0.16em",
-                      textTransform: "uppercase",
-                      color: "#94a3b8",
-                    }}
-                  >
-                    {t("settings.laborPerUnit") || "Labor Charge Per Unit (₹)"}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    value={laborChargePerUnit}
-                    onChange={(e) => setLaborChargePerUnit(e.target.value)}
-                    onKeyDown={(e) =>
-                      ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()
-                    }
-                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                    style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      padding: "10px 14px",
-                      borderRadius: "12px",
-                      border: "1.5px solid var(--border-main)",
-                      backgroundColor: "#f8fafc",
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      color: "var(--text-main)",
-                      outline: "none",
-                    }}
-                  />
-                  <p
-                    style={{
-                      marginTop: "8px",
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {t("settings.laborHint") ||
-                      "If set to a value > 0, labor charges in purchase bills will be automatically calculated based on total units."}
-                  </p>
-                </div>
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontSize: "10px",
+                    fontWeight: 800,
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    color: "#94a3b8",
+                  }}
+                >
+                  {t("settings.laborChargePerUnitLabel") ||
+                    "Labor Charge Per Unit (₹)"}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={laborChargePerUnit}
+                  onChange={(e) => setLaborChargePerUnit(e.target.value)}
+                  onKeyDown={(e) =>
+                    ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()
+                  }
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  placeholder="e.g. 2"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "10px 14px",
+                    borderRadius: "12px",
+                    border: "1.5px solid var(--border-main)",
+                    backgroundColor: "#f8fafc",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--text-main)",
+                    outline: "none",
+                  }}
+                />
+                <p
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "11px",
+                    color: "var(--text-muted)",
+                    fontWeight: 600,
+                  }}
+                >
+                  {t("settings.laborChargeHint") ||
+                    "Labour Charges in farmer bills will be auto-calculated as: Total Units × this value. Set to 0 to disable."}
+                </p>
               </div>
             </div>
 
@@ -854,6 +854,132 @@ export default function SettingsClient() {
                       transition: "left 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                     }}
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Billing Method Section */}
+            <div
+              style={{ borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}
+            >
+              <p
+                style={{
+                  margin: "0 0 1rem",
+                  fontSize: "11px",
+                  fontWeight: 900,
+                  color: "var(--text-muted)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.18em",
+                }}
+              >
+                {t("settings.billingSection") || "Billing Settings"}
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "1rem",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "16px",
+                  border: "1.5px solid var(--border-main)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 800,
+                      color: "var(--text-main)",
+                    }}
+                  >
+                    {t("settings.billingMethodLabel") || "Sale Billing Method"}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-muted)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {billingMethod === "STANDARD"
+                      ? t("settings.standardBillingHint") ||
+                        "Standard: Each bill redirects to list after confirmation."
+                      : t("settings.customBillingHint") ||
+                        "Custom: Items stay sticky; bills for same customer are consolidated."}
+                  </span>
+                </div>
+                <div
+                  onClick={() =>
+                    setBillingMethod(
+                      billingMethod === "STANDARD" ? "CUSTOM" : "STANDARD",
+                    )
+                  }
+                  style={{
+                    width: "100px",
+                    height: "36px",
+                    backgroundColor: "#f1f5f9",
+                    borderRadius: "10px",
+                    padding: "4px",
+                    display: "flex",
+                    position: "relative",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "4px",
+                      left: billingMethod === "STANDARD" ? "4px" : "50%",
+                      width: "calc(50% - 4px)",
+                      height: "calc(100% - 8px)",
+                      backgroundColor: "#fff",
+                      borderRadius: "8px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      transition: "left 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                      zIndex: 1,
+                    }}
+                  />
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      zIndex: 2,
+                      color:
+                        billingMethod === "STANDARD"
+                          ? "var(--primary-main)"
+                          : "#64748b",
+                    }}
+                  >
+                    STD
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      zIndex: 2,
+                      color:
+                        billingMethod === "CUSTOM"
+                          ? "var(--primary-main)"
+                          : "#64748b",
+                    }}
+                  >
+                    CUS
+                  </div>
                 </div>
               </div>
             </div>

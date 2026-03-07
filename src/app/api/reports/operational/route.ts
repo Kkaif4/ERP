@@ -63,6 +63,7 @@ export async function GET(req: Request) {
             amount: Number(b.netTotal),
             othersAmount: Number(b.othersAmount),
             othersNote: b.othersNote,
+            status: b.status,
             totalKg: b.items.reduce(
               (acc, item) => acc + Number(item.quantityKg),
               0,
@@ -111,6 +112,7 @@ export async function GET(req: Request) {
             date: b.billDate,
             party: b.customer?.name || "Unknown",
             amount: Number(b.netTotal),
+            status: b.status,
             totalKg: b.items.reduce(
               (acc, item) => acc + Number(item.quantityKg),
               0,

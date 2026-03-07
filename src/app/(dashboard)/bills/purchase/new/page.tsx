@@ -34,6 +34,7 @@ interface Farmer {
   id: string;
   name: string;
   mobile: string;
+  balance: number;
 }
 interface Item {
   id: string;
@@ -81,6 +82,9 @@ export default function NewPurchaseBillPage() {
   const [advanceDeduction, setAdvanceDeduction] = useState("");
   const [othersAmount, setOthersAmount] = useState("");
   const [othersNote, setOthersNote] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<"PENDING" | "PAID">(
+    "PENDING",
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useUser();
   const isAdmin = user?.role === "ORG_ADMIN" || user?.role === "SUPER_ADMIN";
@@ -106,6 +110,7 @@ export default function NewPurchaseBillPage() {
   // Refs for click outside dismissal
   const farmerSearchRef = useRef<HTMLDivElement>(null);
   const itemSearchRef = useRef<HTMLDivElement>(null);
+  const vehicleAgentSearchRef = useRef<HTMLDivElement>(null);
   const [isFarmerLoading, setIsFarmerLoading] = useState(false);
   const [debouncedFarmerSearch, setDebouncedFarmerSearch] = useState("");
 
@@ -113,7 +118,6 @@ export default function NewPurchaseBillPage() {
   const [hasMoreItems, setHasMoreItems] = useState(true);
   const [isItemLoading, setIsItemLoading] = useState(false);
   const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
-  const vehicleAgentSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/config")
@@ -180,12 +184,13 @@ export default function NewPurchaseBillPage() {
 
   // Auto-calculate labor charges if Labor Charge Per Unit is set
   useEffect(() => {
-    if (config && config.laborChargePerUnit > 0) {
+    const laborRate = Number(config?.laborChargePerUnit ?? 0);
+    if (config && laborRate > 0) {
       const totalUnits = lines.reduce(
         (acc, l) => acc + (parseFloat(l.quantityUnits) || 0),
         0,
       );
-      const calculatedLabor = totalUnits * config.laborChargePerUnit;
+      const calculatedLabor = totalUnits * laborRate;
       setLabourCharges(calculatedLabor > 0 ? calculatedLabor.toFixed(2) : "");
     }
   }, [lines, config]);
@@ -287,6 +292,7 @@ export default function NewPurchaseBillPage() {
     setItemSearch("");
     setIsItemDropdownOpen(false);
   };
+
   const updateLine = (index: number, field: keyof BillLine, value: any) => {
     const newLines = [...lines];
     if (
@@ -319,6 +325,7 @@ export default function NewPurchaseBillPage() {
     }
     setLines(newLines);
   };
+
   const removeLine = (index: number) =>
     setLines(lines.filter((_, i) => i !== index));
 
@@ -350,6 +357,7 @@ export default function NewPurchaseBillPage() {
       othersNote: othersNote,
       vehicleAgentId: selectedVehicleAgent?.id,
       munimRef: munimRef ? parseInt(munimRef) : undefined,
+      status: paymentStatus,
     };
 
     const result = purchaseBillSchema.safeParse(data);
@@ -560,17 +568,46 @@ export default function NewPurchaseBillPage() {
                     >
                       {selectedFarmer.name}
                     </p>
-                    <p
+                    <div
                       style={{
-                        margin: "2px 0 0",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        color: "#15803d",
-                        opacity: 0.7,
+                        display: "flex",
+                        gap: "8px",
+                        alignItems: "center",
+                        marginTop: "2px",
                       }}
                     >
-                      {selectedFarmer.mobile}
-                    </p>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#15803d",
+                          opacity: 0.7,
+                        }}
+                      >
+                        {selectedFarmer.mobile}
+                      </p>
+                      <div
+                        style={{
+                          width: "4px",
+                          height: "4px",
+                          borderRadius: "50%",
+                          backgroundColor: "#15803d",
+                          opacity: 0.3,
+                        }}
+                      />
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "12px",
+                          fontWeight: 800,
+                          color: "#15803d",
+                        }}
+                      >
+                        Balance: ₹
+                        {Number(selectedFarmer.balance).toLocaleString("en-IN")}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <button
@@ -782,7 +819,9 @@ export default function NewPurchaseBillPage() {
                               color: "#94a3b8",
                               fontWeight: 700,
                             }}
-                          ></p>
+                          >
+                            No farmers found
+                          </p>
                         )}
                     </div>
                   )}
@@ -1877,7 +1916,6 @@ export default function NewPurchaseBillPage() {
                   bg: "rgba(180,83,9,0.08)",
                   icon: Hammer,
                   tooltip: t("bills.purchase.labourTooltip"),
-                  readOnly: !!(config && config.laborChargePerUnit > 0),
                 },
                 {
                   label: t("bills.sale.freight"),
@@ -1906,113 +1944,101 @@ export default function NewPurchaseBillPage() {
                   icon: Plus,
                   tooltip: t("bills.purchase.othersTooltip"),
                 },
-              ].map(
-                ({
-                  label,
-                  value,
-                  set,
-                  color,
-                  bg,
-                  icon: Icon,
-                  tooltip,
-                  readOnly,
-                }) => (
-                  <div key={label}>
+              ].map(({ label, value, set, color, bg, icon: Icon, tooltip }) => (
+                <div key={label}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "8px",
+                    }}
+                  >
                     <div
                       style={{
+                        width: "24px",
+                        height: "24px",
+                        backgroundColor: bg,
+                        borderRadius: "6px",
                         display: "flex",
                         alignItems: "center",
-                        gap: "8px",
-                        marginBottom: "8px",
+                        justifyContent: "center",
+                        color,
                       }}
                     >
-                      <div
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          backgroundColor: bg,
-                          borderRadius: "6px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color,
-                        }}
-                      >
-                        <Icon size={12} strokeWidth={2.5} />
-                      </div>
-                      <div
-                        style={{
-                          margin: 0,
-                          fontSize: "14px",
-                          fontWeight: 900,
-                          color: "#64748b",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        {label}
-                        <Tooltip content={tooltip}>
-                          <Info
-                            size={12}
-                            style={{ cursor: "help", opacity: 0.7 }}
-                          />
-                        </Tooltip>
-                      </div>
+                      <Icon size={12} strokeWidth={2.5} />
                     </div>
-                    <div style={{ position: "relative" }}>
-                      <span
-                        style={{
-                          position: "absolute",
-                          left: "12px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          fontSize: "12px",
-                          fontWeight: 800,
-                          color: "#94a3b8",
-                        }}
-                      >
-                        ₹
-                      </span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={value}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "" || /^\d*\.?\d*$/.test(val)) set(val);
-                        }}
-                        readOnly={!!readOnly}
-                        style={{
-                          width: "100%",
-                          boxSizing: "border-box",
-                          padding: "12px 12px 12px 28px",
-                          backgroundColor: readOnly ? "#f8fafc" : "#f1f5f9",
-                          border: "1.5px solid #e2e8f0",
-                          borderRadius: "12px",
-                          fontWeight: 800,
-                          fontSize: "15px",
-                          color: "var(--text-main)",
-                          outline: "none",
-                          transition: "all 0.2s",
-                          cursor: readOnly ? "not-allowed" : "text",
-                          opacity: readOnly ? 0.7 : 1,
-                        }}
-                        onFocusCapture={(e) => {
-                          e.currentTarget.style.borderColor = color;
-                          e.currentTarget.style.backgroundColor = "#fff";
-                        }}
-                        onBlurCapture={(e) => {
-                          e.currentTarget.style.borderColor = "#e2e8f0";
-                          e.currentTarget.style.backgroundColor = "#f1f5f9";
-                        }}
-                      />
+                    <div
+                      style={{
+                        margin: 0,
+                        fontSize: "14px",
+                        fontWeight: 900,
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      {label}
+                      <Tooltip content={tooltip}>
+                        <Info
+                          size={12}
+                          style={{ cursor: "help", opacity: 0.7 }}
+                        />
+                      </Tooltip>
                     </div>
                   </div>
-                ),
-              )}
+                  <div style={{ position: "relative" }}>
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        fontSize: "12px",
+                        fontWeight: 800,
+                        color: "#94a3b8",
+                      }}
+                    >
+                      ₹
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      value={value}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*\.?\d*$/.test(val)) set(val);
+                      }}
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "12px 12px 12px 28px",
+                        backgroundColor: "#f1f5f9",
+                        border: "1.5px solid #e2e8f0",
+                        borderRadius: "12px",
+                        fontWeight: 800,
+                        fontSize: "15px",
+                        color: "var(--text-main)",
+                        outline: "none",
+                        transition: "all 0.2s",
+                      }}
+                      onFocusCapture={(e) => {
+                        e.currentTarget.style.borderColor = color;
+                        e.currentTarget.style.backgroundColor = "#fff";
+                      }}
+                      onBlurCapture={(e) => {
+                        e.currentTarget.style.borderColor = "#e2e8f0";
+                        e.currentTarget.style.backgroundColor = "#f1f5f9";
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Others Note */}
@@ -2107,6 +2133,76 @@ export default function NewPurchaseBillPage() {
               </p>
             </div>
 
+            <div style={{ marginBottom: "1.5rem" }}>
+              <p
+                style={{
+                  margin: "0 0 10px",
+                  fontSize: "12px",
+                  fontWeight: 900,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.15em",
+                  color: "#94a3b8",
+                }}
+              >
+                Payment Status
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  backgroundColor: "rgba(255,255,255,0.05)",
+                  padding: "4px",
+                  borderRadius: "12px",
+                  gap: "4px",
+                }}
+              >
+                {(["PENDING", "PAID"] as const).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setPaymentStatus(status)}
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      cursor: "pointer",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                      backgroundColor:
+                        paymentStatus === status ? "#fff" : "transparent",
+                      color:
+                        paymentStatus === status
+                          ? "#0f172a"
+                          : "rgba(255,255,255,0.45)",
+                      boxShadow:
+                        paymentStatus === status
+                          ? "0 4px 12px rgba(0,0,0,0.1)"
+                          : "none",
+                    }}
+                  >
+                    {status === "PENDING" ? "Pending" : "Paid Now"}
+                  </button>
+                ))}
+              </div>
+              {paymentStatus === "PENDING" && (
+                <p
+                  style={{
+                    margin: "8px 0 0",
+                    fontSize: "10px",
+                    color: "rgba(251,191,36,0.8)",
+                    fontWeight: 600,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  * Farmer ledger will be updated when this bill is marked as
+                  paid later.
+                </p>
+              )}
+            </div>
+
             <div
               style={{
                 display: "flex",
@@ -2133,6 +2229,45 @@ export default function NewPurchaseBillPage() {
               </span>
             </div>
 
+            {selectedFarmer && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "0.875rem",
+                  paddingTop: "0.875rem",
+                  borderTop: "1px dashed rgba(255,255,255,0.07)",
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Wallet size={12} color="#64748b" />
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 800,
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    Prev. Balance
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 800,
+                    color: "#94a3b8",
+                  }}
+                >
+                  {fmt(Number(selectedFarmer.balance))}
+                </span>
+              </div>
+            )}
+
             <div
               style={{
                 height: "1px",
@@ -2154,16 +2289,66 @@ export default function NewPurchaseBillPage() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
-                  marginBottom: "0.5rem",
+                  justifyContent: "space-between",
                 }}
               >
-                <TrendingUp size={13} color="#34d399" />
                 <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <TrendingUp size={13} color="#34d399" />
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: 900,
+                      color: "#34d399",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    Bill Net
+                  </div>
+                </div>
+                <span
                   style={{
                     fontSize: "14px",
                     fontWeight: 900,
                     color: "#34d399",
+                  }}
+                >
+                  {fmt(netTotal)}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  height: "1px",
+                  backgroundColor: "rgba(255,255,255,0.04)",
+                  margin: "10px 0",
+                }}
+              />
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                <Calculator size={13} color="#fff" />
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 900,
+                    color: "#fff",
                     textTransform: "uppercase",
                     letterSpacing: "0.15em",
                     display: "flex",
@@ -2171,10 +2356,7 @@ export default function NewPurchaseBillPage() {
                     gap: "4px",
                   }}
                 >
-                  {t("bills.purchase.netTotal")}
-                  <Tooltip content={t("bills.purchase.netTotalTooltip")}>
-                    <Info size={13} style={{ cursor: "help", opacity: 0.7 }} />
-                  </Tooltip>
+                  Final Total
                 </div>
               </div>
               <p
@@ -2196,7 +2378,10 @@ export default function NewPurchaseBillPage() {
                 >
                   ₹
                 </span>
-                {netTotal.toLocaleString("en-IN")}
+                {(
+                  netTotal +
+                  (selectedFarmer ? Number(selectedFarmer.balance) : 0)
+                ).toLocaleString("en-IN")}
               </p>
             </div>
 
@@ -2263,6 +2448,12 @@ export default function NewPurchaseBillPage() {
         }}
       />
 
+      <VehicleAgentModal
+        isOpen={isVehicleAgentModalOpen}
+        onClose={() => setIsVehicleAgentModalOpen(false)}
+        onSuccess={(agent) => setSelectedVehicleAgent(agent)}
+      />
+
       <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
                 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
@@ -2277,11 +2468,6 @@ export default function NewPurchaseBillPage() {
                     .purchase-bill-grid { grid-template-columns: 1fr 340px; }
                 }
             `}</style>
-      <VehicleAgentModal
-        isOpen={isVehicleAgentModalOpen}
-        onClose={() => setIsVehicleAgentModalOpen(false)}
-        onSuccess={(agent) => setSelectedVehicleAgent(agent)}
-      />
     </div>
   );
 }

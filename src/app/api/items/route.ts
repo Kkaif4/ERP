@@ -14,11 +14,18 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
 
-    const where = {
+    const isNumericSearch = /^\d+$/.test(search);
+    const where: any = {
         organizationId: session.organizationId!,
-        name: { contains: search, mode: "insensitive" as const },
         ...(activeOnly ? { isActive: true } : {}),
     };
+
+    if (search) {
+        where.OR = [
+            { name: { contains: search, mode: "insensitive" as const } },
+            ...(isNumericSearch ? [{ incrementalId: parseInt(search) }] : []),
+        ];
+    }
 
     const [total, items] = await Promise.all([
         prisma.item.count({ where }),
@@ -72,8 +79,21 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "An item with this name already exists" }, { status: 409 });
         }
 
+        // Generate incrementalId
+        const lastItem = await prisma.item.findFirst({
+            where: { organizationId: session.organizationId! },
+            orderBy: { incrementalId: "desc" },
+            select: { incrementalId: true },
+        });
+        const incrementalId = (lastItem?.incrementalId || 0) + 1;
+
         const item = await prisma.item.create({
-            data: { name, defaultPricingMode, organizationId: session.organizationId! },
+            data: {
+                name,
+                defaultPricingMode,
+                organizationId: session.organizationId!,
+                incrementalId,
+            },
         });
 
         await prisma.auditLog.create({

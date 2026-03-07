@@ -28,6 +28,7 @@ export async function POST(req: Request) {
       othersNote = "",
       vehicleAgentId,
       munimRef,
+      status = "PENDING",
     } = validationResult.data;
 
     // Fetch Farmer
@@ -82,7 +83,6 @@ export async function POST(req: Request) {
 
     const grossTotal = subtotal; // No tax/service on purchase
     const netTotal = subtotal - lc - fc - ad - oa;
-    const finalAmount = netTotal + previousBalance;
 
     // 4. Generate Bill Number
     const lastBill = await prisma.bill.findFirst({
@@ -118,10 +118,11 @@ export async function POST(req: Request) {
           advanceDeduction: ad,
           netTotal,
           previousBalance,
-          finalAmount,
+          finalAmount: netTotal + previousBalance,
           createdById: session.userId,
           vehicleAgentId,
           munimRef,
+          status,
           items: {
             create: lineItems,
           },
@@ -129,13 +130,36 @@ export async function POST(req: Request) {
         include: { items: true },
       });
 
-      // Update Farmer Balance
+      // ALWAYS Update Farmer Balance with Bill Amount (Increment Debt)
       await tx.farmer.update({
         where: { id: farmerId },
         data: {
           balance: { increment: netTotal },
         },
       });
+
+      // IF PAID, Create Payment and Decrement Balance (Settlement)
+      if (status === "PAID") {
+        const payment = await tx.payment.create({
+          data: {
+            organizationId: session.organizationId!,
+            farmerId,
+            billId: bill.id,
+            amount: netTotal,
+            mode: "CASH", // Default to CASH for now
+            notes: `Auto-payment for Bill ${billNumber}`,
+            recordedById: session.userId,
+            paymentDate: new Date(),
+          },
+        });
+
+        await tx.farmer.update({
+          where: { id: farmerId },
+          data: {
+            balance: { decrement: netTotal },
+          },
+        });
+      }
 
       // Audit Log
       await tx.auditLog.create({

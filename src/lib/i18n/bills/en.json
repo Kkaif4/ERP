@@ -103,5 +103,6 @@
     "item": "Item",
     "price": "Price",
     "kg": "KG"
-  }
+  },
+  "noBills": "No bills found"
 }

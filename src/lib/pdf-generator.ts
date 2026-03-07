@@ -106,6 +106,11 @@ const TRANSLATIONS: any = {
     othersamount: "Others Amount",
     vehicleAgent: "Transport",
     munimRef: "Munim Ref",
+    vehicleagentreport: "Vehicle Agent Report",
+    agentname: "Agent Name",
+    vehiclenumber: "Vehicle Number",
+    totalbillamount: "Total Bill Amount",
+    totalbills: "Total Bills",
   },
   mr: {
     purchaseBill: "खरेदी बिल",
@@ -164,6 +169,11 @@ const TRANSLATIONS: any = {
     othersamount: "इतर रक्कम",
     vehicleAgent: "वाहन प्रतिनिधी",
     munimRef: "मुनिम संदर्भ",
+    vehicleagentreport: "वाहन प्रतिनिधी अहवाल",
+    agentname: "प्रतिनिधीचे नाव",
+    vehiclenumber: "वाहन क्रमांक",
+    totalbillamount: "एकूण बिल रक्कम",
+    totalbills: "एकूण बिले",
   },
   hi: {
     purchaseBill: "खरीद बिल",
@@ -222,6 +232,11 @@ const TRANSLATIONS: any = {
     othersamount: "अन्य राशि",
     vehicleAgent: "वाहन एजेंट",
     munimRef: "मुनीम संदर्भ",
+    vehicleagentreport: "वाहन एजेंट रिपोर्ट",
+    agentname: "एजेंट का नाम",
+    vehiclenumber: "वाहन नंबर",
+    totalbillamount: "कुल बिल राशि",
+    totalbills: "कुल बिल",
   },
 };
 

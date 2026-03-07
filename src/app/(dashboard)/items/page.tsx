@@ -22,6 +22,7 @@ import { Modal } from "@/components/ui/Modal";
 
 interface Item {
   id: string;
+  incrementalId: number;
   name: string;
   defaultPricingMode: "WEIGHT" | "WEIGHT_KG" | "UNIT";
   isActive: boolean;
@@ -525,6 +526,7 @@ export default function ItemsPage() {
                   lineHeight: 1.3,
                 }}
               >
+                <span style={{ color: "var(--text-muted)", fontSize: "12px", marginRight: "6px", fontWeight: 700 }}>#{item.incrementalId}</span>
                 {item.name}
               </h3>
 
