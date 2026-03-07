@@ -26,8 +26,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 interface LedgerEntry {
   id: string;
@@ -57,9 +59,13 @@ export default function FarmerLedgerPage() {
 
   const [farmer, setFarmer] = useState<Farmer | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [pendingBills, setPendingBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
   const [form, setForm] = useState({
     amount: "",
     mode: "CASH",
@@ -75,6 +81,7 @@ export default function FarmerLedgerPage() {
       const data = await res.json();
       setFarmer(data.farmer);
       setLedger(data.ledger || []);
+      setPendingBills(data.pendingBills || []);
     } catch {
       toast.error("Failed to load ledger");
     } finally {
@@ -136,6 +143,36 @@ export default function FarmerLedgerPage() {
       toast.error("Failed to record payment");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleMarkAsPaid = async (billId: string) => {
+    setSelectedBillId(billId);
+    setIsConfirmOpen(true);
+  };
+
+  const executeMarkAsPaid = async () => {
+    if (!selectedBillId) return;
+    setIsConfirmOpen(false);
+    setIsMarkingPaid(true);
+    try {
+      const res = await fetch(`/api/bills/${selectedBillId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PAID", action: "MARK_PAID" }),
+      });
+      if (res.ok) {
+        toast.success("Bill marked as PAID");
+        fetchLedger();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to mark as paid");
+      }
+    } catch {
+      toast.error("An error occurred");
+    } finally {
+      setIsMarkingPaid(false);
+      setSelectedBillId(null);
     }
   };
 
@@ -485,6 +522,119 @@ export default function FarmerLedgerPage() {
         </div>
       </div>
 
+      {/* ── Pending Bills Section ── */}
+      {pendingBills.length > 0 && (
+        <div className="premium-card" style={{ padding: "1.5rem" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              marginBottom: "1.25rem",
+            }}
+          >
+            <div
+              style={{
+                width: "34px",
+                height: "34px",
+                borderRadius: "10px",
+                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#b45309",
+              }}
+            >
+              <ReceiptText size={16} />
+            </div>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: "14px",
+                fontWeight: 900,
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                color: "#b45309",
+              }}
+            >
+              Unpaid Pending Bills
+            </h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-amber-50/30">
+                  <TableHead className="text-[11px] font-black uppercase text-amber-900/60 pl-4">
+                    Bill No
+                  </TableHead>
+                  <TableHead className="text-[11px] font-black uppercase text-amber-900/60">
+                    Date
+                  </TableHead>
+                  <TableHead className="text-right text-[11px] font-black uppercase text-amber-900/60">
+                    Amount
+                  </TableHead>
+                  <TableHead className="w-[120px] pr-4"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingBills.map((b) => (
+                  <TableRow key={b.id} className="hover:bg-amber-50/20">
+                    <TableCell className="font-bold text-[13px] pl-4">
+                      <Link
+                        href={`/bills/${b.id}`}
+                        className="text-amber-700 hover:underline"
+                      >
+                        {b.billNumber}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-[12px] font-semibold text-gray-500">
+                      {fmtDate(b.billDate)}
+                    </TableCell>
+                    <TableCell className="text-right font-black text-[14px] text-amber-700 tabular-nums">
+                      {fmt(Number(b.netTotal))}
+                    </TableCell>
+                    <TableCell className="text-right pr-4">
+                      <button
+                        onClick={() => handleMarkAsPaid(b.id)}
+                        style={{
+                          padding: "6px 12px",
+                          backgroundColor: "#15803d",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: "8px",
+                          fontSize: "11px",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Mark Paid
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter className="bg-amber-50/50">
+                <TableRow>
+                  <TableCell
+                    colSpan={2}
+                    className="text-[11px] font-black text-amber-900/60 pl-4"
+                  >
+                    TOTAL OUTSTANDING
+                  </TableCell>
+                  <TableCell className="text-right font-black text-[15px] text-amber-900">
+                    {fmt(
+                      pendingBills.reduce((s, b) => s + Number(b.netTotal), 0),
+                    )}
+                  </TableCell>
+                  <TableCell className="pr-4" />
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </div>
+        </div>
+      )}
+
       {/* ── Ledger Table ── */}
       <div className="premium-card" style={{ overflow: "hidden" }}>
         <div
@@ -561,28 +711,62 @@ export default function FarmerLedgerPage() {
                   <TableRow className="bg-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
                     {[
                       { key: "date", label: t("common.date"), align: "left" },
-                      { key: "billNo", label: t("ledger.billNo") || "Bill No.", align: "left" },
+                      {
+                        key: "billNo",
+                        label: t("ledger.billNo") || "Bill No.",
+                        align: "left",
+                      },
                       { key: "type", label: t("common.type"), align: "left" },
-                      { key: "amount", label: t("ledger.amount") || "Amount", align: "right" },
-                      { key: "payment", label: t("ledger.payment") || "Payment", align: "right" },
-                      { key: "balance", label: t("common.balance"), align: "right" },
+                      {
+                        key: "amount",
+                        label: t("ledger.amount") || "Amount",
+                        align: "right",
+                      },
+                      {
+                        key: "payment",
+                        label: t("ledger.payment") || "Payment",
+                        align: "right",
+                      },
+                      {
+                        key: "balance",
+                        label: t("common.balance"),
+                        align: "right",
+                      },
                     ].map((h, idx) => (
                       <TableHead
                         key={h.key}
-                        onClick={h.key === "date" ? () => setDateSort(s => s === "asc" ? "desc" : "asc") : undefined}
+                        onClick={
+                          h.key === "date"
+                            ? () =>
+                                setDateSort((s) =>
+                                  s === "asc" ? "desc" : "asc",
+                                )
+                            : undefined
+                        }
                         className={cn(
                           "h-10 px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-600 border-r border-gray-200 last:border-r-0 whitespace-nowrap",
-                          (h.align === "right") && "text-right",
-                          h.key === "date" && "cursor-pointer select-none"
+                          h.align === "right" && "text-right",
+                          h.key === "date" && "cursor-pointer select-none",
                         )}
                       >
-                        <div className={cn(
-                          "flex items-center gap-1",
-                          h.align === "right" ? "justify-end" : "justify-start"
-                        )}>
+                        <div
+                          className={cn(
+                            "flex items-center gap-1",
+                            h.align === "right"
+                              ? "justify-end"
+                              : "justify-start",
+                          )}
+                        >
                           {h.label}
                           {h.key === "date" && (
-                            <span className={cn("text-xs", dateSort === "desc" ? "text-blue-600" : "text-gray-400")}>
+                            <span
+                              className={cn(
+                                "text-xs",
+                                dateSort === "desc"
+                                  ? "text-blue-600"
+                                  : "text-gray-400",
+                              )}
+                            >
                               {dateSort === "desc" ? "↓" : "↑"}
                             </span>
                           )}
@@ -611,8 +795,8 @@ export default function FarmerLedgerPage() {
                                 {entry.description.includes(".")
                                   ? entry.description.includes("|")
                                     ? t(entry.description.split("|")[0], {
-                                      mode: entry.description.split("|")[1],
-                                    })
+                                        mode: entry.description.split("|")[1],
+                                      })
                                     : t(entry.description)
                                   : entry.description}
                               </Link>
@@ -636,44 +820,74 @@ export default function FarmerLedgerPage() {
                         </div>
                       </TableCell>
                       <TableCell className="px-4 py-3 border-r border-gray-200">
-                        <span className={cn(
-                          "text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider",
-                          entry.type === "BILL" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                            entry.type === "OPENING" ? "bg-gray-50 text-gray-600 border-gray-200" :
-                              "bg-blue-50 text-blue-700 border-blue-200"
-                        )}>
+                        <span
+                          className={cn(
+                            "text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider",
+                            entry.type === "BILL"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : entry.type === "OPENING"
+                                ? "bg-gray-50 text-gray-600 border-gray-200"
+                                : "bg-blue-50 text-blue-700 border-blue-200",
+                          )}
+                        >
                           {entry.type}
                         </span>
                       </TableCell>
-                      <TableCell className={cn(
-                        "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200 bg-gray-50/30",
-                        entry.debit > 0 ? "text-blue-700" : "text-gray-300"
-                      )}>
+                      <TableCell
+                        className={cn(
+                          "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200 bg-gray-50/30",
+                          entry.debit > 0 ? "text-blue-700" : "text-gray-300",
+                        )}
+                      >
                         {entry.debit > 0 ? (
                           <>
-                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
-                            {entry.debit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">
+                              ₹
+                            </span>
+                            {entry.debit.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                            })}
                           </>
-                        ) : "—"}
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
-                      <TableCell className={cn(
-                        "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200",
-                        entry.credit > 0 ? "text-emerald-700" : "text-gray-300"
-                      )}>
+                      <TableCell
+                        className={cn(
+                          "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200",
+                          entry.credit > 0
+                            ? "text-emerald-700"
+                            : "text-gray-300",
+                        )}
+                      >
                         {entry.credit > 0 ? (
                           <>
-                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
-                            {entry.credit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">
+                              ₹
+                            </span>
+                            {entry.credit.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                            })}
                           </>
-                        ) : "—"}
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
-                      <TableCell className={cn(
-                        "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200 bg-gray-50/50",
-                        entry.runningBalance > 0 ? "text-orange-700" : "text-emerald-700"
-                      )}>
+                      <TableCell
+                        className={cn(
+                          "px-4 py-3 text-right text-[13px] font-bold tabular-nums border-l border-gray-200 bg-gray-50/50",
+                          entry.runningBalance > 0
+                            ? "text-orange-700"
+                            : "text-emerald-700",
+                        )}
+                      >
                         <div className="flex items-center justify-end gap-1.5">
-                          <span className="text-[11px] font-medium text-gray-400 mr-0.5">₹</span>
-                          {entry.runningBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          <span className="text-[11px] font-medium text-gray-400 mr-0.5">
+                            ₹
+                          </span>
+                          {entry.runningBalance.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -758,8 +972,8 @@ export default function FarmerLedgerPage() {
                               {entry.description.includes(".")
                                 ? entry.description.includes("|")
                                   ? t(entry.description.split("|")[0], {
-                                    mode: entry.description.split("|")[1],
-                                  })
+                                      mode: entry.description.split("|")[1],
+                                    })
                                   : t(entry.description)
                                 : entry.description}
                             </Link>
@@ -828,8 +1042,7 @@ export default function FarmerLedgerPage() {
               ))}
             </div>
           </>
-        )
-        }
+        )}
       </div>
 
       {/* ── Record Payment Modal ── */}
@@ -1075,8 +1288,8 @@ export default function FarmerLedgerPage() {
                         {roundOff
                           ? "0.00"
                           : remainingDue.toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
+                              minimumFractionDigits: 2,
+                            })}
                       </p>
                     </div>
                   </div>
@@ -1322,6 +1535,19 @@ export default function FarmerLedgerPage() {
                 }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        onClose={() => {
+          setIsConfirmOpen(false);
+          setSelectedBillId(null);
+        }}
+        onConfirm={executeMarkAsPaid}
+        title="Confirm Payment"
+        message="This will update the party ledger and record the payment in the system. This action cannot be easily undone. Do you want to proceed?"
+        confirmText="Yes, Mark as Paid"
+        loading={isMarkingPaid}
+        variant="success"
+      />
     </div>
   );
 }

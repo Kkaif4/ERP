@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { QRCodeSVG } from "qrcode.react";
 import { DateTime } from "luxon";
 import { downloadPDF, printPDF } from "@/lib/print";
@@ -24,7 +25,6 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 
 type PageSize = "A4" | "A5" | "LEGAL" | "FOLIO" | "THERMAL_80" | "THERMAL_58";
 
@@ -115,8 +115,40 @@ export default function BillDetailPage() {
     };
   }, [bill, loading, pageSize]);
 
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
   const handlePrint = () => {
     printPDF(`/api/bills/${id}/pdf`, { pageSize, lang: language });
+  };
+
+  const handleMarkAsPaid = async () => {
+    setIsConfirmOpen(false);
+    setIsMarkingPaid(true);
+    try {
+      const res = await fetch(`/api/bills/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PAID", action: "MARK_PAID" }),
+      });
+
+      if (res.ok) {
+        toast.success("Bill marked as PAID");
+        // Reload bill data
+        const billRes = await fetch(`/api/bills/${id}`);
+        if (billRes.ok) {
+          const billData = await billRes.json();
+          setBill(billData);
+        }
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to mark as paid");
+      }
+    } catch (error) {
+      toast.error("An error occurred");
+    } finally {
+      setIsMarkingPaid(false);
+    }
   };
 
   if (loading) {
@@ -164,9 +196,9 @@ export default function BillDetailPage() {
 
   const totalExpenses = isPurchase
     ? Number(bill.labourCharges || 0) +
-    Number(bill.freightCharges || 0) +
-    Number(bill.advanceDeduction || 0) +
-    Number(bill.othersAmount || 0)
+      Number(bill.freightCharges || 0) +
+      Number(bill.advanceDeduction || 0) +
+      Number(bill.othersAmount || 0)
     : 0;
 
   const totalUnits = totals.units.toFixed(1);
@@ -220,6 +252,124 @@ export default function BillDetailPage() {
             {t("bills.details.downloadPdf") || "Download PDF"}
           </button>
         </div>
+      </div>
+
+      {/* --- Payment Status Section --- */}
+      <div
+        className="no-print"
+        style={{
+          width: "100%",
+          maxWidth: "900px",
+          marginBottom: "1rem",
+          padding: "1.25rem",
+          backgroundColor: bill.status === "PAID" ? "#f0fdf4" : "#fffbeb",
+          border: "1.5px solid",
+          borderColor: bill.status === "PAID" ? "#bcf0da" : "#fef3c7",
+          borderRadius: "16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "1rem",
+        }}
+      >
+        <div style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
+          <div>
+            <p
+              style={{
+                fontSize: "10px",
+                fontWeight: 900,
+                color: "#64748b",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                marginBottom: "4px",
+              }}
+            >
+              Payment Status
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  color: bill.status === "PAID" ? "#15803d" : "#b45309",
+                  padding: "4px 10px",
+                  backgroundColor:
+                    bill.status === "PAID"
+                      ? "rgba(34, 197, 94, 0.1)"
+                      : "rgba(245, 158, 11, 0.1)",
+                  borderRadius: "8px",
+                  border: "1px solid",
+                  borderColor:
+                    bill.status === "PAID"
+                      ? "rgba(34, 197, 94, 0.2)"
+                      : "rgba(245, 158, 11, 0.2)",
+                }}
+              >
+                {bill.status}
+              </span>
+            </div>
+          </div>
+
+          {bill.status === "PENDING" && (
+            <div>
+              <p
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 900,
+                  color: "#64748b",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  marginBottom: "4px",
+                }}
+              >
+                Due Amount
+              </p>
+              <p
+                style={{
+                  fontSize: "18px",
+                  fontWeight: 900,
+                  color: "#1e293b",
+                  margin: 0,
+                }}
+              >
+                ₹
+                {bill.netTotal.toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                })}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {bill.status === "PENDING" && (
+          <button
+            disabled={isMarkingPaid}
+            onClick={() => setIsConfirmOpen(true)}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#15803d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "10px",
+              fontSize: "13px",
+              fontWeight: 800,
+              cursor: isMarkingPaid ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              boxShadow: "0 4px 12px rgba(21,128,61,0.2)",
+              transition: "all 0.2s",
+              opacity: isMarkingPaid ? 0.7 : 1,
+            }}
+          >
+            {isMarkingPaid ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              "Mark as Paid"
+            )}
+          </button>
+        )}
       </div>
 
       {/* --- THE BILL DOCUMENT --- */}
@@ -320,8 +470,6 @@ export default function BillDetailPage() {
             </div>
           </div>
 
-          <div className="divider" />
-
           {/* --- Party Information Section --- */}
           <div className="party-details-section">
             <div className="party-card">
@@ -397,6 +545,66 @@ export default function BillDetailPage() {
                 </p>
               )}
             </div>
+            {isPurchase && bill.vehicleAgent && (
+              <div
+                className="party-card"
+                style={{
+                  borderLeft: pageSize.startsWith("THERMAL")
+                    ? "none"
+                    : "1px solid #eee",
+                  paddingLeft: pageSize.startsWith("THERMAL") ? "0" : "20px",
+                }}
+              >
+                <h4
+                  style={{
+                    margin: "0 0 10px",
+                    fontSize: "11px",
+                    color: "#000000ff",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.15em",
+                    borderBottom: "1px solid #eee",
+                    paddingBottom: "6px",
+                    fontWeight: pageSize.startsWith("THERMAL") ? 600 : 700,
+                  }}
+                >
+                  Transport Details
+                </h4>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: pageSize.startsWith("THERMAL")
+                        ? "11px"
+                        : "13px",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    {bill.vehicleAgent.name}
+                  </span>
+                  {bill.vehicleAgent.vehicleNumber && (
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 800,
+                        color: "#6366f1",
+                        backgroundColor: "rgba(99,102,241,0.08)",
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                        border: "1px solid rgba(99,102,241,0.1)",
+                      }}
+                    >
+                      {bill.vehicleAgent.vehicleNumber}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div
@@ -427,7 +635,10 @@ export default function BillDetailPage() {
                 </TableHeader>
                 <TableBody>
                   {bill.items.map((item: any, idx: number) => (
-                    <TableRow key={item.id} className="border-b border-dashed border-[#eee] hover:bg-transparent">
+                    <TableRow
+                      key={item.id}
+                      className="border-b border-dashed border-[#eee] hover:bg-transparent"
+                    >
                       <TableCell className="py-1.5 px-0 text-[11px]">
                         {idx + 1}. {item.item.name}
                       </TableCell>
@@ -499,15 +710,22 @@ export default function BillDetailPage() {
                         {Number(item.quantityKg).toFixed(1)}
                       </TableCell>
                       <TableCell className="pl-4 pr-8 py-5 border-b border-[#eee] text-right text-[14px] text-[#0f172a] font-bold tabular-nums">
-                        <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">₹</span>
-                        {Number(item.pricePerUnit).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">
+                          ₹
+                        </span>
+                        {Number(item.pricePerUnit).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                        })}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
                 <TableFooter className="bg-[#fdfdfd] border-t-2 border-[#eee] font-black">
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={2} className="p-3 pl-8 text-left text-[12px] font-black uppercase tracking-widest text-[#94a3b8]">
+                    <TableCell
+                      colSpan={2}
+                      className="p-3 pl-8 text-left text-[12px] font-black uppercase tracking-widest text-[#94a3b8]"
+                    >
                       {t("bills.details.totals") || "TOTALS"}
                     </TableCell>
                     <TableCell className="p-3 text-right text-[14px] font-black text-[#1e293b] tabular-nums">
@@ -517,7 +735,9 @@ export default function BillDetailPage() {
                       {totalWeight.toFixed(2)}
                     </TableCell>
                     <TableCell className="p-3 pr-8 text-right text-[16px] font-black text-[#0f172a] tabular-nums">
-                      <span className="text-[13px] font-semibold text-[#64748b]/70 mr-0.5">₹</span>
+                      <span className="text-[13px] font-semibold text-[#64748b]/70 mr-0.5">
+                        ₹
+                      </span>
                       {Number(itemsSubtotal).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                       })}
@@ -653,10 +873,10 @@ export default function BillDetailPage() {
                   </span>
                   <span>
                     ₹
-                    {Number(bill.finalAmount || bill.netTotal).toLocaleString(
-                      "en-IN",
-                      { minimumFractionDigits: 2 },
-                    )}
+                    {(bill.finalAmount != null
+                      ? Number(bill.finalAmount)
+                      : Number(bill.previousBalance) + Number(bill.netTotal)
+                    ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -1833,6 +2053,16 @@ export default function BillDetailPage() {
           text-align: center;
         }
       `}</style>
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleMarkAsPaid}
+        title="Confirm Payment"
+        message="This will update the party ledger and record the payment in the system. This action cannot be easily undone. Do you want to proceed?"
+        confirmText="Yes, Mark as Paid"
+        loading={isMarkingPaid}
+        variant="success"
+      />
     </div>
   );
 }

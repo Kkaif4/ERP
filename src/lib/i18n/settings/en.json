@@ -34,5 +34,8 @@
   "billingSection": "Billing Settings",
   "billingMethodLabel": "Billing Method",
   "standardBillingHint": "Standard billing creates individual bills. Consolidated billing groups multiple items under one bill.",
-  "customBillingHint": "Custom: Items stay sticky; bills for same customer are consolidated."
+  "customBillingHint": "Custom: Items stay sticky; bills for same customer are consolidated.",
+  "chargesSection": "Charges",
+  "laborChargePerUnitLabel": "Labor Charge Per Unit",
+  "laborChargePerUnitHint": "Labor charge per unit of material."
 }

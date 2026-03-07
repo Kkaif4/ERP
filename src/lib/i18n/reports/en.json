@@ -29,7 +29,8 @@
     "DAILY_SUMMARY": "Daily Transaction Summary",
     "OUTSTANDING_PAYABLES": "Outstanding Payables (Farmers)",
     "OUTSTANDING_RECEIVABLES": "Outstanding Receivables (Customers)",
-    "EXPENSE_REPORT": "Business Expense Report"
+    "EXPENSE_REPORT": "Business Expense Report",
+    "VEHICLE_AGENT_REPORT": "Vehivle Agent Report"
   },
   "table": {
     "billNumber": "Bill #",
@@ -42,7 +43,10 @@
     "qtyKg": "Qty (KG)",
     "qtyUnits": "Qty (Units)",
     "others": "Others",
-    "othersNote": "Others Note"
+    "othersNote": "Others Note",
+    "agentName": "Agent Name",
+    "vehicleNumber": "Vehicle Number",
+    "billTotalAmount": "Bill Total Amount"
   },
   "dailySummary": {
     "tradeSummary": "Trade Summary",

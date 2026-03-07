@@ -18,7 +18,16 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const { customerId, items } = validationResult.data;
+    const {
+      customerId,
+      items,
+      labourCharges = 0,
+      freightCharges = 0,
+      advanceDeduction = 0,
+      othersAmount = 0,
+      othersNote = "",
+      munimRef,
+    } = validationResult.data;
 
     // Fetch Customer
     const customer = await prisma.customer.findFirst({

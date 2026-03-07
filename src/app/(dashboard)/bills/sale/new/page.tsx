@@ -70,7 +70,9 @@ export default function NewSaleBillPage() {
   const isAdmin = user?.role === "ORG_ADMIN" || user?.role === "SUPER_ADMIN";
 
   /* ── State ── */
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null,
+  );
   const [lines, setLines] = useState<BillLine[]>([]);
   const [config, setConfig] = useState<BusinessConfig | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,6 +86,7 @@ export default function NewSaleBillPage() {
   const [isCustomerLoading, setIsCustomerLoading] = useState(false);
   const [customerPage, setCustomerPage] = useState(1);
   const [hasMoreCustomers, setHasMoreCustomers] = useState(true);
+  const [munimRef, setMunimRef] = useState("");
 
   // Item search
   const [itemSearch, setItemSearch] = useState("");
@@ -115,13 +118,17 @@ export default function NewSaleBillPage() {
   // Scroll active elements into view
   useEffect(() => {
     if (isItemDropdownOpen && focusedItemIndex >= 0) {
-      document.getElementById(`item-option-${focusedItemIndex}`)?.scrollIntoView({ block: "nearest" });
+      document
+        .getElementById(`item-option-${focusedItemIndex}`)
+        ?.scrollIntoView({ block: "nearest" });
     }
   }, [focusedItemIndex, isItemDropdownOpen]);
 
   useEffect(() => {
     if (isCustomerDropdownOpen && focusedCustomerIndex >= 0) {
-      document.getElementById(`customer-option-${focusedCustomerIndex}`)?.scrollIntoView({ block: "nearest" });
+      document
+        .getElementById(`customer-option-${focusedCustomerIndex}`)
+        ?.scrollIntoView({ block: "nearest" });
     }
   }, [focusedCustomerIndex, isCustomerDropdownOpen]);
 
@@ -132,7 +139,7 @@ export default function NewSaleBillPage() {
     fetch("/api/config")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setConfig(d))
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   /* ── Debounce customer search ── */
@@ -165,14 +172,16 @@ export default function NewSaleBillPage() {
       try {
         const res = await fetch(
           `/api/customers?search=${encodeURIComponent(debouncedCustomerSearch)}&page=${customerPage}&limit=20`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         const result = await res.json();
         if (result.data) {
           setCustomersList((prev) =>
-            customerPage === 1 ? result.data : [...prev, ...result.data]
+            customerPage === 1 ? result.data : [...prev, ...result.data],
           );
-          setHasMoreCustomers(result.pagination.page < result.pagination.totalPages);
+          setHasMoreCustomers(
+            result.pagination.page < result.pagination.totalPages,
+          );
         }
       } catch {
         /* abort or network error */
@@ -194,14 +203,16 @@ export default function NewSaleBillPage() {
       try {
         const res = await fetch(
           `/api/items?search=${encodeURIComponent(debouncedItemSearch)}&page=${itemPage}&limit=20&activeOnly=true`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         const result = await res.json();
         if (result.data) {
           setItemsList((prev) =>
-            itemPage === 1 ? result.data : [...prev, ...result.data]
+            itemPage === 1 ? result.data : [...prev, ...result.data],
           );
-          setHasMoreItems(result.pagination.page < result.pagination.totalPages);
+          setHasMoreItems(
+            result.pagination.page < result.pagination.totalPages,
+          );
         }
       } catch {
         /* abort or network error */
@@ -236,8 +247,10 @@ export default function NewSaleBillPage() {
   }, []);
 
   /* ── Dropdown Positioning ── */
-  const [customerDropdownStyle, setCustomerDropdownStyle] = useState<React.CSSProperties>({});
-  const [itemDropdownStyle, setItemDropdownStyle] = useState<React.CSSProperties>({});
+  const [customerDropdownStyle, setCustomerDropdownStyle] =
+    useState<React.CSSProperties>({});
+  const [itemDropdownStyle, setItemDropdownStyle] =
+    useState<React.CSSProperties>({});
 
   const updateDropdownPositions = useCallback(() => {
     if (isCustomerDropdownOpen && customerSearchRef.current) {
@@ -308,7 +321,7 @@ export default function NewSaleBillPage() {
         parseFloat(l.price) > 0 &&
         (parseFloat(l.quantity) > 0 ||
           parseFloat(l.quantityKg) > 0 ||
-          parseFloat(l.quantityUnits) > 0)
+          parseFloat(l.quantityUnits) > 0),
     );
 
   const fmt = (n: number) => `₹ ${n.toLocaleString("en-IN")}`;
@@ -339,12 +352,17 @@ export default function NewSaleBillPage() {
         setTimeout(() => {
           const dRef = qtyRefs.current.get(`desktop-${newIdx}`);
           const mRef = qtyRefs.current.get(`mobile-${newIdx}`);
-          if (dRef && dRef.offsetParent !== null) { dRef.focus(); dRef.select(); }
-          else if (mRef && mRef.offsetParent !== null) { mRef.focus(); mRef.select(); }
+          if (dRef && dRef.offsetParent !== null) {
+            dRef.focus();
+            dRef.select();
+          } else if (mRef && mRef.offsetParent !== null) {
+            mRef.focus();
+            mRef.select();
+          }
         }, 50);
       });
     },
-    [lines]
+    [lines],
   );
 
   const updateLine = (index: number, field: keyof BillLine, value: any) => {
@@ -394,6 +412,7 @@ export default function NewSaleBillPage() {
         quantityUnits: parseFloat(l.quantityUnits) || 0,
         pricePerUnit: parseFloat(l.price) || 0,
       })),
+      munimRef: munimRef ? parseInt(munimRef) : undefined,
     };
 
     const result = saleBillSchema.safeParse(data);
@@ -444,13 +463,24 @@ export default function NewSaleBillPage() {
   }, [canSubmit, handleSubmit]);
 
   /* ── Keyboard: Qty → Price ── */
-  const focusVisible = (baseRefMap: Map<string, HTMLInputElement>, index: number) => {
+  const focusVisible = (
+    baseRefMap: Map<string, HTMLInputElement>,
+    index: number,
+  ) => {
     const dRef = baseRefMap.get(`desktop-${index}`);
     const mRef = baseRefMap.get(`mobile-${index}`);
-    if (dRef && dRef.offsetParent !== null) { dRef.focus(); dRef.select(); return true; }
-    if (mRef && mRef.offsetParent !== null) { mRef.focus(); mRef.select(); return true; }
+    if (dRef && dRef.offsetParent !== null) {
+      dRef.focus();
+      dRef.select();
+      return true;
+    }
+    if (mRef && mRef.offsetParent !== null) {
+      mRef.focus();
+      mRef.select();
+      return true;
+    }
     return false;
-  }
+  };
 
   const handleQuantityEnter = (index: number) => {
     const didFocusKg = focusVisible(qtyKgRefs.current, index);
@@ -474,10 +504,17 @@ export default function NewSaleBillPage() {
   /* ── Keyboard: Item Search Enter → Add first item from list ── */
   const handleItemSearchEnter = () => {
     if (itemsList.length > 0) {
-      const safeIndex = Math.min(Math.max(0, focusedItemIndex), itemsList.length - 1);
+      const safeIndex = Math.min(
+        Math.max(0, focusedItemIndex),
+        itemsList.length - 1,
+      );
       const selected = itemsList[safeIndex];
       if (!selected) return;
-      if (config?.enableStockRestriction && selected.availableKg <= 0 && selected.availableUnits <= 0) {
+      if (
+        config?.enableStockRestriction &&
+        selected.availableKg <= 0 &&
+        selected.availableUnits <= 0
+      ) {
         toast.error("Item is out of stock");
         return;
       }
@@ -493,7 +530,9 @@ export default function NewSaleBillPage() {
       handleItemSearchEnter();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setFocusedItemIndex((prev) => (prev < itemsList.length - 1 ? prev + 1 : prev));
+      setFocusedItemIndex((prev) =>
+        prev < itemsList.length - 1 ? prev + 1 : prev,
+      );
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setFocusedItemIndex((prev) => (prev > 0 ? prev - 1 : 0));
@@ -509,7 +548,10 @@ export default function NewSaleBillPage() {
         itemInputRef.current?.focus();
       }
     } else if (!selectedCustomer && customersList.length > 0) {
-      const safeIndex = Math.min(Math.max(0, focusedCustomerIndex), customersList.length - 1);
+      const safeIndex = Math.min(
+        Math.max(0, focusedCustomerIndex),
+        customersList.length - 1,
+      );
       const selected = customersList[safeIndex];
       if (!selected) return;
       setSelectedCustomer(selected);
@@ -531,7 +573,9 @@ export default function NewSaleBillPage() {
       handleCustomerEnter();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setFocusedCustomerIndex((prev) => (prev < customersList.length - 1 ? prev + 1 : prev));
+      setFocusedCustomerIndex((prev) =>
+        prev < customersList.length - 1 ? prev + 1 : prev,
+      );
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setFocusedCustomerIndex((prev) => (prev > 0 ? prev - 1 : 0));
@@ -601,7 +645,8 @@ export default function NewSaleBillPage() {
                 />
 
                 {/* Item dropdown */}
-                {mounted && isItemDropdownOpen &&
+                {mounted &&
+                  isItemDropdownOpen &&
                   (debouncedItemSearch.length > 0 || itemsList.length > 0) &&
                   createPortal(
                     <div
@@ -609,7 +654,8 @@ export default function NewSaleBillPage() {
                       className="bg-white border border-[var(--border-main)] rounded-[14px] shadow-[0_20px_40px_rgba(0,0,0,0.1)] p-1 max-h-60 overflow-y-auto"
                       onMouseDown={(e) => e.stopPropagation()}
                       onScroll={(e) => {
-                        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                        const { scrollTop, scrollHeight, clientHeight } =
+                          e.currentTarget;
                         if (
                           scrollHeight - scrollTop <= clientHeight + 50 &&
                           hasMoreItems &&
@@ -634,20 +680,23 @@ export default function NewSaleBillPage() {
                               addLine(item);
                             }}
                             disabled={!!outOfStock}
-                            className={`w-full block text-left px-3.5 py-2.5 border-none bg-transparent rounded-[10px] text-[13px] font-bold text-slate-800 transition-colors ${outOfStock
-                              ? "opacity-50 cursor-not-allowed"
-                              : isFocused
-                                ? "bg-sky-100 cursor-pointer shadow-sm text-sky-950 ring-1 ring-sky-200"
-                                : "cursor-pointer hover:bg-sky-50"
-                              }`}
+                            className={`w-full block text-left px-3.5 py-2.5 border-none bg-transparent rounded-[10px] text-[13px] font-bold text-slate-800 transition-colors ${
+                              outOfStock
+                                ? "opacity-50 cursor-not-allowed"
+                                : isFocused
+                                  ? "bg-sky-100 cursor-pointer shadow-sm text-sky-950 ring-1 ring-sky-200"
+                                  : "cursor-pointer hover:bg-sky-50"
+                            }`}
                           >
                             <div className="flex justify-between items-center">
                               <span>{item.name}</span>
                               <span
-                                className={`text-[11px] font-extrabold ${item.availableKg <= 0 && item.availableUnits <= 0
-                                  ? "text-red-500"
-                                  : "text-emerald-500"
-                                  }`}
+                                className={`text-[11px] font-extrabold ${
+                                  item.availableKg <= 0 &&
+                                  item.availableUnits <= 0
+                                    ? "text-red-500"
+                                    : "text-emerald-500"
+                                }`}
                               >
                                 {item.availableKg > 0
                                   ? `${item.availableKg} KG`
@@ -677,7 +726,7 @@ export default function NewSaleBillPage() {
                           </p>
                         )}
                     </div>,
-                    document.body
+                    document.body,
                   )}
               </div>
             </div>
@@ -685,10 +734,7 @@ export default function NewSaleBillPage() {
             {/* Items table / empty state */}
             {lines.length === 0 ? (
               <div className="py-16 px-4 text-center text-slate-300">
-                <ShoppingCart
-                  size={40}
-                  className="mx-auto mb-4 opacity-40"
-                />
+                <ShoppingCart size={40} className="mx-auto mb-4 opacity-40" />
                 <p className="m-0 text-xs font-extrabold uppercase tracking-[0.15em]">
                   {t("bills.purchase.emptyItems")}
                 </p>
@@ -715,7 +761,10 @@ export default function NewSaleBillPage() {
                         <div className="flex items-center justify-end gap-1">
                           {t("bills.purchase.total")}
                           <Tooltip content={t("bills.purchase.totalTooltip")}>
-                            <Info size={14} className="cursor-help opacity-70" />
+                            <Info
+                              size={14}
+                              className="cursor-help opacity-70"
+                            />
                           </Tooltip>
                         </div>
                       </th>
@@ -739,10 +788,12 @@ export default function NewSaleBillPage() {
                                   : "per Unit"}
                             </span>
                             <span
-                              className={`text-[11px] font-extrabold px-2 py-0.5 rounded-md ${line.availableKg <= 0 && line.availableUnits <= 0
-                                ? "text-red-500 bg-red-500/[0.08]"
-                                : "text-slate-500 bg-slate-50"
-                                }`}
+                              className={`text-[11px] font-extrabold px-2 py-0.5 rounded-md ${
+                                line.availableKg <= 0 &&
+                                line.availableUnits <= 0
+                                  ? "text-red-500 bg-red-500/[0.08]"
+                                  : "text-slate-500 bg-slate-50"
+                              }`}
                             >
                               Stock:{" "}
                               {line.pricingMode === "UNIT"
@@ -772,10 +823,11 @@ export default function NewSaleBillPage() {
                               }
                             }}
                             onFocus={(e) => e.target.select()}
-                            className={`w-[60px] block mx-auto p-2 text-center rounded-[10px] font-extrabold text-sm outline-none transition-all ${isStockError(line)
-                              ? "bg-red-50 border-[1.5px] border-red-500 focus:bg-red-50/80"
-                              : "bg-slate-100 border-[1.5px] border-slate-200 focus:border-sky-700 focus:bg-white"
-                              }`}
+                            className={`w-[60px] block mx-auto p-2 text-center rounded-[10px] font-extrabold text-sm outline-none transition-all ${
+                              isStockError(line)
+                                ? "bg-red-50 border-[1.5px] border-red-500 focus:bg-red-50/80"
+                                : "bg-slate-100 border-[1.5px] border-slate-200 focus:border-sky-700 focus:bg-white"
+                            }`}
                           />
                           {isStockError(line) && (
                             <p className="mt-1 text-[10px] font-extrabold text-red-500 text-center m-0">
@@ -793,7 +845,8 @@ export default function NewSaleBillPage() {
                         <td className="px-4 py-4">
                           <input
                             ref={(el) => {
-                              if (el) qtyKgRefs.current.set(`desktop-${idx}`, el);
+                              if (el)
+                                qtyKgRefs.current.set(`desktop-${idx}`, el);
                               else qtyKgRefs.current.delete(`desktop-${idx}`);
                             }}
                             type="text"
@@ -809,10 +862,11 @@ export default function NewSaleBillPage() {
                               }
                             }}
                             onFocus={(e) => e.target.select()}
-                            className={`w-[70px] block mx-auto p-2 text-center rounded-[10px] font-extrabold text-sm outline-none transition-all ${isStockError(line)
-                              ? "bg-red-50 border-[1.5px] border-red-500 focus:bg-red-50/80"
-                              : "bg-slate-100 border-[1.5px] border-slate-200 focus:border-sky-700 focus:bg-white"
-                              }`}
+                            className={`w-[70px] block mx-auto p-2 text-center rounded-[10px] font-extrabold text-sm outline-none transition-all ${
+                              isStockError(line)
+                                ? "bg-red-50 border-[1.5px] border-red-500 focus:bg-red-50/80"
+                                : "bg-slate-100 border-[1.5px] border-slate-200 focus:border-sky-700 focus:bg-white"
+                            }`}
                           />
                           {isStockError(line) && (
                             <p className="mt-1 text-[10px] font-extrabold text-red-500 text-center m-0">
@@ -834,7 +888,8 @@ export default function NewSaleBillPage() {
                             </span>
                             <input
                               ref={(el) => {
-                                if (el) priceRefs.current.set(`desktop-${idx}`, el);
+                                if (el)
+                                  priceRefs.current.set(`desktop-${idx}`, el);
                                 else priceRefs.current.delete(`desktop-${idx}`);
                               }}
                               type="text"
@@ -877,7 +932,10 @@ export default function NewSaleBillPage() {
                 {/* Mobile cards */}
                 <div className="bill-items-mobile">
                   {lines.map((line, idx) => (
-                    <div key={idx} className="px-6 py-5 border-b border-slate-100">
+                    <div
+                      key={idx}
+                      className="px-6 py-5 border-b border-slate-100"
+                    >
                       <div className="flex justify-between items-start mb-4">
                         <div>
                           <p className="m-0 font-extrabold text-[15px] text-slate-800">
@@ -923,10 +981,11 @@ export default function NewSaleBillPage() {
                               }
                             }}
                             onFocus={(e) => e.target.select()}
-                            className={`w-full box-border p-2.5 text-center rounded-[10px] font-extrabold text-[15px] outline-none ${isStockError(line)
-                              ? "bg-red-50 border-[1.5px] border-red-500"
-                              : "bg-slate-50 border-[1.5px] border-transparent focus:border-sky-700 focus:bg-white"
-                              }`}
+                            className={`w-full box-border p-2.5 text-center rounded-[10px] font-extrabold text-[15px] outline-none ${
+                              isStockError(line)
+                                ? "bg-red-50 border-[1.5px] border-red-500"
+                                : "bg-slate-50 border-[1.5px] border-transparent focus:border-sky-700 focus:bg-white"
+                            }`}
                           />
                         </div>
                         {/* KG */}
@@ -936,7 +995,8 @@ export default function NewSaleBillPage() {
                           </p>
                           <input
                             ref={(el) => {
-                              if (el) qtyKgRefs.current.set(`mobile-${idx}`, el);
+                              if (el)
+                                qtyKgRefs.current.set(`mobile-${idx}`, el);
                               else qtyKgRefs.current.delete(`mobile-${idx}`);
                             }}
                             type="text"
@@ -952,10 +1012,11 @@ export default function NewSaleBillPage() {
                               }
                             }}
                             onFocus={(e) => e.target.select()}
-                            className={`w-full box-border p-2.5 text-center rounded-[10px] font-extrabold text-[15px] outline-none ${isStockError(line)
-                              ? "bg-red-50 border-[1.5px] border-red-500"
-                              : "bg-slate-50 border-[1.5px] border-transparent focus:border-sky-700 focus:bg-white"
-                              }`}
+                            className={`w-full box-border p-2.5 text-center rounded-[10px] font-extrabold text-[15px] outline-none ${
+                              isStockError(line)
+                                ? "bg-red-50 border-[1.5px] border-red-500"
+                                : "bg-slate-50 border-[1.5px] border-transparent focus:border-sky-700 focus:bg-white"
+                            }`}
                           />
                         </div>
                         {/* Price */}
@@ -969,7 +1030,8 @@ export default function NewSaleBillPage() {
                             </span>
                             <input
                               ref={(el) => {
-                                if (el) priceRefs.current.set(`mobile-${idx}`, el);
+                                if (el)
+                                  priceRefs.current.set(`mobile-${idx}`, el);
                                 else priceRefs.current.delete(`mobile-${idx}`);
                               }}
                               type="text"
@@ -1010,7 +1072,6 @@ export default function NewSaleBillPage() {
 
         {/* ════════ RIGHT COLUMN — Customer & Summary ════════ */}
         <div className="lg:sticky lg:top-24 h-fit flex flex-col gap-6 w-full min-w-0">
-
           {/* ── Customer Card ── */}
           <div className="premium-card p-5 relative z-40 bg-white">
             <div className="flex items-center justify-between mb-4">
@@ -1098,15 +1159,18 @@ export default function NewSaleBillPage() {
                 />
 
                 {/* Customer dropdown */}
-                {mounted && isCustomerDropdownOpen &&
-                  (debouncedCustomerSearch.length > 0 || customersList.length > 0) &&
+                {mounted &&
+                  isCustomerDropdownOpen &&
+                  (debouncedCustomerSearch.length > 0 ||
+                    customersList.length > 0) &&
                   createPortal(
                     <div
                       style={customerDropdownStyle}
                       className="bg-white border border-slate-200 rounded-[14px] shadow-xl p-1.5 max-h-[250px] overflow-y-auto"
                       onMouseDown={(e) => e.stopPropagation()}
                       onScroll={(e) => {
-                        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                        const { scrollTop, scrollHeight, clientHeight } =
+                          e.currentTarget;
                         if (
                           scrollHeight - scrollTop <= clientHeight + 50 &&
                           hasMoreCustomers &&
@@ -1134,8 +1198,11 @@ export default function NewSaleBillPage() {
                                 }
                               }, 100);
                             }}
-                            className={`w-full flex flex-col gap-0.5 px-3 py-2.5 border-none bg-transparent cursor-pointer rounded-[10px] transition-colors text-left ${isFocused ? "bg-sky-100 ring-1 ring-sky-200" : "hover:bg-sky-50"
-                              }`}
+                            className={`w-full flex flex-col gap-0.5 px-3 py-2.5 border-none bg-transparent cursor-pointer rounded-[10px] transition-colors text-left ${
+                              isFocused
+                                ? "bg-sky-100 ring-1 ring-sky-200"
+                                : "hover:bg-sky-50"
+                            }`}
                           >
                             <p className="m-0 font-extrabold text-slate-800 text-[13px]">
                               {c.name}
@@ -1148,7 +1215,10 @@ export default function NewSaleBillPage() {
                       })}
                       {isCustomerLoading && (
                         <div className="p-3 text-center">
-                          <Loader2 size={16} className="animate-spin text-sky-700 mx-auto" />
+                          <Loader2
+                            size={16}
+                            className="animate-spin text-sky-700 mx-auto"
+                          />
                         </div>
                       )}
                       {!isCustomerLoading &&
@@ -1159,7 +1229,7 @@ export default function NewSaleBillPage() {
                           </p>
                         )}
                     </div>,
-                    document.body
+                    document.body,
                   )}
               </div>
             )}
@@ -1252,10 +1322,11 @@ export default function NewSaleBillPage() {
             <button
               disabled={!canSubmit}
               onClick={handleSubmit}
-              className={`w-full mt-5 py-3.5 border-none rounded-[14px] font-black text-[13px] uppercase tracking-wide flex items-center justify-center gap-2 transition-all ${canSubmit
-                ? "bg-sky-700 text-white cursor-pointer shadow-[0_8px_16px_rgba(3,105,161,0.3)] hover:bg-sky-800"
-                : "bg-slate-800 text-slate-600 cursor-not-allowed"
-                }`}
+              className={`w-full mt-5 py-3.5 border-none rounded-[14px] font-black text-[13px] uppercase tracking-wide flex items-center justify-center gap-2 transition-all ${
+                canSubmit
+                  ? "bg-sky-700 text-white cursor-pointer shadow-[0_8px_16px_rgba(3,105,161,0.3)] hover:bg-sky-800"
+                  : "bg-slate-800 text-slate-600 cursor-not-allowed"
+              }`}
             >
               {isSubmitting ? (
                 <Loader2 size={20} className="animate-spin" />

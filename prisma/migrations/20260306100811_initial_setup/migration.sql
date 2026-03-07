@@ -5,7 +5,16 @@ CREATE TYPE "SystemRole" AS ENUM ('SUPER_ADMIN', 'ORG_ADMIN', 'ORG_STAFF');
 CREATE TYPE "BillType" AS ENUM ('PURCHASE', 'SALE');
 
 -- CreateEnum
-CREATE TYPE "PricingMode" AS ENUM ('WEIGHT', 'UNIT');
+CREATE TYPE "BillingMethod" AS ENUM ('STANDARD', 'CUSTOM');
+
+-- CreateEnum
+CREATE TYPE "BillStatus" AS ENUM ('PENDING', 'PAID');
+
+-- CreateEnum
+CREATE TYPE "PricingMode" AS ENUM ('WEIGHT', 'WEIGHT_KG', 'UNIT');
+
+-- CreateEnum
+CREATE TYPE "BalanceType" AS ENUM ('DUE', 'ADVANCE');
 
 -- CreateEnum
 CREATE TYPE "PaymentMode" AS ENUM ('CASH', 'BANK_TRANSFER', 'OTHER');
@@ -31,6 +40,7 @@ CREATE TABLE "Organization" (
     "email" TEXT,
     "address" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "billingMethod" "BillingMethod" NOT NULL DEFAULT 'STANDARD',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -79,7 +89,6 @@ CREATE TABLE "User" (
     "id" UUID NOT NULL,
     "username" TEXT NOT NULL,
     "password" TEXT NOT NULL,
-    "pin" TEXT,
     "name" TEXT NOT NULL,
     "role" "SystemRole" NOT NULL DEFAULT 'ORG_STAFF',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
@@ -97,7 +106,11 @@ CREATE TABLE "Farmer" (
     "name" TEXT NOT NULL,
     "mobile" TEXT NOT NULL,
     "address" TEXT,
+    "incrementalId" INTEGER NOT NULL,
     "balance" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "openingBalance" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "openingBalanceType" "BalanceType" NOT NULL DEFAULT 'DUE',
+    "openingBalanceDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -111,7 +124,11 @@ CREATE TABLE "Customer" (
     "name" TEXT NOT NULL,
     "mobile" TEXT NOT NULL,
     "address" TEXT,
+    "incrementalId" INTEGER NOT NULL,
     "balance" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "openingBalance" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "openingBalanceType" "BalanceType" NOT NULL DEFAULT 'DUE',
+    "openingBalanceDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -123,8 +140,11 @@ CREATE TABLE "Item" (
     "id" UUID NOT NULL,
     "organizationId" UUID NOT NULL,
     "name" TEXT NOT NULL,
+    "incrementalId" INTEGER NOT NULL,
     "defaultPricingMode" "PricingMode" NOT NULL DEFAULT 'WEIGHT',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "availableKg" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "availableUnits" DECIMAL(12,2) NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -147,8 +167,15 @@ CREATE TABLE "Bill" (
     "grossTotal" DECIMAL(12,2) NOT NULL,
     "advanceDeduction" DECIMAL(12,2) NOT NULL DEFAULT 0,
     "netTotal" DECIMAL(12,2) NOT NULL,
+    "previousBalance" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "finalAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "othersAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "othersNote" TEXT,
     "billDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdById" UUID NOT NULL,
+    "status" "BillStatus" NOT NULL DEFAULT 'PAID',
+    "vehicleAgentId" UUID,
+    "munimRef" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -164,6 +191,8 @@ CREATE TABLE "BillItem" (
     "quantity" DECIMAL(10,2) NOT NULL,
     "pricePerUnit" DECIMAL(10,2) NOT NULL,
     "total" DECIMAL(12,2) NOT NULL,
+    "quantityKg" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "quantityUnits" DECIMAL(10,2) NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "BillItem_pkey" PRIMARY KEY ("id")
@@ -177,6 +206,7 @@ CREATE TABLE "Payment" (
     "customerId" UUID,
     "billId" UUID,
     "amount" DECIMAL(12,2) NOT NULL,
+    "roundOffAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
     "mode" "PaymentMode" NOT NULL,
     "paymentDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "notes" TEXT,
@@ -237,9 +267,45 @@ CREATE TABLE "BusinessConfig" (
     "taxValue" DECIMAL(8,4) NOT NULL DEFAULT 0,
     "serviceChargeType" "ChargeType" NOT NULL DEFAULT 'PERCENTAGE',
     "serviceChargeValue" DECIMAL(8,4) NOT NULL DEFAULT 0,
+    "upiId" TEXT,
+    "logoBase64" TEXT,
+    "defaultPageSize" TEXT NOT NULL DEFAULT 'A4',
+    "city" TEXT,
+    "enableStockRestriction" BOOLEAN NOT NULL DEFAULT false,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "laborChargePerUnit" DECIMAL(8,2) NOT NULL DEFAULT 0,
 
     CONSTRAINT "BusinessConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Expense" (
+    "id" UUID NOT NULL,
+    "organizationId" UUID NOT NULL,
+    "expenseDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "amount" DECIMAL(12,2) NOT NULL,
+    "paymentId" UUID,
+    "paymentMode" "PaymentMode" DEFAULT 'CASH',
+    "category" TEXT,
+    "description" TEXT,
+    "createdById" UUID,
+    "deletedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Expense_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "VehicleAgent" (
+    "id" UUID NOT NULL,
+    "organizationId" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "vehicleNumber" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "VehicleAgent_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -276,6 +342,9 @@ CREATE INDEX "Farmer_mobile_idx" ON "Farmer"("mobile");
 CREATE UNIQUE INDEX "Farmer_organizationId_mobile_key" ON "Farmer"("organizationId", "mobile");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Farmer_organizationId_incrementalId_key" ON "Farmer"("organizationId", "incrementalId");
+
+-- CreateIndex
 CREATE INDEX "Customer_organizationId_idx" ON "Customer"("organizationId");
 
 -- CreateIndex
@@ -288,10 +357,16 @@ CREATE INDEX "Customer_mobile_idx" ON "Customer"("mobile");
 CREATE UNIQUE INDEX "Customer_organizationId_mobile_key" ON "Customer"("organizationId", "mobile");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Customer_organizationId_incrementalId_key" ON "Customer"("organizationId", "incrementalId");
+
+-- CreateIndex
 CREATE INDEX "Item_organizationId_idx" ON "Item"("organizationId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Item_organizationId_name_key" ON "Item"("organizationId", "name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Item_organizationId_incrementalId_key" ON "Item"("organizationId", "incrementalId");
 
 -- CreateIndex
 CREATE INDEX "Bill_organizationId_idx" ON "Bill"("organizationId");
@@ -347,6 +422,24 @@ CREATE INDEX "AuditLog_createdAt_idx" ON "AuditLog"("createdAt");
 -- CreateIndex
 CREATE UNIQUE INDEX "BusinessConfig_organizationId_key" ON "BusinessConfig"("organizationId");
 
+-- CreateIndex
+CREATE INDEX "Expense_organizationId_idx" ON "Expense"("organizationId");
+
+-- CreateIndex
+CREATE INDEX "Expense_paymentId_idx" ON "Expense"("paymentId");
+
+-- CreateIndex
+CREATE INDEX "Expense_createdById_idx" ON "Expense"("createdById");
+
+-- CreateIndex
+CREATE INDEX "VehicleAgent_organizationId_idx" ON "VehicleAgent"("organizationId");
+
+-- CreateIndex
+CREATE INDEX "VehicleAgent_name_idx" ON "VehicleAgent"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "VehicleAgent_organizationId_name_key" ON "VehicleAgent"("organizationId", "name");
+
 -- AddForeignKey
 ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -376,6 +469,9 @@ ALTER TABLE "Bill" ADD CONSTRAINT "Bill_customerId_fkey" FOREIGN KEY ("customerI
 
 -- AddForeignKey
 ALTER TABLE "Bill" ADD CONSTRAINT "Bill_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Bill" ADD CONSTRAINT "Bill_vehicleAgentId_fkey" FOREIGN KEY ("vehicleAgentId") REFERENCES "VehicleAgent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "BillItem" ADD CONSTRAINT "BillItem_billId_fkey" FOREIGN KEY ("billId") REFERENCES "Bill"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -421,3 +517,15 @@ ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userI
 
 -- AddForeignKey
 ALTER TABLE "BusinessConfig" ADD CONSTRAINT "BusinessConfig_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Expense" ADD CONSTRAINT "Expense_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Expense" ADD CONSTRAINT "Expense_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "Payment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Expense" ADD CONSTRAINT "Expense_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "VehicleAgent" ADD CONSTRAINT "VehicleAgent_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

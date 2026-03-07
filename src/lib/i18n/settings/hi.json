@@ -34,5 +34,8 @@
   "billingSection": "बिलिंग सेटिंग्स",
   "billingMethodLabel": "बिलिंग तरीका",
   "standardBillingHint": "मानक बिलिंग व्यक्तिगत बिल बनाती है। समेकित बिलिंग एक बिल के तहत कई आइटम समूहित करती है।",
-  "customBillingHint": "कस्टम: आइटम चिपचिपे रहते हैं; एक ही ग्राहक के बिल समेकित किए जाते हैं।"
+  "customBillingHint": "कस्टम: आइटम चिपचिपे रहते हैं; एक ही ग्राहक के बिल समेकित किए जाते हैं।",
+  "chargesSection": "चार्ज",
+  "laborChargePerUnitLabel": "लाबर चार्ज (प्रति इकाई)",
+  "laborChargePerUnitHint": "लाबर चार्ज (प्रति इकाई)"
 }
