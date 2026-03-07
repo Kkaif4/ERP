@@ -421,482 +421,757 @@ export default function BillDetailPage() {
           }}
         >
           {/* --- Business Header Section (Centered) --- */}
-          <div className="bill-header">
-            <div className="business-logo-container">
-              {config?.logoBase64 && (
-                <img
-                  src={config.logoBase64}
-                  alt="Business Logo"
-                  className="business-logo"
-                />
-              )}
-            </div>
-            <div className="business-info">
-              <h1 className="business-name">{bill.organization.name}</h1>
-              <p className="business-desc">
-                Vegetable Commission Agent & Wholesaler
-              </p>
-              <div className="business-meta">
-                {bill.organization.address && (
-                  <div className="info-item">
-                    <MapPin size={12} />
-                    <span>{bill.organization.address}</span>
+          {pageSize.startsWith("THERMAL") ? (
+            <>
+              {/* --- Business Header Section (Centered) --- */}
+              <div className="bill-header">
+                <div className="business-logo-container">
+                  {config?.logoBase64 && (
+                    <img
+                      src={config.logoBase64}
+                      alt="Business Logo"
+                      className="business-logo"
+                    />
+                  )}
+                </div>
+                <div className="business-info">
+                  <h1 className="business-name">{bill.organization.name}</h1>
+                  <p className="business-desc">
+                    Vegetable Commission Agent & Wholesaler
+                  </p>
+                  <div className="business-meta">
+                    {bill.organization.address && (
+                      <div className="info-item">
+                        <MapPin size={12} />
+                        <span>{bill.organization.address}</span>
+                      </div>
+                    )}
+                    {bill.organization.phone && (
+                      <div className="info-item">
+                        <Phone size={12} />
+                        <span>+91 {bill.organization.phone}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {bill.organization.phone && (
-                  <div className="info-item">
-                    <Phone size={12} />
-                    <span>+91 {bill.organization.phone}</span>
+                </div>
+                <div className="bill-meta-block">
+                  <div className="meta-field">
+                    <span className="meta-label">
+                      {t("bills.details.billNo") || "Bill No"}:
+                    </span>
+                    <span className="meta-value">#{bill.billNumber}</span>
                   </div>
-                )}
+                  <div className="meta-field">
+                    <span className="meta-label">
+                      {t("bills.details.date") || "Date"}:
+                    </span>
+                    <span className="meta-value">
+                      {bill?.billDate
+                        ? DateTime.fromISO(bill.billDate).toFormat(
+                            "dd-MMM-yyyy",
+                          )
+                        : "N/A"}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="bill-meta-block">
-              <div className="meta-field">
-                <span className="meta-label">
-                  {t("bills.details.billNo") || "Bill No"}:
-                </span>
-                <span className="meta-value">#{bill.billNumber}</span>
-              </div>
-              <div className="meta-field">
-                <span className="meta-label">
-                  {t("bills.details.date") || "Date"}:
-                </span>
-                <span className="meta-value">
-                  {bill?.billDate
-                    ? DateTime.fromISO(bill.billDate).toFormat("dd-MMM-yyyy")
-                    : "N/A"}
-                </span>
-              </div>
-            </div>
-          </div>
 
-          {/* --- Party Information Section --- */}
-          <div className="party-details-section">
-            <div className="party-card">
-              <h4
-                style={{
-                  margin: "0 0 10px",
-                  fontSize: "11px",
-                  color: "#000000ff",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.15em",
-                  borderBottom: "1px solid #eee",
-                  paddingBottom: "6px",
-                  fontWeight: pageSize.startsWith("THERMAL") ? 600 : 700,
-                }}
-              >
-                {isPurchase
-                  ? t("bills.details.farmerDetails") || "Farmer Details"
-                  : t("bills.details.customerDetails") || "Customer Details"}
-              </h4>
-              <span
-                style={{
-                  color: "#94a3b8",
-                  fontWeight: 700,
-                  fontSize: pageSize.startsWith("THERMAL") ? "11px" : "13px",
-                }}
-              >
-                {isPurchase ? (
-                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                    {t("bills.details.farmerName") || "Farmer"}:
-                  </span>
-                ) : (
-                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                    {t("bills.details.customerName") || "Name"}:
-                  </span>
-                )}
-              </span>{" "}
-              <span
-                style={{
-                  fontSize: pageSize.startsWith("THERMAL") ? "11px" : "11px",
-                  fontWeight: 600,
-                }}
-              >
-                {partyName}
-                {partyMobile && (
-                  <p
+              {/* --- Party Information Section --- */}
+              <div className="party-details-section">
+                <div className="party-card">
+                  <h4
                     style={{
-                      margin: "2px 0 0",
+                      margin: "0 0 10px",
                       fontSize: "11px",
-                      color: "#475569",
-                      fontWeight: 600,
+                      color: "#000000ff",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
+                      borderBottom: "1px solid #eee",
+                      paddingBottom: "6px",
+                      fontWeight: pageSize.startsWith("THERMAL") ? 600 : 700,
                     }}
                   >
-                    <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                      {t("bills.details.mobile") || "Mobile"}:
-                    </span>{" "}
-                    {partyMobile}
-                  </p>
-                )}
-              </span>
-              {isPurchase && bill.farmer?.village && (
-                <p
-                  style={{
-                    margin: "2px 0 0",
-                    fontSize: "11px",
-                    color: "#475569",
-                    fontWeight: 600,
-                  }}
-                >
-                  <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                    {t("bills.details.village") || "Village"}:
+                    {isPurchase
+                      ? t("bills.details.farmerDetails") || "Farmer Details"
+                      : t("bills.details.customerDetails") ||
+                        "Customer Details"}
+                  </h4>
+                  <span
+                    style={{
+                      color: "#94a3b8",
+                      fontWeight: 700,
+                      fontSize: pageSize.startsWith("THERMAL")
+                        ? "11px"
+                        : "13px",
+                    }}
+                  >
+                    {isPurchase ? (
+                      <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                        {t("bills.details.farmerName") || "Farmer"}:
+                      </span>
+                    ) : (
+                      <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                        {t("bills.details.customerName") || "Name"}:
+                      </span>
+                    )}
                   </span>{" "}
-                  {bill.farmer.village}
-                </p>
-              )}
-            </div>
-            {isPurchase && bill.vehicleAgent && (
-              <div
-                className="party-card"
-                style={{
-                  borderLeft: pageSize.startsWith("THERMAL")
-                    ? "none"
-                    : "1px solid #eee",
-                  paddingLeft: pageSize.startsWith("THERMAL") ? "0" : "20px",
-                }}
-              >
-                <h4
-                  style={{
-                    margin: "0 0 10px",
-                    fontSize: "11px",
-                    color: "#000000ff",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                    borderBottom: "1px solid #eee",
-                    paddingBottom: "6px",
-                    fontWeight: pageSize.startsWith("THERMAL") ? 600 : 700,
-                  }}
-                >
-                  Transport Details
-                </h4>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
                   <span
                     style={{
                       fontSize: pageSize.startsWith("THERMAL")
                         ? "11px"
-                        : "13px",
-                      fontWeight: 700,
-                      color: "#1e293b",
+                        : "11px",
+                      fontWeight: 600,
                     }}
                   >
-                    {bill.vehicleAgent.name}
+                    {partyName}
+                    {partyMobile && (
+                      <p
+                        style={{
+                          margin: "2px 0 0",
+                          fontSize: "11px",
+                          color: "#475569",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                          {t("bills.details.mobile") || "Mobile"}:
+                        </span>{" "}
+                        {partyMobile}
+                      </p>
+                    )}
                   </span>
-                  {bill.vehicleAgent.vehicleNumber && (
-                    <span
+                  {isPurchase && bill.farmer?.village && (
+                    <p
                       style={{
-                        fontSize: "10px",
-                        fontWeight: 800,
-                        color: "#6366f1",
-                        backgroundColor: "rgba(99,102,241,0.08)",
-                        padding: "2px 8px",
-                        borderRadius: "6px",
-                        border: "1px solid rgba(99,102,241,0.1)",
+                        margin: "2px 0 0",
+                        fontSize: "11px",
+                        color: "#475569",
+                        fontWeight: 600,
                       }}
                     >
-                      {bill.vehicleAgent.vehicleNumber}
-                    </span>
+                      <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                        {t("bills.details.village") || "Village"}:
+                      </span>{" "}
+                      {bill.farmer.village}
+                    </p>
                   )}
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div
-            className="items-container"
-            style={{
-              overflowX: "auto",
-              width: "100%",
-              WebkitOverflowScrolling: "touch",
-            }}
-          >
-            {pageSize.startsWith("THERMAL") ? (
-              <Table className="w-full mb-8 text-xs border-collapse">
-                <TableHeader>
-                  <TableRow className="border-b border-dashed border-[#ccc] hover:bg-transparent">
-                    <TableHead className="h-8 px-0 text-left font-bold text-[#64748b]">
-                      {t("bills.details.item") || "Item"}
-                    </TableHead>
-                    <TableHead className="h-8 px-0 text-right font-bold text-[#64748b]">
-                      {t("bills.details.units") || "Unit"}
-                    </TableHead>
-                    <TableHead className="h-8 px-0 text-right font-bold text-[#64748b]">
-                      {t("bills.details.weight") || "KG"}
-                    </TableHead>
-                    <TableHead className="h-8 px-0 text-right font-bold text-[#64748b]">
-                      {t("bills.details.price") || "Price"}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bill.items.map((item: any, idx: number) => (
-                    <TableRow
-                      key={item.id}
-                      className="border-b border-dashed border-[#eee] hover:bg-transparent"
+                {isPurchase && bill.vehicleAgent && (
+                  <div
+                    className="party-card"
+                    style={{
+                      borderLeft: pageSize.startsWith("THERMAL")
+                        ? "none"
+                        : "1px solid #eee",
+                      paddingLeft: pageSize.startsWith("THERMAL")
+                        ? "0"
+                        : "20px",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        margin: "0 0 10px",
+                        fontSize: "11px",
+                        color: "#000000ff",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.15em",
+                        borderBottom: "1px solid #eee",
+                        paddingBottom: "6px",
+                        fontWeight: pageSize.startsWith("THERMAL") ? 600 : 700,
+                      }}
                     >
-                      <TableCell className="py-1.5 px-0 text-[11px]">
-                        {idx + 1}. {item.item.name}
-                      </TableCell>
-                      <TableCell className="py-1.5 px-0 text-right text-[11px]">
-                        {Number(item.quantityUnits).toFixed(1)}
-                      </TableCell>
-                      <TableCell className="py-1.5 px-0 text-right text-[11px]">
-                        {Number(item.quantityKg).toFixed(1)}
-                      </TableCell>
-                      <TableCell className="py-1.5 px-0 text-right font-semibold text-[11px]">
-                        {Number(item.pricePerUnit).toLocaleString("en-IN")}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter className="bg-transparent border-t border-dashed border-[#ccc] font-bold">
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell className="py-2 px-0 text-[10px]">
-                      {t("bills.details.totals") || "TOTALS"}
-                    </TableCell>
-                    <TableCell className="py-2 px-0 text-right text-[11px]">
-                      {totalUnits}
-                    </TableCell>
-                    <TableCell className="py-2 px-0 text-right text-[11px]">
-                      {totalWeight.toFixed(1)}
-                    </TableCell>
-                    <TableCell className="py-2 px-0 text-right">
-                      {Number(itemsSubtotal).toLocaleString("en-IN", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            ) : (
-              <Table className="w-full mb-8 min-w-[650px] border-collapse">
-                <TableHeader>
-                  <TableRow className="bg-[#f8fafc] border-b-2 border-[#eee] hover:bg-[#f8fafc]">
-                    <TableHead className="h-14 pl-8 pr-4 text-left text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
-                      {t("bills.details.srNo") || "Sr."}
-                    </TableHead>
-                    <TableHead className="h-14 px-4 text-left text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
-                      {t("bills.details.item") || "Item"}
-                    </TableHead>
-                    <TableHead className="h-14 px-4 text-right text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
-                      {t("bills.details.units") || "Unit"}
-                    </TableHead>
-                    <TableHead className="h-14 px-4 text-right text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
-                      {t("bills.details.weight") || "Weight"}
-                    </TableHead>
-                    <TableHead className="h-14 pl-4 pr-8 text-right text-[11px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">
-                      {t("bills.details.price") || "Price"}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bill.items.map((item: any, idx: number) => (
-                    <TableRow key={item.id} className="hover:bg-transparent">
-                      <TableCell className="pl-8 pr-4 py-5 border-b border-[#eee] text-[14px] text-[#475569] font-medium tabular-nums">
-                        {idx + 1}
-                      </TableCell>
-                      <TableCell className="px-4 py-5 border-b border-[#eee] text-[14px] text-[#1e293b]">
-                        <div className="font-bold">{item.item.name}</div>
-                      </TableCell>
-                      <TableCell className="px-4 py-5 border-b border-[#eee] text-right text-[14px] text-[#475569] font-medium tabular-nums">
-                        {Number(item.quantityUnits).toFixed(1)}
-                      </TableCell>
-                      <TableCell className="px-4 py-5 border-b border-[#eee] text-right text-[14px] text-[#475569] font-medium tabular-nums">
-                        {Number(item.quantityKg).toFixed(1)}
-                      </TableCell>
-                      <TableCell className="pl-4 pr-8 py-5 border-b border-[#eee] text-right text-[14px] text-[#0f172a] font-bold tabular-nums">
-                        <span className="text-[12px] font-semibold text-[#64748b]/70 mr-0.5">
-                          ₹
+                      Transport Details
+                    </h4>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: pageSize.startsWith("THERMAL")
+                            ? "11px"
+                            : "13px",
+                          fontWeight: 700,
+                          color: "#1e293b",
+                        }}
+                      >
+                        {bill.vehicleAgent.name}
+                      </span>
+                      {bill.vehicleAgent.vehicleNumber && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 800,
+                            color: "#6366f1",
+                            backgroundColor: "rgba(99,102,241,0.08)",
+                            padding: "2px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid rgba(99,102,241,0.1)",
+                          }}
+                        >
+                          {bill.vehicleAgent.vehicleNumber}
                         </span>
-                        {Number(item.pricePerUnit).toLocaleString("en-IN", {
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div
+                className="items-container"
+                style={{
+                  overflowX: "auto",
+                  width: "100%",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
+                <Table className="w-full mb-8 text-xs border-collapse">
+                  <TableHeader>
+                    <TableRow className="border-b border-dashed border-[#ccc] hover:bg-transparent">
+                      <TableHead className="h-8 px-0 text-left font-bold text-[#64748b]">
+                        {t("bills.details.item") || "Item"}
+                      </TableHead>
+                      <TableHead className="h-8 px-0 text-right font-bold text-[#64748b]">
+                        {t("bills.details.units") || "Unit"}
+                      </TableHead>
+                      <TableHead className="h-8 px-0 text-right font-bold text-[#64748b]">
+                        {t("bills.details.weight") || "KG"}
+                      </TableHead>
+                      <TableHead className="h-8 px-0 text-right font-bold text-[#64748b]">
+                        {t("bills.details.price") || "Price"}
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bill.items.map((item: any, idx: number) => (
+                      <TableRow
+                        key={item.id}
+                        className="border-b border-dashed border-[#eee] hover:bg-transparent"
+                      >
+                        <TableCell className="py-1.5 px-0 text-[11px]">
+                          {idx + 1}. {item.item.name}
+                        </TableCell>
+                        <TableCell className="py-1.5 px-0 text-right text-[11px]">
+                          {Number(item.quantityUnits).toFixed(1)}
+                        </TableCell>
+                        <TableCell className="py-1.5 px-0 text-right text-[11px]">
+                          {Number(item.quantityKg).toFixed(1)}
+                        </TableCell>
+                        <TableCell className="py-1.5 px-0 text-right font-semibold text-[11px]">
+                          {Number(item.pricePerUnit).toLocaleString("en-IN")}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter className="bg-transparent border-t border-dashed border-[#ccc] font-bold">
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell className="py-2 px-0 text-[10px]">
+                        {t("bills.details.totals") || "TOTALS"}
+                      </TableCell>
+                      <TableCell className="py-2 px-0 text-right text-[11px]">
+                        {totalUnits}
+                      </TableCell>
+                      <TableCell className="py-2 px-0 text-right text-[11px]">
+                        {totalWeight.toFixed(1)}
+                      </TableCell>
+                      <TableCell className="py-2 px-0 text-right">
+                        {Number(itemsSubtotal).toLocaleString("en-IN", {
                           minimumFractionDigits: 2,
                         })}
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter className="bg-[#fdfdfd] border-t-2 border-[#eee] font-black">
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell
-                      colSpan={2}
-                      className="p-3 pl-8 text-left text-[12px] font-black uppercase tracking-widest text-[#94a3b8]"
-                    >
-                      {t("bills.details.totals") || "TOTALS"}
-                    </TableCell>
-                    <TableCell className="p-3 text-right text-[14px] font-black text-[#1e293b] tabular-nums">
-                      {totalUnits}
-                    </TableCell>
-                    <TableCell className="p-3 text-right text-[14px] font-black text-[#1e293b] tabular-nums">
-                      {totalWeight.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="p-3 pr-8 text-right text-[16px] font-black text-[#0f172a] tabular-nums">
-                      <span className="text-[13px] font-semibold text-[#64748b]/70 mr-0.5">
-                        ₹
+                  </TableFooter>
+                </Table>
+              </div>
+
+              {/* --- Charges & Summary Section --- */}
+              <div className="summary-grid">
+                {isPurchase ? (
+                  <div className="charges-section">
+                    <p className="section-label">
+                      {t("bills.details.chargesSection") ||
+                        "Charges & Adjustments"}
+                    </p>
+                    <div className="charges-list">
+                      {/* Farmer Specific Charges */}
+                      <div className="charge-item">
+                        <span>
+                          {t("bills.details.labour") || "Labour / Hamali"}
+                        </span>
+                        <span>- ₹{Number(bill.labourCharges).toFixed(2)}</span>
+                      </div>
+                      <div className="charge-item">
+                        <span>
+                          {t("bills.details.freight") || "Freight / Vehicle"}
+                        </span>
+                        <span>- ₹{Number(bill.freightCharges).toFixed(2)}</span>
+                      </div>
+                      <div className="charge-item deduction">
+                        <span>
+                          {t("bills.details.advance") || "Advance Adjusted"}
+                        </span>
+                        <span>
+                          - ₹{Number(bill.advanceDeduction).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="charge-item">
+                        <span>
+                          {t("bills.details.others") || "Others"} (
+                          {bill.othersNote || "Adjustment"})
+                        </span>
+                        <span>- ₹{Number(bill.othersAmount).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div />
+                )}
+
+                <div className="final-summary">
+                  <div className="summary-box">
+                    <div className="summary-row">
+                      <span>
+                        {t("bills.details.grossTotal") || "Gross Total"}
                       </span>
-                      {Number(itemsSubtotal).toLocaleString("en-IN", {
+                      <span>
+                        ₹
+                        {Number(
+                          !isPurchase
+                            ? itemsSubtotal
+                            : bill.grossTotal || itemsSubtotal,
+                        ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    {isPurchase && totalExpenses > 0 && (
+                      <div className="summary-row" style={{ color: "#dc2626" }}>
+                        <span>
+                          {t("bills.details.totalExpenses") || "Total Expenses"}
+                        </span>
+                        <span>- ₹{totalExpenses.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    {!isPurchase && (
+                      <>
+                        <div className="summary-row">
+                          <span style={{ fontSize: "12px", color: "#64748b" }}>
+                            {t("bills.details.tax") || "Market Fee / Tax"}
+                          </span>
+                          <span style={{ fontSize: "12px", color: "#64748b" }}>
+                            + ₹{Number(bill.taxAmount).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="summary-row">
+                          <span style={{ fontSize: "12px", color: "#64748b" }}>
+                            {t("bills.details.commission") || "Commission"}
+                          </span>
+                          <span style={{ fontSize: "12px", color: "#64748b" }}>
+                            + ₹{Number(bill.serviceChargeAmount).toFixed(2)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    <div
+                      className="summary-row"
+                      style={{ fontWeight: 800, color: "var(--primary-main)" }}
+                    >
+                      <span>
+                        {t("bills.details.currentBillTotal") ||
+                          "Current Bill Total"}
+                      </span>
+                      <span>
+                        ₹
+                        {Number(bill.netTotal).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+
+                    <div
+                      className="summary-row"
+                      style={{
+                        color: "#64748b",
+                        borderTop: "1px dashed #e2e8f0",
+                        paddingTop: "8px",
+                        marginTop: "8px",
+                      }}
+                    >
+                      <span>
+                        {t("bills.details.previousBalance") ||
+                          "Previous Balance"}
+                      </span>
+                      <span>
+                        ₹
+                        {Number(bill.previousBalance).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="summary-row main-total">
+                      <span>
+                        {t("bills.details.finalAmount") || "FINAL AMOUNT"}
+                      </span>
+                      <span>
+                        ₹
+                        {(bill.finalAmount != null
+                          ? Number(bill.finalAmount)
+                          : Number(bill.previousBalance) + Number(bill.netTotal)
+                        ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {!isPurchase && upiString && (
+                    <div className="upi-section">
+                      <div className="upi-qr">
+                        <QRCodeSVG value={upiString} size={100} level="M" />
+                      </div>
+                      <div className="upi-info">
+                        <p className="upi-label">
+                          {t("bills.details.scanToPay") ||
+                            "Scan to Pay via UPI"}
+                        </p>
+                        <p className="upi-id">{config.upiId}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div
+              className="bg-white flex flex-col text-black w-full"
+              style={{ fontFamily: "'Inter', sans-serif" }}
+            >
+              {/* Header */}
+              <table className="excel-grid mb-2">
+                <tbody>
+                  <tr>
+                    <td colSpan={4} className="text-center py-4">
+                      <h1 className="text-3xl font-black uppercase tracking-tighter text-black m-0 leading-none pb-1">
+                        {bill.organization.name}
+                      </h1>
+                      {bill.organization.address && (
+                        <p className="text-[10px] font-bold text-black m-0 pt-1">
+                          {bill.organization.address}
+                        </p>
+                      )}
+                      <p className="text-[9px] font-mono text-black m-0">
+                        {bill.organization.phone &&
+                          `Ph: +91 ${bill.organization.phone}`}
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colSpan={2} className="w-1/2 align-top">
+                      <div className="text-[9px] font-black uppercase text-gray-500 italic underline mb-1">
+                        {isPurchase
+                          ? "Party Information (Farmer):"
+                          : "Party Information (Customer):"}
+                      </div>
+                      <div className="text-lg font-black uppercase leading-tight mt-1 text-black">
+                        {partyName}
+                      </div>
+                      {partyMobile && (
+                        <div className="text-[10px] font-mono font-bold text-gray-600 mt-1">
+                          Mobile: {partyMobile}
+                        </div>
+                      )}
+                      {isPurchase && bill.farmer?.village && (
+                        <div className="text-[10px] font-bold uppercase italic text-gray-600">
+                          Village: {bill.farmer.village}
+                        </div>
+                      )}
+                    </td>
+                    <td colSpan={2} className="p-0">
+                      <table className="w-full h-full text-[10px] border-none font-mono">
+                        <tbody>
+                          <tr className="border-b border-black">
+                            <td className="font-bold border-none bg-gray-50 w-24">
+                              Bill Number
+                            </td>
+                            <td className="border-none font-black text-right pr-2">
+                              #{bill.billNumber}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-black">
+                            <td className="font-bold border-none bg-gray-50">
+                              Date
+                            </td>
+                            <td className="border-none font-bold text-right pr-2">
+                              {bill?.billDate
+                                ? DateTime.fromISO(bill.billDate).toFormat(
+                                    "dd-MMM-yyyy",
+                                  )
+                                : "N/A"}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-black">
+                            <td className="font-bold border-none bg-gray-50">
+                              Munim Ref
+                            </td>
+                            <td className="border-none font-bold text-right pr-2">
+                              {bill.munimRef || "---"}
+                            </td>
+                          </tr>
+                          <tr className="border-none">
+                            <td className="font-bold border-none bg-gray-50">
+                              Vehicle No.
+                            </td>
+                            <td className="border-none font-bold text-right pr-2 uppercase">
+                              {bill.vehicleAgent?.vehicleNumber || "---"}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Items */}
+              <table className="excel-grid mt-2 flex-grow border-t-0 mb-0">
+                <thead>
+                  <tr>
+                    <th className="w-10">SI</th>
+                    <th>Item Description</th>
+                    <th className="w-20">Qty (Kg)</th>
+                    <th className="w-20">Qty (Unt)</th>
+                    <th className="w-24 text-right">Rate</th>
+                    <th className="w-32 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bill.items.map((item: any, idx: number) => {
+                    const lineTotal = Number(item.total);
+                    return (
+                      <tr key={idx}>
+                        <td className="text-center font-mono">{idx + 1}</td>
+                        <td>
+                          <span className="font-bold uppercase tracking-wider">
+                            {item.item.name}
+                          </span>
+                        </td>
+                        <td className="text-center font-mono text-[11px]">
+                          {Number(item.quantityKg).toFixed(2)}
+                        </td>
+                        <td className="text-center font-mono text-[11px]">
+                          {Number(item.quantityUnits)}
+                        </td>
+                        <td className="text-right font-mono text-[11px]">
+                          {Number(item.pricePerUnit).toFixed(2)}
+                        </td>
+                        <td className="text-right font-mono font-bold pr-2 text-[11px]">
+                          ₹
+                          {lineTotal.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {/* Visual padding for short item lists */}
+                  {[...Array(Math.max(0, 5 - bill.items.length))].map(
+                    (_, i) => (
+                      <tr key={`empty-${i}`} className="h-4">
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-100 font-black">
+                    <td
+                      colSpan={2}
+                      className="text-right italic uppercase tracking-wider"
+                    >
+                      Subtotals
+                    </td>
+                    <td className="text-center font-mono text-[11px]">
+                      {totals.weight.toFixed(2)}
+                    </td>
+                    <td className="text-center font-mono text-[11px]">
+                      {totals.units.toFixed(1)}
+                    </td>
+                    <td className="border-none"></td>
+                    <td className="text-right font-black font-mono text-[12px] pr-2">
+                      ₹
+                      {(itemsSubtotal || 0).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                       })}
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            )}
-          </div>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
 
-          {/* --- Charges & Summary Section --- */}
-          <div className="summary-grid">
-            {isPurchase ? (
-              <div className="charges-section">
-                <p className="section-label">
-                  {t("bills.details.chargesSection") || "Charges & Adjustments"}
-                </p>
-                <div className="charges-list">
-                  {/* Farmer Specific Charges */}
-                  <div className="charge-item">
-                    <span>
-                      {t("bills.details.labour") || "Labour / Hamali"}
-                    </span>
-                    <span>- ₹{Number(bill.labourCharges).toFixed(2)}</span>
+              {/* Calculations Footer */}
+              <div
+                className="grid grid-cols-2 mt-2 border border-black divide-x divide-black w-full"
+                style={{ pageBreakInside: "avoid" }}
+              >
+                <div className="p-2 space-y-1">
+                  <div className="text-[9px] font-black uppercase underline italic mb-2">
+                    Adjustments & Charges:
                   </div>
-                  <div className="charge-item">
-                    <span>
-                      {t("bills.details.freight") || "Freight / Vehicle"}
-                    </span>
-                    <span>- ₹{Number(bill.freightCharges).toFixed(2)}</span>
+                  <div className="space-y-0.5 text-[10px] w-full">
+                    {isPurchase ? (
+                      <>
+                        {Number(bill.labourCharges || 0) > 0 && (
+                          <div className="flex justify-between uppercase font-bold text-gray-700">
+                            <span>Labour / Hamali</span>
+                            <span className="font-mono text-black">
+                              - ₹{Number(bill.labourCharges).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {Number(bill.freightCharges || 0) > 0 && (
+                          <div className="flex justify-between uppercase font-bold text-gray-700">
+                            <span>
+                              Freight / Vehicle{" "}
+                              {bill.vehicleAgent?.name
+                                ? `(${bill.vehicleAgent.name})`
+                                : ""}
+                            </span>
+                            <span className="font-mono text-black">
+                              - ₹{Number(bill.freightCharges).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {Number(bill.advanceDeduction || 0) > 0 && (
+                          <div className="flex justify-between uppercase font-bold text-gray-700">
+                            <span>Advance Adjusted</span>
+                            <span className="font-mono text-black">
+                              - ₹{Number(bill.advanceDeduction).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {Number(bill.othersAmount || 0) > 0 && (
+                          <div className="flex justify-between uppercase font-bold text-gray-700">
+                            <span>Others ({bill.othersNote || "Misc"})</span>
+                            <span className="font-mono text-black">
+                              - ₹{Number(bill.othersAmount).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {totalExpenses === 0 && (
+                          <div className="text-gray-400 italic mt-2">
+                            No deductions applied.
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {Number(bill.taxAmount || 0) > 0 && (
+                          <div className="flex justify-between uppercase font-bold text-gray-700">
+                            <span>Market Fee / Tax</span>
+                            <span className="font-mono text-black">
+                              + ₹{Number(bill.taxAmount).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {Number(bill.serviceChargeAmount || 0) > 0 && (
+                          <div className="flex justify-between uppercase font-bold text-gray-700">
+                            <span>Commission</span>
+                            <span className="font-mono text-black">
+                              + ₹{Number(bill.serviceChargeAmount).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {Number(bill.taxAmount || 0) === 0 &&
+                          Number(bill.serviceChargeAmount || 0) === 0 && (
+                            <div className="text-gray-400 italic mt-2">
+                              No extra charges.
+                            </div>
+                          )}
+                      </>
+                    )}
                   </div>
-                  <div className="charge-item deduction">
-                    <span>
-                      {t("bills.details.advance") || "Advance Adjusted"}
-                    </span>
-                    <span>- ₹{Number(bill.advanceDeduction).toFixed(2)}</span>
+                  {!isPurchase && upiString && (
+                    <div className="flex items-center justify-start gap-4 mt-6 bg-gray-50 border border-gray-200 p-2">
+                      <QRCodeSVG value={upiString} size={50} level="M" />
+                      <div className="text-left">
+                        <div className="font-black text-[9px] uppercase tracking-widest text-gray-500">
+                          Scan to Pay via UPI
+                        </div>
+                        <div className="font-mono font-bold text-xs">
+                          {config.upiId}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="divide-y divide-black font-bold flex flex-col">
+                  <div className="grid grid-cols-2 p-1 text-[10px]">
+                    <div className="uppercase text-gray-500">
+                      Gross Subtotal
+                    </div>
+                    <div className="text-right font-mono">
+                      {(isPurchase && bill.grossTotal
+                        ? bill.grossTotal
+                        : itemsSubtotal || 0
+                      ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </div>
                   </div>
-                  <div className="charge-item">
-                    <span>
-                      {t("bills.details.others") || "Others"} (
-                      {bill.othersNote || "Adjustment"})
-                    </span>
-                    <span>- ₹{Number(bill.othersAmount).toFixed(2)}</span>
+                  <div className="grid grid-cols-2 p-1 text-[10px]">
+                    <div className="uppercase text-gray-500">
+                      {isPurchase ? "Total Deductions" : "Total Additions"}
+                    </div>
+                    <div
+                      className={`text-right font-mono ${isPurchase && totalExpenses > 0 ? "text-red-700" : ""}`}
+                    >
+                      {isPurchase ? "-" : "+"} ₹
+                      {isPurchase
+                        ? totalExpenses.toFixed(2)
+                        : (
+                            Number(bill.taxAmount || 0) +
+                            Number(bill.serviceChargeAmount || 0)
+                          ).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 p-1 bg-gray-100 text-[11px] font-black border-y-2 border-black">
+                    <div className="uppercase">Net Bill Total</div>
+                    <div className="text-right font-mono">
+                      {(bill.netTotal || 0).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 p-1 text-[10px] mt-auto">
+                    <div className="uppercase text-gray-500">
+                      Previous Balance
+                    </div>
+                    <div className="text-right font-mono">
+                      {(bill.previousBalance || 0).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 p-2 bg-black text-white text-center h-full flex flex-col justify-center min-h-[60px]">
+                    <div className="text-[8px] uppercase tracking-widest font-black opacity-70">
+                      Final Amount Payable
+                    </div>
+                    <div className="text-2xl font-black tracking-tighter">
+                      ₹
+                      {(bill.finalAmount != null
+                        ? Number(bill.finalAmount)
+                        : Number(bill.previousBalance) + Number(bill.netTotal)
+                      ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div />
-            )}
-
-            <div className="final-summary">
-              <div className="summary-box">
-                <div className="summary-row">
-                  <span>{t("bills.details.grossTotal") || "Gross Total"}</span>
-                  <span>
-                    ₹
-                    {Number(
-                      !isPurchase
-                        ? itemsSubtotal
-                        : bill.grossTotal || itemsSubtotal,
-                    ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                {isPurchase && totalExpenses > 0 && (
-                  <div className="summary-row" style={{ color: "#dc2626" }}>
-                    <span>
-                      {t("bills.details.totalExpenses") || "Total Expenses"}
-                    </span>
-                    <span>- ₹{totalExpenses.toFixed(2)}</span>
-                  </div>
-                )}
-
-                {!isPurchase && (
-                  <>
-                    <div className="summary-row">
-                      <span style={{ fontSize: "12px", color: "#64748b" }}>
-                        {t("bills.details.tax") || "Market Fee / Tax"}
-                      </span>
-                      <span style={{ fontSize: "12px", color: "#64748b" }}>
-                        + ₹{Number(bill.taxAmount).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="summary-row">
-                      <span style={{ fontSize: "12px", color: "#64748b" }}>
-                        {t("bills.details.commission") || "Commission"}
-                      </span>
-                      <span style={{ fontSize: "12px", color: "#64748b" }}>
-                        + ₹{Number(bill.serviceChargeAmount).toFixed(2)}
-                      </span>
-                    </div>
-                  </>
-                )}
-                <div
-                  className="summary-row"
-                  style={{ fontWeight: 800, color: "var(--primary-main)" }}
-                >
-                  <span>
-                    {t("bills.details.currentBillTotal") ||
-                      "Current Bill Total"}
-                  </span>
-                  <span>
-                    ₹
-                    {Number(bill.netTotal).toLocaleString("en-IN", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
-                </div>
-
-                <div
-                  className="summary-row"
-                  style={{
-                    color: "#64748b",
-                    borderTop: "1px dashed #e2e8f0",
-                    paddingTop: "8px",
-                    marginTop: "8px",
-                  }}
-                >
-                  <span>
-                    {t("bills.details.previousBalance") || "Previous Balance"}
-                  </span>
-                  <span>
-                    ₹
-                    {Number(bill.previousBalance).toLocaleString("en-IN", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
-                </div>
-
-                <div className="summary-row main-total">
-                  <span>
-                    {t("bills.details.finalAmount") || "FINAL AMOUNT"}
-                  </span>
-                  <span>
-                    ₹
-                    {(bill.finalAmount != null
-                      ? Number(bill.finalAmount)
-                      : Number(bill.previousBalance) + Number(bill.netTotal)
-                    ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-
-              {!isPurchase && upiString && (
-                <div className="upi-section">
-                  <div className="upi-qr">
-                    <QRCodeSVG value={upiString} size={100} level="M" />
-                  </div>
-                  <div className="upi-info">
-                    <p className="upi-label">
-                      {t("bills.details.scanToPay") || "Scan to Pay via UPI"}
-                    </p>
-                    <p className="upi-id">{config.upiId}</p>
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
+          )}
 
           {/* --- Footer Section --- */}
           <div className="bill-footer">
@@ -915,6 +1190,28 @@ export default function BillDetailPage() {
       </div>
 
       <style jsx global>{`
+        /* The "Excel" Grid Look */
+        .excel-grid {
+          border-collapse: collapse;
+          width: 100%;
+          border: 1.5pt solid #000;
+        }
+        .excel-grid th,
+        .excel-grid td {
+          border: 1px solid #000;
+          padding: 4px 6px;
+          text-align: left;
+          font-size: 0.75rem;
+          vertical-align: top;
+        }
+        .excel-grid th {
+          background-color: #f0f0f0;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          text-align: center;
+        }
+
         .bill-view-container {
           padding-bottom: 5rem;
           animation: fadeIn 0.4s ease-out;
