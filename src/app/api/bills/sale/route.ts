@@ -138,26 +138,31 @@ export async function POST(req: Request) {
 
     // ── Database Transaction ──
     const result = await prisma.$transaction(async (tx) => {
-      let finalBill;
+      let finalBill: Awaited<ReturnType<typeof tx.bill.create>> | null = null;
 
       if (existingBill) {
         // CONSOLIDATION LOGIC
         // 1. Calculate new overall subtotal
         // Sum existing items in DB + new items from request
         const existingSubtotal = Number(existingBill.subtotal);
-        const newItemsSubtotal = requestLineItems.reduce((acc, i) => acc + i.total, 0);
+        const newItemsSubtotal = requestLineItems.reduce(
+          (acc, i) => acc + i.total,
+          0,
+        );
         const totalSubtotal = existingSubtotal + newItemsSubtotal;
 
         // 2. Recalculate Tax & Service Charge on OVERALL subtotal
         let taxAmount = 0;
         let serviceChargeAmount = 0;
         if (config) {
-          taxAmount = config.taxType === "PERCENTAGE"
-            ? totalSubtotal * (Number(config.taxValue) / 100)
-            : Number(config.taxValue);
-          serviceChargeAmount = config.serviceChargeType === "PERCENTAGE"
-            ? totalSubtotal * (Number(config.serviceChargeValue) / 100)
-            : Number(config.serviceChargeValue);
+          taxAmount =
+            config.taxType === "PERCENTAGE"
+              ? totalSubtotal * (Number(config.taxValue) / 100)
+              : Number(config.taxValue);
+          serviceChargeAmount =
+            config.serviceChargeType === "PERCENTAGE"
+              ? totalSubtotal * (Number(config.serviceChargeValue) / 100)
+              : Number(config.serviceChargeValue);
         }
 
         const grossTotal = totalSubtotal + taxAmount + serviceChargeAmount;
@@ -186,8 +191,14 @@ export async function POST(req: Request) {
         let taxAmount = 0;
         let serviceChargeAmount = 0;
         if (config) {
-          taxAmount = config.taxType === "PERCENTAGE" ? subtotal * (Number(config.taxValue) / 100) : Number(config.taxValue);
-          serviceChargeAmount = config.serviceChargeType === "PERCENTAGE" ? subtotal * (Number(config.serviceChargeValue) / 100) : Number(config.serviceChargeValue);
+          taxAmount =
+            config.taxType === "PERCENTAGE"
+              ? subtotal * (Number(config.taxValue) / 100)
+              : Number(config.taxValue);
+          serviceChargeAmount =
+            config.serviceChargeType === "PERCENTAGE"
+              ? subtotal * (Number(config.serviceChargeValue) / 100)
+              : Number(config.serviceChargeValue);
         }
         const grossTotal = subtotal + taxAmount + serviceChargeAmount;
         const netTotal = grossTotal;
@@ -219,8 +230,10 @@ export async function POST(req: Request) {
             netTotal,
             previousBalance,
             finalAmount: netTotal + previousBalance,
+            munimRef,
             createdById: session.userId,
-            status: organization?.billingMethod === "CUSTOM" ? "PENDING" : "PAID",
+            status:
+              organization?.billingMethod === "CUSTOM" ? "PENDING" : "PAID",
             items: {
               create: requestLineItems,
             },

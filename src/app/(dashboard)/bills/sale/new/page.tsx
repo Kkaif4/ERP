@@ -16,6 +16,7 @@ import {
   Loader2,
   Info,
   UserPlus,
+  ArrowRight,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
@@ -226,9 +227,6 @@ export default function NewSaleBillPage() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // We check if the click is inside the search ref.
-      // Since dropdowns are portaled, clicking them might trigger this if we don't handle it.
-      // However, selecting an item triggers onMouseDown which handles the close before this.
       if (
         customerSearchRef.current &&
         !customerSearchRef.current.contains(event.target as Node)
@@ -449,7 +447,7 @@ export default function NewSaleBillPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedCustomer, lines, config, t, router]);
+  }, [selectedCustomer, lines, config, t, router, munimRef]);
 
   /* ── Ctrl+Enter global shortcut ── */
   useEffect(() => {

@@ -192,6 +192,7 @@ export const businessConfigSchema = z
       .optional()
       .default(0)
       .transform((v) => Number(v.toFixed(2))),
+    billingMethod: z.enum(["STANDARD", "CUSTOM"]).optional().default("STANDARD"),
   })
   .refine(
     (data) => {
