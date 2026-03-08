@@ -178,6 +178,7 @@ export default function BillDetailPage() {
   const partyData = isPurchase ? bill.farmer : bill.customer;
   const partyName = partyData?.name || "N/A";
   const partyMobile = partyData?.mobile || "";
+  const partyAddress = partyData?.address || "";
 
   // UPI QR Construction: upi://pay?pa=VPA&pn=NAME&am=AMOUNT&cu=INR
   const upiString = config?.upiId
@@ -496,65 +497,72 @@ export default function BillDetailPage() {
                       : t("bills.details.customerDetails") ||
                         "Customer Details"}
                   </h4>
-                  <span
+                  <div
                     style={{
-                      color: "#94a3b8",
-                      fontWeight: 700,
-                      fontSize: pageSize.startsWith("THERMAL")
-                        ? "11px"
-                        : "13px",
-                    }}
-                  >
-                    {isPurchase ? (
-                      <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                        {t("bills.details.farmerName") || "Farmer"}:
-                      </span>
-                    ) : (
-                      <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                        {t("bills.details.customerName") || "Name"}:
-                      </span>
-                    )}
-                  </span>{" "}
-                  <span
-                    style={{
-                      fontSize: pageSize.startsWith("THERMAL")
-                        ? "11px"
-                        : "11px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "2px",
+                      fontSize: "11px",
                       fontWeight: 600,
                     }}
                   >
-                    {partyName}
-                    {partyMobile && (
-                      <p
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <span
                         style={{
-                          margin: "2px 0 0",
-                          fontSize: "11px",
-                          color: "#475569",
-                          fontWeight: 600,
+                          color: "#94a3b8",
+                          fontWeight: 700,
+                          minWidth: "80px",
                         }}
                       >
-                        <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                          {t("bills.details.mobile") || "Mobile"}:
-                        </span>{" "}
-                        {partyMobile}
-                      </p>
-                    )}
-                  </span>
-                  {isPurchase && bill.farmer?.village && (
-                    <p
-                      style={{
-                        margin: "2px 0 0",
-                        fontSize: "11px",
-                        color: "#475569",
-                        fontWeight: 600,
-                      }}
-                    >
-                      <span style={{ color: "#94a3b8", fontWeight: 700 }}>
-                        {t("bills.details.village") || "Village"}:
-                      </span>{" "}
-                      {bill.farmer.village}
-                    </p>
-                  )}
+                        Name:
+                      </span>
+                      <span
+                        style={{
+                          color: "#475569",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {partyName}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <span
+                        style={{
+                          color: "#94a3b8",
+                          fontWeight: 700,
+                          minWidth: "80px",
+                        }}
+                      >
+                        Mobile:
+                      </span>
+                      <span style={{ color: "#475569", fontWeight: 600 }}>
+                        {partyMobile || "---"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <span
+                        style={{
+                          color: "#94a3b8",
+                          fontWeight: 700,
+                          minWidth: "80px",
+                        }}
+                      >
+                        Address:
+                      </span>
+                      <span
+                        style={{
+                          color: "#475569",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {partyData?.address ||
+                          (isPurchase ? bill.farmer?.village : "") ||
+                          "---"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 {isPurchase && bill.vehicleAgent && (
                   <div
@@ -696,25 +704,29 @@ export default function BillDetailPage() {
                         "Charges & Adjustments"}
                     </p>
                     <div className="charges-list">
-                      {/* Farmer Specific Charges */}
+                      {/* Always show all Farmer Specific Charges */}
                       <div className="charge-item">
                         <span>
                           {t("bills.details.labour") || "Labour / Hamali"}
                         </span>
-                        <span>- ₹{Number(bill.labourCharges).toFixed(2)}</span>
+                        <span>
+                          - ₹{Number(bill.labourCharges || 0).toFixed(2)}
+                        </span>
                       </div>
                       <div className="charge-item">
                         <span>
                           {t("bills.details.freight") || "Freight / Vehicle"}
                         </span>
-                        <span>- ₹{Number(bill.freightCharges).toFixed(2)}</span>
+                        <span>
+                          - ₹{Number(bill.freightCharges || 0).toFixed(2)}
+                        </span>
                       </div>
                       <div className="charge-item deduction">
                         <span>
                           {t("bills.details.advance") || "Advance Adjusted"}
                         </span>
                         <span>
-                          - ₹{Number(bill.advanceDeduction).toFixed(2)}
+                          - ₹{Number(bill.advanceDeduction || 0).toFixed(2)}
                         </span>
                       </div>
                       <div className="charge-item">
@@ -722,7 +734,9 @@ export default function BillDetailPage() {
                           {t("bills.details.others") || "Others"} (
                           {bill.othersNote || "Adjustment"})
                         </span>
-                        <span>- ₹{Number(bill.othersAmount).toFixed(2)}</span>
+                        <span>
+                          - ₹{Number(bill.othersAmount || 0).toFixed(2)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -869,24 +883,40 @@ export default function BillDetailPage() {
                   </tr>
                   <tr>
                     <td colSpan={2} className="w-1/2 align-top">
-                      <div className="text-[9px] font-black uppercase text-gray-500 italic underline mb-1">
+                      <div className="text-[9px] font-black uppercase text-gray-500 italic underline mb-2">
                         {isPurchase
                           ? "Party Information (Farmer):"
                           : "Party Information (Customer):"}
                       </div>
-                      <div className="text-lg font-black uppercase leading-tight mt-1 text-black">
-                        {partyName}
+
+                      <div className="flex flex-col gap-1 text-[10px] font-mono leading-tight">
+                        <div className="flex gap-2">
+                          <span className="font-bold text-gray-500 min-w-[100px]">
+                            Name:
+                          </span>
+                          <span className="font-bold text-black uppercase">
+                            {partyName}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="font-bold text-gray-500 min-w-[100px]">
+                            Mobile number:
+                          </span>
+                          <span className="font-bold text-black">
+                            {partyMobile || "---"}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="font-bold text-gray-500 min-w-[100px]">
+                            Address:
+                          </span>
+                          <span className="font-bold text-black uppercase">
+                            {partyAddress ||
+                              (isPurchase ? bill.farmer?.village : "") ||
+                              "---"}
+                          </span>
+                        </div>
                       </div>
-                      {partyMobile && (
-                        <div className="text-[10px] font-mono font-bold text-gray-600 mt-1">
-                          Mobile: {partyMobile}
-                        </div>
-                      )}
-                      {isPurchase && bill.farmer?.village && (
-                        <div className="text-[10px] font-bold uppercase italic text-gray-600">
-                          Village: {bill.farmer.village}
-                        </div>
-                      )}
                     </td>
                     <td colSpan={2} className="p-0">
                       <table className="w-full h-full text-[10px] border-none font-mono">

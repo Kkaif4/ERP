@@ -440,81 +440,40 @@ export async function generateBillPDF(
           .stroke();
         doc.undash();
       } else {
-        // Standard Header Format
+        // Standard Header Format - Centered (Matching UI)
         doc
-          .fillColor(COLORS.primary)
+          .fillColor(COLORS.text)
           .font(currentBold)
-          .fontSize(22)
-          .text(
-            bill.organization.name.toUpperCase(),
-            config?.logoBase64 ? 100 : margin,
-            40,
-          );
-
-        doc
-          .fillColor(COLORS.secondary)
-          .font(currentFont)
-          .fontSize(10)
-          .text(
-            "Vegetable Commission Agent & Wholesaler",
-            config?.logoBase64 ? 100 : margin,
-            65,
-          );
-
-        doc
-          .fillColor(COLORS.muted)
-          .fontSize(9)
-          .text(
-            `${bill.organization.address || ""} | +91 ${bill.organization.phone || ""}`,
-            config?.logoBase64 ? 100 : margin,
-            80,
-          );
-
-        // Right side Header (Bill Info)
-        doc
-          .fillColor(COLORS.primary)
-          .font(currentBold)
-          .fontSize(16)
-          .text(
-            bill.type === "PURCHASE"
-              ? t("purchaseBill", lang)
-              : t("saleBill", lang),
-            margin,
-            40,
-            { align: "right", width: contentWidth },
-          );
-
-        doc
-          .fillColor(COLORS.secondary)
-          .font(currentFont)
-          .fontSize(10)
-          .text(`${t("billNo", lang)}: #${bill.billNumber}`, margin, 60, {
-            align: "right",
+          .fontSize(28)
+          .text(bill.organization.name.toUpperCase(), margin, 40, {
+            align: "center",
             width: contentWidth,
+            characterSpacing: 1,
           });
 
-        const formattedBillDate = new Date(bill.billDate).toLocaleDateString(
-          lang === "en" ? "en-IN" : lang === "mr" ? "mr-IN" : "hi-IN",
-          { day: "2-digit", month: "short", year: "numeric" },
-        );
-        doc.text(`${t("date", lang)}: ${formattedBillDate}`, margin, 75, {
-          align: "right",
-          width: contentWidth,
-        });
-        if (bill.munimRef) {
-          doc.text(`${t("munimRef", lang)}: #${bill.munimRef}`, margin, 90, {
-            align: "right",
-            width: contentWidth,
-          });
+        let headerY = 70;
+        if (bill.organization.address) {
+          doc
+            .fillColor(COLORS.text)
+            .font(currentBold)
+            .fontSize(10)
+            .text(bill.organization.address, margin, headerY, {
+              align: "center",
+              width: contentWidth,
+            });
+          headerY += 14;
         }
 
-        // Divider
-        doc
-          .moveTo(margin, 110)
-          .lineTo(width - margin, 110)
-          .strokeColor(COLORS.border)
-          .lineWidth(1)
-          .stroke();
+        if (bill.organization.phone) {
+          doc
+            .fillColor(COLORS.text)
+            .font(currentFont)
+            .fontSize(9)
+            .text(`Ph: +91 ${bill.organization.phone}`, margin, headerY, {
+              align: "center",
+              width: contentWidth,
+            });
+        }
       }
 
       // 2. Party & Details Sections
@@ -581,71 +540,111 @@ export async function generateBillPDF(
           currentY += 12;
         }
       } else {
-        // Background for section titles
-        doc.rect(margin, currentY, contentWidth, 20).fill("#f8fafc");
+        // Bordered Party & Details Sections (Excel Look)
+        const gridTop = currentY;
+        const gridHeight = 100;
+        const colWidth = contentWidth / 2;
+
+        // Outer Border
+        doc
+          .lineWidth(1.5)
+          .rect(margin, gridTop, contentWidth, gridHeight)
+          .stroke(COLORS.text);
+
+        // Vertical Divider
+        doc
+          .lineWidth(1)
+          .moveTo(margin + colWidth, gridTop)
+          .lineTo(margin + colWidth, gridTop + gridHeight)
+          .stroke(COLORS.text);
+
+        // Row Dividers in Right Cell
+        const rowH = gridHeight / 4;
+        for (let i = 1; i < 4; i++) {
+          doc
+            .moveTo(margin + colWidth, gridTop + i * rowH)
+            .lineTo(margin + contentWidth, gridTop + i * rowH)
+            .stroke(COLORS.text);
+        }
+
+        // Left Cell Content: Party Info
+        const partyData =
+          bill.type === "PURCHASE" ? bill.farmer : bill.customer;
         doc
           .fillColor(COLORS.secondary)
           .font(currentBold)
-          .fontSize(9)
+          .fontSize(8)
           .text(
-            bill.type === "PURCHASE"
-              ? t("farmerDetails", lang)
-              : t("customerDetails", lang),
+            (bill.type === "PURCHASE"
+              ? "Farmer Information:"
+              : "Customer Information:"
+            ).toUpperCase(),
             margin + 10,
-            currentY + 6,
+            gridTop + 8,
           );
 
-        currentY += 30;
-        const party = bill.type === "PURCHASE" ? bill.farmer : bill.customer;
-        doc
-          .fillColor(COLORS.text)
-          .font(currentBold)
-          .fontSize(12)
-          .text(party?.name || "N/A", margin + 10, currentY);
-
-        if (party?.mobile) {
+        let partyMetaY = gridTop + 25;
+        const drawPartyRow = (label: string, value: string) => {
+          doc.fillColor(COLORS.secondary).font(currentBold).fontSize(9);
+          doc.text(label, margin + 10, partyMetaY);
           doc
-            .fillColor(COLORS.secondary)
-            .font(currentFont)
-            .fontSize(10)
-            .text(
-              `${t("mobile", lang)}: +91 ${party.mobile}`,
-              margin + 10,
-              currentY + 15,
-            );
-        }
-        if ((party as any)?.village) {
-          doc
-            .fillColor(COLORS.secondary)
-            .font(currentFont)
-            .fontSize(10)
-            .text(
-              `${t("village", lang)}: ${(party as any).village}`,
-              margin + (isThermal ? 10 : 200),
-              currentY + (isThermal ? 30 : 0),
-            );
-        }
+            .fillColor(COLORS.text)
+            .text(value, margin + 80, partyMetaY, { width: colWidth - 90 });
+          partyMetaY += 15;
+        };
 
-        if (bill.type === "PURCHASE" && bill.vehicleAgent) {
-          currentY += 45;
-          doc.rect(margin, currentY, contentWidth, 20).fill("#f8fafc");
-          doc
-            .fillColor(COLORS.secondary)
-            .font(currentBold)
-            .fontSize(9)
-            .text(t("vehicleAgent", lang), margin + 10, currentY + 6);
+        drawPartyRow("Name:", partyData?.name?.toUpperCase() || "N/A");
+        drawPartyRow("Mobile:", partyData?.mobile || "---");
+        drawPartyRow(
+          "Address:",
+          (
+            partyData?.address ||
+            (bill.type === "PURCHASE" ? (bill.farmer as any)?.village : "") ||
+            "---"
+          ).toUpperCase(),
+        );
 
-          currentY += 30;
+        // Right Cell Content: Bill Info Grid
+        const billInfo = [
+          { label: "Bill Number", value: `#${bill.billNumber}` },
+          {
+            label: "Date",
+            value: new Date(bill.billDate).toLocaleDateString(
+              lang === "en" ? "en-IN" : lang === "mr" ? "mr-IN" : "hi-IN",
+              { day: "2-digit", month: "short", year: "numeric" },
+            ),
+          },
+          { label: "Munim Ref", value: bill.munimRef || "---" },
+          {
+            label: "Vehicle No.",
+            value: bill.vehicleAgent?.vehicleNumber || "---",
+          },
+        ];
+
+        billInfo.forEach((info, i) => {
+          const y = gridTop + i * rowH;
+          // Label BG
+          doc
+            .fillColor("#f9fafb")
+            .rect(margin + colWidth + 1, y + 1, 80, rowH - 2)
+            .fill();
+
           doc
             .fillColor(COLORS.text)
             .font(currentBold)
-            .fontSize(12)
-            .text(
-              `${bill.vehicleAgent.name}${bill.vehicleAgent.vehicleNumber ? ` - ${bill.vehicleAgent.vehicleNumber}` : ""}`,
-              margin + 10,
-              currentY,
-            );
-        }
+            .fontSize(9)
+            .text(info.label, margin + colWidth + 8, y + (rowH - 9) / 2);
+
+          doc
+            .font(currentBold)
+            .fontSize(10)
+            .text(info.value, margin + colWidth + 90, y + (rowH - 10) / 2, {
+              align: "right",
+              width: colWidth - 100,
+            });
+        });
+
+        currentY = gridTop + gridHeight + 20;
       }
 
       // QR Code for Sales
@@ -791,179 +790,456 @@ export async function generateBillPDF(
           doc.undash();
         });
       } else {
-        doc
-          .fillColor(COLORS.background)
-          .rect(margin, tableTop, contentWidth, 25)
-          .fill();
-        doc.fillColor(COLORS.secondary).font(currentBold).fontSize(9);
-
+        // Excel Table Look
         const cols = {
-          sr: 30,
-          desc: 260,
-          units: 60,
-          weight: 80,
-          rate: 70,
+          sr: 35,
+          desc: 215,
+          kg: 65,
+          unt: 65,
+          rate: 65,
+          amount: 70,
         };
 
-        let xPos = margin + 10;
-        doc.text(t("sr", lang), xPos, tableTop + 8);
-        xPos += cols.sr;
-        doc.text(t("item", lang), xPos, tableTop + 8);
-        xPos += cols.desc;
-        doc.text(t("units", lang), xPos, tableTop + 8, {
-          align: "right",
-          width: cols.units,
-        });
-        xPos += cols.units + 10;
-        doc.text(t("kg", lang), xPos, tableTop + 8, {
-          align: "right",
-          width: cols.weight,
-        });
-        xPos += cols.weight + 10;
-        doc.text(t("price", lang), xPos, tableTop + 8, {
-          align: "right",
-          width: cols.rate,
-        });
+        const tableHeaderBottom = tableTop + 25;
+        const rowHeight = 22;
+        const minRows = Math.max(bill.items.length, 5);
+        const tableHeight = 25 + minRows * rowHeight + 25; // Header + Rows + Footer
 
-        currentY = tableTop + 30;
+        // Header Fill
+        doc
+          .fillColor("#f1f5f9")
+          .rect(margin, tableTop, contentWidth, 25)
+          .fill();
+
+        // Outer Border for Table
+        doc
+          .lineWidth(1.5)
+          .rect(margin, tableTop, contentWidth, tableHeight)
+          .stroke(COLORS.text);
+
+        // Header Text & Dividers
+        doc.fillColor(COLORS.text).font(currentBold).fontSize(9);
+        let xOff = margin;
+
+        const drawHeaderCol = (
+          label: string,
+          width: number,
+          align: "left" | "right" | "center" = "left",
+        ) => {
+          doc.text(label, xOff, tableTop + 8, { width: width, align: align });
+          xOff += width;
+          if (xOff < margin + contentWidth) {
+            doc
+              .lineWidth(1)
+              .moveTo(xOff, tableTop)
+              .lineTo(xOff, tableTop + tableHeight)
+              .stroke(COLORS.text);
+          }
+        };
+
+        drawHeaderCol("SI", cols.sr, "center");
+        drawHeaderCol("Item Description", cols.desc);
+        drawHeaderCol("Qty (Kg)", cols.kg, "center");
+        drawHeaderCol("Qty (Unt)", cols.unt, "center");
+        drawHeaderCol("Rate", cols.rate, "right");
+        drawHeaderCol("Amount", cols.amount, "right");
+
+        // Horizontal line after header
+        doc
+          .moveTo(margin, tableHeaderBottom)
+          .lineTo(margin + contentWidth, tableHeaderBottom)
+          .stroke(COLORS.text);
+
+        currentY = tableHeaderBottom;
         doc.font(currentFont).fillColor(COLORS.text).fontSize(10);
 
         bill.items.forEach((item, i) => {
-          if (currentY > doc.page.height - 150) {
+          if (currentY + rowHeight > doc.page.height - 100) {
             doc.addPage();
             currentY = 50;
-            // Redraw Table Header on new page
-            doc
-              .fillColor(COLORS.background)
-              .rect(margin, currentY - 10, contentWidth, 25)
-              .fill();
-            doc.fillColor(COLORS.secondary).font(currentBold).fontSize(9);
-            let hX = margin + 10;
-            doc.text(t("sr", lang), hX, currentY - 2);
-            hX += cols.sr;
-            doc.text(t("item", lang), hX, currentY - 2);
-            hX += cols.desc;
-            doc.text(t("units", lang), hX, currentY - 2, {
-              align: "right",
-              width: cols.units,
-            });
-            hX += cols.units + 10;
-            doc.text(t("kg", lang), hX, currentY - 2, {
-              align: "right",
-              width: cols.weight,
-            });
-            hX += cols.weight + 10;
-            doc.text(t("price", lang), hX, currentY - 2, {
-              align: "right",
-              width: cols.rate,
-            });
-            currentY += 25;
-            doc.font(currentFont).fillColor(COLORS.text).fontSize(10);
           }
 
           const itemY = currentY;
-          let curX = margin + 10;
-          doc.text(`${i + 1}`, curX, itemY);
+          let curX = margin;
+
+          doc.text(`${i + 1}`, curX, itemY + 6, {
+            width: cols.sr,
+            align: "center",
+          });
           curX += cols.sr;
-          doc.text(item.item.name, curX, itemY, { width: cols.desc });
+          doc.text(item.item.name.toUpperCase(), curX + 5, itemY + 6, {
+            width: cols.desc - 10,
+          });
           curX += cols.desc;
-          doc.text(Number(item.quantityUnits).toFixed(1), curX, itemY, {
-            align: "right",
-            width: cols.units,
+          doc.text(Number(item.quantityKg).toFixed(2), curX, itemY + 6, {
+            width: cols.kg,
+            align: "center",
           });
-          curX += cols.units + 10;
-          doc.text(Number(item.quantityKg).toFixed(1), curX, itemY, {
-            align: "right",
-            width: cols.weight,
+          curX += cols.kg;
+          doc.text(Number(item.quantityUnits).toFixed(1), curX, itemY + 6, {
+            width: cols.unt,
+            align: "center",
           });
-          curX += cols.weight + 10;
+          curX += cols.unt;
+          doc.text(Number(item.pricePerUnit).toFixed(2), curX, itemY + 6, {
+            width: cols.rate,
+            align: "right",
+          });
+          curX += cols.rate;
           doc.text(
-            Number(item.pricePerUnit).toLocaleString("en-IN"),
-            curX,
-            itemY,
-            { align: "right", width: cols.rate },
+            Number(item.total).toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+            }),
+            curX - 5,
+            itemY + 6,
+            { width: cols.amount, align: "right" },
           );
 
-          currentY += 25;
-          doc
-            .moveTo(margin, currentY - 5)
-            .lineTo(width - margin, currentY - 5)
-            .strokeColor("#f1f5f9")
-            .lineWidth(0.5)
-            .stroke();
+          currentY += rowHeight;
+          if (i < bill.items.length - 1 || minRows > bill.items.length) {
+            doc
+              .moveTo(margin, currentY)
+              .lineTo(margin + contentWidth, currentY)
+              .stroke(COLORS.text);
+          }
         });
-      }
 
-      // 4. Totals
-      currentY += 10;
-      const summaryStartX = isThermal ? margin : width - margin - 220;
-      const summaryWidth = isThermal ? contentWidth : 220;
-      const boxStartTop = currentY;
-
-      const itemsSubtotal = bill.items.reduce(
-        (acc, item) => acc + Number(item.total),
-        0,
-      );
-
-      const drawSummaryRow = (
-        label: string,
-        value: string,
-        isTotal = false,
-      ) => {
-        const rowColor = isThermal
-          ? COLORS.text
-          : isTotal
-            ? COLORS.primary
-            : COLORS.secondary;
-        doc
-          .fillColor(rowColor)
-          .font(isTotal ? currentBold : currentFont)
-          .fontSize(isTotal ? (isThermal ? 10 : 12) : isThermal ? 9 : 10);
-
-        // Let's use exact widths for summary parts too.
-        const labelWidth = isThermal ? contentWidth * 0.5 : 120;
-        const valWidth = isThermal ? contentWidth * 0.5 : 100;
-        const valX = summaryStartX + labelWidth;
-
-        doc.text(label, summaryStartX, currentY, { width: labelWidth });
-        doc.text(value, valX, currentY, {
-          align: "right",
-          width: valWidth,
-        });
-        currentY += isThermal ? 15 : 20;
-      };
-
-      drawSummaryRow(
-        t("grossTotal", lang),
-        `₹${Number(bill.grossTotal || itemsSubtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-      );
-
-      if (bill.type === "PURCHASE") {
-        const totalExp =
-          Number(bill.labourCharges || 0) +
-          Number(bill.freightCharges || 0) +
-          Number(bill.advanceDeduction || 0) +
-          Number(bill.othersAmount || 0);
-        if (totalExp > 0) {
-          drawSummaryRow(
-            t("adjustments", lang),
-            `- ₹${totalExp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-          );
+        // Fill empty rows if needed
+        for (let i = bill.items.length; i < minRows; i++) {
+          if (i > bill.items.length) {
+            currentY += rowHeight;
+          }
+          if (i < minRows - 1) {
+            doc
+              .moveTo(margin, currentY + rowHeight)
+              .lineTo(margin + contentWidth, currentY + rowHeight)
+              .stroke(COLORS.text);
+          }
         }
-      } else {
-        if (Number(bill.taxAmount) > 0)
-          drawSummaryRow(
-            t("taxFee", lang),
-            `+ ₹${Number(bill.taxAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-          );
-        if (Number(bill.serviceChargeAmount) > 0)
-          drawSummaryRow(
-            t("commission", lang),
-            `+ ₹${Number(bill.serviceChargeAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-          );
+
+        // Subtotal Footer Row in Table
+        const footerY = tableTop + tableHeight - 25;
+        doc
+          .moveTo(margin, footerY)
+          .lineTo(margin + contentWidth, footerY)
+          .stroke(COLORS.text);
+        doc
+          .fillColor("#f9fafb")
+          .rect(margin + 1, footerY + 1, contentWidth - 2, 23)
+          .fill();
+
+        doc.fillColor(COLORS.text).font(currentBold).fontSize(10);
+        doc.text("SUBTOTALS", margin, footerY + 7, {
+          width: cols.sr + cols.desc,
+          align: "right",
+        });
+
+        const totals = bill.items.reduce(
+          (acc, item) => ({
+            weight: acc.weight + Number(item.quantityKg),
+            units: acc.units + Number(item.quantityUnits),
+            total: acc.total + Number(item.total),
+          }),
+          { weight: 0, units: 0, total: 0 },
+        );
+
+        doc.text(
+          totals.weight.toFixed(2),
+          margin + cols.sr + cols.desc,
+          footerY + 7,
+          { width: cols.kg, align: "center" },
+        );
+        doc.text(
+          totals.units.toFixed(1),
+          margin + cols.sr + cols.desc + cols.kg,
+          footerY + 7,
+          { width: cols.unt, align: "center" },
+        );
+        doc.text(
+          `₹${totals.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+          margin + contentWidth - cols.amount - 5,
+          footerY + 7,
+          { width: cols.amount, align: "right" },
+        );
+
+        currentY = tableTop + tableHeight + 20;
       }
 
-      if (isThermal) {
+      // 4. Totals & Adjustments (Split Section)
+      currentY += 10;
+      if (!isThermal) {
+        const splitY = currentY;
+        const leftWidth = contentWidth * 0.55;
+        const rightWidth = contentWidth * 0.45;
+        const sectionHeight = 160;
+
+        // Draw outer border for the footer section
+        doc
+          .lineWidth(1.5)
+          .rect(margin, splitY, contentWidth, sectionHeight)
+          .stroke(COLORS.text);
+
+        // Vertical divider
+        doc
+          .lineWidth(1)
+          .moveTo(margin + leftWidth, splitY)
+          .lineTo(margin + leftWidth, splitY + sectionHeight)
+          .stroke(COLORS.text);
+
+        // --- Left Side: Adjustments & QR ---
+        let leftY = splitY + 10;
+        doc
+          .fillColor(COLORS.text)
+          .font(currentBold)
+          .fontSize(10)
+          .text("ADJUSTMENTS & CHARGES:", margin + 12, leftY);
+        leftY += 20;
+
+        const leftColX = margin + 12;
+        const leftValX = margin + leftWidth - 12;
+
+        const drawAdjRow = (
+          label: string,
+          value: string,
+          isNegative = false,
+        ) => {
+          doc.fillColor(COLORS.secondary).font(currentFont).fontSize(9);
+          doc.text(label, leftColX, leftY);
+          doc
+            .fillColor(COLORS.text)
+            .font(currentBold)
+            .text(value, leftColX, leftY, {
+              align: "right",
+              width: leftWidth - 24,
+            });
+          leftY += 15;
+        };
+
+        if (bill.type === "PURCHASE") {
+          // Always show all farmer charges even if 0
+          drawAdjRow(
+            "Labour / Hamali",
+            `- ₹${Number(bill.labourCharges || 0).toFixed(2)}`,
+          );
+          drawAdjRow(
+            "Freight / Vehicle",
+            `- ₹${Number(bill.freightCharges || 0).toFixed(2)}`,
+          );
+          drawAdjRow(
+            "Advance Adjusted",
+            `- ₹${Number(bill.advanceDeduction || 0).toFixed(2)}`,
+          );
+          drawAdjRow(
+            `Others (${bill.othersNote || "Misc"})`,
+            `- ₹${Number(bill.othersAmount || 0).toFixed(2)}`,
+          );
+        } else {
+          if (Number(bill.taxAmount) > 0)
+            drawAdjRow(
+              "Market Fee / Tax",
+              `+ ₹${Number(bill.taxAmount).toFixed(2)}`,
+            );
+          if (Number(bill.serviceChargeAmount) > 0)
+            drawAdjRow(
+              "Commission",
+              `+ ₹${Number(bill.serviceChargeAmount).toFixed(2)}`,
+            );
+          if (
+            Number(bill.taxAmount || 0) === 0 &&
+            Number(bill.serviceChargeAmount || 0) === 0
+          ) {
+            doc
+              .fillColor(COLORS.muted)
+              .font(currentFont)
+              .fontSize(9)
+              .text("No extra charges.", leftColX, leftY);
+          }
+        }
+
+        // UPI QR for Sales on Left Side
+        if (bill.type === "SALE" && config?.upiId) {
+          const upiString = `upi://pay?pa=${config.upiId}&pn=${encodeURIComponent(bill.organization.name)}&am=${bill.netTotal}&cu=INR`;
+          try {
+            // Reusing logic for QR but placing it in the left box
+            const qrDataUrl = await QRCode.toDataURL(upiString, {
+              margin: 1,
+              scale: 2,
+            });
+            const qrBuffer = Buffer.from(qrDataUrl.split(",")[1], "base64");
+            doc.image(qrBuffer, margin + 20, splitY + sectionHeight - 65, {
+              width: 50,
+            });
+            doc
+              .fillColor(COLORS.text)
+              .font(currentBold)
+              .fontSize(8)
+              .text(
+                "SCAN TO PAY VIA UPI",
+                margin + 80,
+                splitY + sectionHeight - 55,
+              );
+            doc
+              .font(currentFont)
+              .text(config.upiId, margin + 80, splitY + sectionHeight - 45);
+          } catch (e) {}
+        }
+
+        // --- Right Side: Totals & Black Box ---
+        let rightY = splitY;
+        const rightColX = margin + leftWidth + 10;
+        const rightValX = margin + contentWidth - 10;
+        const rightCellWidth = rightWidth - 20;
+
+        const drawTotalRow = (label: string, value: string, isNet = false) => {
+          doc
+            .fillColor(isNet ? COLORS.text : COLORS.secondary)
+            .font(isNet ? currentBold : currentFont)
+            .fontSize(isNet ? 11 : 9);
+          doc.text(label.toUpperCase(), rightColX, rightY + 8);
+          doc.text(value, rightColX, rightY + 8, {
+            align: "right",
+            width: rightCellWidth,
+          });
+          rightY += 28;
+          doc
+            .lineWidth(1)
+            .moveTo(margin + leftWidth, rightY)
+            .lineTo(margin + contentWidth, rightY)
+            .stroke(COLORS.text);
+        };
+
+        const itemsSubtotal = bill.items.reduce(
+          (acc, item) => acc + Number(item.total),
+          0,
+        );
+
+        drawTotalRow(
+          "Gross Subtotal",
+          `₹${Number(bill.grossTotal || itemsSubtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        );
+
+        const totalExp =
+          bill.type === "PURCHASE"
+            ? Number(bill.labourCharges || 0) +
+              Number(bill.freightCharges || 0) +
+              Number(bill.advanceDeduction || 0) +
+              Number(bill.othersAmount || 0)
+            : Number(bill.taxAmount || 0) +
+              Number(bill.serviceChargeAmount || 0);
+
+        drawTotalRow(
+          bill.type === "PURCHASE" ? "Total Deductions" : "Total Additions",
+          `${bill.type === "PURCHASE" ? "-" : "+"} ₹${totalExp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        );
+
+        drawTotalRow(
+          "Net Bill Total",
+          `₹${Number(bill.netTotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+          true,
+        );
+
+        drawTotalRow(
+          "Previous Balance",
+          `₹${Number(bill.previousBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        );
+
+        // FINAL BLACK BOX
+        const blackBoxHeight = splitY + sectionHeight - rightY;
+        doc
+          .fillColor("#000000")
+          .rect(
+            margin + leftWidth + 1,
+            rightY + 1,
+            rightWidth - 2,
+            blackBoxHeight - 2,
+          )
+          .fill();
+
+        doc
+          .fillColor("#ffffff")
+          .font(currentBold)
+          .fontSize(8)
+          .text(
+            "FINAL AMOUNT PAYABLE",
+            margin + leftWidth,
+            rightY + blackBoxHeight / 2 - 12,
+            { align: "center", width: rightWidth },
+          );
+
+        const finalAmt =
+          bill.finalAmount != null
+            ? Number(bill.finalAmount)
+            : Number(bill.previousBalance) + Number(bill.netTotal);
+        doc
+          .fontSize(18)
+          .text(
+            `₹${finalAmt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+            margin + leftWidth,
+            rightY + blackBoxHeight / 2 + 2,
+            { align: "center", width: rightWidth },
+          );
+
+        currentY = splitY + sectionHeight + 20;
+      } else {
+        // Thermal Mode Totals
+        const summaryStartX = margin;
+        const summaryWidth = contentWidth;
+
+        const drawSummaryRow = (
+          label: string,
+          value: string,
+          isTotal = false,
+        ) => {
+          doc
+            .fillColor(COLORS.text)
+            .font(isTotal ? currentBold : currentFont)
+            .fontSize(isTotal ? 10 : 9);
+
+          const labelWidth = contentWidth * 0.5;
+          const valWidth = contentWidth * 0.5;
+          const valX = summaryStartX + labelWidth;
+
+          doc.text(label, summaryStartX, currentY, { width: labelWidth });
+          doc.text(value, valX, currentY, {
+            align: "right",
+            width: valWidth,
+          });
+          currentY += 15;
+        };
+
+        const itemsSubtotal = bill.items.reduce(
+          (acc, item) => acc + Number(item.total),
+          0,
+        );
+        drawSummaryRow(
+          t("grossTotal", lang),
+          `₹${Number(bill.grossTotal || itemsSubtotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        );
+
+        if (bill.type === "PURCHASE") {
+          const totalExp =
+            Number(bill.labourCharges || 0) +
+            Number(bill.freightCharges || 0) +
+            Number(bill.advanceDeduction || 0) +
+            Number(bill.othersAmount || 0);
+          if (totalExp > 0)
+            drawSummaryRow(
+              t("adjustments", lang),
+              `- ₹${totalExp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+            );
+        } else {
+          if (Number(bill.taxAmount) > 0)
+            drawSummaryRow(
+              t("taxFee", lang),
+              `+ ₹${Number(bill.taxAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+            );
+          if (Number(bill.serviceChargeAmount) > 0)
+            drawSummaryRow(
+              t("commission", lang),
+              `+ ₹${Number(bill.serviceChargeAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+            );
+        }
+
         doc
           .moveTo(margin, currentY)
           .lineTo(width - margin, currentY)
@@ -973,26 +1249,12 @@ export async function generateBillPDF(
           .stroke();
         doc.undash();
         currentY += 5;
-      }
 
-      drawSummaryRow(
-        t("netTotal", lang),
-        `₹${Number(bill.netTotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-        true,
-      );
-
-      if (!isThermal) {
-        const boxHeight = currentY - boxStartTop + 10;
-        doc
-          .rect(
-            summaryStartX - 10,
-            boxStartTop - 5,
-            summaryWidth + 10,
-            boxHeight,
-          )
-          .strokeColor(COLORS.border)
-          .lineWidth(0.5)
-          .stroke();
+        drawSummaryRow(
+          t("netTotal", lang),
+          `₹${Number(bill.netTotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+          true,
+        );
       }
 
       // Footer
