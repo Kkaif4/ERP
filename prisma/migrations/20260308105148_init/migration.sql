@@ -173,9 +173,9 @@ CREATE TABLE "Bill" (
     "othersNote" TEXT,
     "billDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdById" UUID NOT NULL,
-    "status" "BillStatus" NOT NULL DEFAULT 'PAID',
     "vehicleAgentId" UUID,
     "munimRef" INTEGER,
+    "status" "BillStatus" NOT NULL DEFAULT 'PAID',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -272,8 +272,8 @@ CREATE TABLE "BusinessConfig" (
     "defaultPageSize" TEXT NOT NULL DEFAULT 'A4',
     "city" TEXT,
     "enableStockRestriction" BOOLEAN NOT NULL DEFAULT false,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
     "laborChargePerUnit" DECIMAL(8,2) NOT NULL DEFAULT 0,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "BusinessConfig_pkey" PRIMARY KEY ("id")
 );
