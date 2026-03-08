@@ -274,10 +274,6 @@ model Bill {
   vehicleAgent        VehicleAgent? @relation(fields: [vehicleAgentId], references: [id])
   munimRef            Int?
   status              BillStatus   @default(PAID)
-  vehicleAgentId      String?      @db.Uuid
-  vehicleAgent        VehicleAgent? @relation(fields: [vehicleAgentId], references: [id])
-  munimRef            Int?
-  status              BillStatus   @default(PAID)
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -416,7 +412,6 @@ model BusinessConfig {
   enableStockRestriction Boolean      @default(false)
   laborChargePerUnit     Decimal      @default(0) @db.Decimal(8, 2)
   updatedAt              DateTime     @updatedAt
-  laborChargePerUnit     Decimal      @default(0) @db.Decimal(8, 2)
 }
 
 // ─── Expenses ───────────────────────────────────────────
